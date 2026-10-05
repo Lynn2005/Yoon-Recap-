@@ -27,7 +27,7 @@ async function transcribeLargeVideo(filePath){
   for(const p of parts){
    const size=fs.statSync(path.join(job,p)).size;
    if(size>MAX_AUDIO_MB*1024*1024)throw new Error("Audio chunk is too large. Please retry with a shorter video.");
-   const r=await client.audio.transcriptions.create({file:fs.createReadStream(path.join(job,p)),model:"gpt-4o-transcribe",response_format:"text"});
+   const r=await client.audio.transcriptions.create({file:fs.createReadStream(path.join(job,p)),model:"gpt-4o-mini-transcribe",response_format:"text"});
    full+=(full?"\n":"")+(r.text||"");
   }
   return full;
