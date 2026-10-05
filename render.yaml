@@ -1,7 +1,6 @@
 services:
   - type: web
     name: yoon-recap
-    runtime: static
+    runtime: docker
     branch: main
-    buildCommand: ""
-    staticPublishPath: ./public
+    dockerfilePath: ./Dockerfile
