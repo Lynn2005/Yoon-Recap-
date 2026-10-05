@@ -1,10 +1,7 @@
 services:
   - type: web
     name: yoon-recap
-    runtime: docker
-    plan: free
+    runtime: static
     branch: main
-    healthCheckPath: /api/health
-    envVars:
-      - key: OPENAI_API_KEY
-        sync: false
+    buildCommand: ""
+    staticPublishPath: ./public
