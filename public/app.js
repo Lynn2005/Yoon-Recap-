@@ -64,41 +64,27 @@ async function getWhisper(){
   whisperer=await mod.pipeline("automatic-speech-recognition","Xenova/whisper-tiny",{dtype:"q8"});
   return whisperer;
 }
-function extractAudio(file){
-  return new Promise(async(resolve,reject)=>{
-    let url="";
-    try{
-      url=URL.createObjectURL(file);
-      const v=document.createElement("video");
-      v.src=url; v.preload="auto"; v.playsInline=true; v.muted=false;
-      await new Promise((res,rej)=>{
-        v.onloadedmetadata=res;
-        v.onerror=()=>rej(new Error("Video audio မဖတ်နိုင်ပါ"));
-      });
-      const AC=window.AudioContext||window.webkitAudioContext;
-      if(!AC)throw new Error("ဒီ browser မှာ audio processing မရပါ");
-      const ctx=new AC();
-      const src=ctx.createMediaElementSource(v);
-      const dest=ctx.createMediaStreamDestination();
-      src.connect(dest);
-      const chunks=[];
-      const mime=MediaRecorder.isTypeSupported("audio/webm;codecs=opus")?"audio/webm;codecs=opus":"audio/webm";
-      const rec=new MediaRecorder(dest.stream,{mimeType:mime});
-      rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
-      rec.onerror=()=>reject(new Error("Audio recording failed"));
-      rec.onstop=async()=>{
-        try{src.disconnect();await ctx.close();}catch(e){}
-        URL.revokeObjectURL(url);
-        resolve(new Blob(chunks,{type:rec.mimeType||"audio/webm"}));
-      };
-      rec.start(1000);
-      v.onended=()=>{if(rec.state!=="inactive")rec.stop()};
-      await v.play();
-    }catch(e){
-      if(url)URL.revokeObjectURL(url);
-      reject(e);
-    }
+let ffmpeg=null;
+async function getFFmpeg(){
+  if(ffmpeg)return ffmpeg;
+  showStatus("status2","⏳ Video audio extractor ကို ပထမဆုံးအကြိမ် download လုပ်နေပါတယ်...");
+  const mod=await import("https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.15/dist/esm/index.js");
+  ffmpeg=new mod.FFmpeg();
+  await ffmpeg.load({
+    coreURL:"https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm/ffmpeg-core.js",
+    wasmURL:"https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm/ffmpeg-core.wasm"
   });
+  return ffmpeg;
+}
+async function extractAudio(file){
+  const f=await getFFmpeg();
+  const name="input_"+Date.now()+".mp4";
+  const out="audio_"+Date.now()+".wav";
+  await f.writeFile(name,new Uint8Array(await file.arrayBuffer()));
+  await f.exec(["-i",name,"-vn","-ac","1","-ar","16000","-c:a","pcm_s16le",out]);
+  const data=await f.readFile(out);
+  try{await f.deleteFile(name);await f.deleteFile(out)}catch(e){}
+  return new Blob([data.buffer],{type:"audio/wav"});
 }
 function resample(audio,target){
   const data=audio.getChannelData(0), ratio=audio.sampleRate/target;
