@@ -9,9 +9,13 @@
 <body>
 <div class="app">
 <header class="topbar">
-  <div class="brand"><span class="logo">YR</span><div><b>Yoon Recap</b><small>Movie • Story • Myanmar AI</small></div></div>
-  <button class="ghost" onclick="toggleTheme()">☼</button>
+  <div class="brand"><span class="logo">YR</span><div><b>Yoon Recap</b><small>Movie • Story • Myanmar Creator</small></div></div>
+  <div class="topActions"><button class="ghost" onclick="toggleTheme()">☼</button><button class="newBtn" onclick="newProject()">＋ New Project</button></div>
 </header>
+<div class="projectBar">
+  <div><span class="dot"></span><div><b id="projectName">My Project</b><small id="saveState">Auto saved</small></div></div>
+  <button class="ghost" onclick="renameProject()">Rename</button>
+</div>
 <div class="layout">
 <aside class="sidebar">
   <div class="step active" data-step="1" onclick="go(1)"><i>01</i><span>Upload Video<small>ဗီဒီယိုထည့်ရန်</small></span></div>
@@ -21,7 +25,7 @@
 </aside>
 <main class="content">
 <section class="page active" id="page1">
-  <div class="hero"><span class="eyebrow">STEP 01</span><h1>Upload your story video</h1><p>Movie / Story video ကိုထည့်ပြီး Recap workflow ကို စတင်ပါ။</p></div>
+  <div class="hero"><span class="eyebrow">STEP 01</span><h1>Upload your story video</h1><p>Project ကို ဒီဖုန်း/browser ထဲမှာ သိမ်းထားပြီး Reload လုပ်လည်း ဆက်သုံးနိုင်ပါတယ်။</p></div>
   <div class="upload card" id="drop">
     <input id="videoFile" type="file" accept="video/*" hidden>
     <div class="uploadIcon">↑</div><h2>Video ထည့်ပါ</h2><p>MP4, MOV, WEBM • Max 900MB</p>
@@ -32,48 +36,34 @@
   <button class="next primary wide" onclick="processVideo()">Continue to Transcript →</button>
 </section>
 <section class="page" id="page2">
-  <div class="hero"><span class="eyebrow">STEP 02</span><h1>Transcript & Translate</h1><p>Video ထဲက စကားပြောစာသားကိုထုတ်ပြီး မြန်မာလိုပြန်ပါ။</p></div>
+  <div class="hero"><span class="eyebrow">STEP 02</span><h1>Transcript & Translate</h1><p>စာသားတွေကို project ထဲမှာ အလိုအလျောက်သိမ်းပေးပါတယ်။</p></div>
   <div class="grid2">
-    <div class="card"><div class="cardHead"><h3>Original Transcript</h3><button class="mini" onclick="transcribe()">AI Transcribe</button></div><textarea id="transcript" placeholder="Transcript ဒီမှာပေါ်ပါမယ်..."></textarea></div>
+    <div class="card"><div class="cardHead"><h3>Original Transcript</h3><button class="mini" onclick="transcribe()">Transcribe</button></div><textarea id="transcript" placeholder="Transcript ဒီမှာရေး/ထည့်ပါ..."></textarea></div>
     <div class="card"><div class="cardHead"><h3>Myanmar Recap</h3><button class="mini" onclick="translateText()">Translate</button></div><textarea id="translation" placeholder="မြန်မာဘာသာပြန် / Recap စာသား..."></textarea></div>
   </div>
   <div id="status2" class="status"></div>
   <button class="next primary wide" onclick="go(3)">Continue to AI Voice →</button>
 </section>
 <section class="page" id="page3">
-  <div class="hero"><span class="eyebrow">STEP 03</span><h1>Generate Myanmar AI Voice</h1><p>Recap စာသားကို AI အသံအဖြစ် ပြောင်းပါ။</p></div>
+  <div class="hero"><span class="eyebrow">STEP 03</span><h1>Myanmar Voice</h1><p>Paid API မလိုဘဲ ဖုန်း/browser ရဲ့ built-in speech voice ကို အသုံးပြုနိုင်ပါတယ်။</p></div>
   <div class="card">
-    <label>Voice Script</label><textarea id="voiceText" rows="9" placeholder="AI Voice ပြောင်းမယ့် မြန်မာစာသား..."></textarea>
-    <div class="voiceRow"><div><label>Voice</label><select id="voice"><option value="alloy">Alloy</option><option value="nova">Nova</option><option value="shimmer">Shimmer</option><option value="echo">Echo</option></select></div><button class="primary" onclick="generateVoice()">Generate Voice</button></div>
+    <label>Voice Script</label><textarea id="voiceText" rows="9" placeholder="မြန်မာစာသား..."></textarea>
+    <div class="voiceRow"><div><label>Browser Voice</label><select id="voice"><option value="">Default</option></select></div><button class="primary" onclick="generateVoice()">▶ Play Voice</button></div>
     <div id="status3" class="status"></div><audio id="audio" controls hidden></audio>
   </div>
   <button class="next primary wide" onclick="go(4)">Continue to Final →</button>
 </section>
 <section class="page" id="page4">
-  <div class="hero"><span class="eyebrow">STEP 04</span><h1>Final Video & Thumbnail</h1><p>Final video နဲ့ thumbnail ကို စစ်ပြီး download လုပ်ပါ။</p></div>
+  <div class="hero"><span class="eyebrow">STEP 04</span><h1>Final Video & Thumbnail</h1><p>ဖိုင်တွေကို ဒီ project ထဲမှာ မှတ်ထားပေးပါတယ်။</p></div>
   <div class="grid2">
     <div class="card"><h3>Final Video</h3><input id="finalFile" type="file" accept="video/*"><video id="finalPreview" controls hidden></video><button class="secondary" onclick="downloadFinal()">Download Video</button></div>
     <div class="card"><h3>Thumbnail</h3><input id="thumbFile" type="file" accept="image/*"><img id="thumbPreview" hidden><button class="secondary" onclick="downloadThumb()">Download Thumbnail</button></div>
   </div>
-  <div class="finish card"><b>✓ Project Ready</b><span>Yoon Recap • Myanmar Creator Workflow</span></div>
-  <button class="primary wide" onclick="go(1)">＋ New Project</button>
+  <div class="finish card"><b>✓ Project Ready</b><span>Reload လုပ်လည်း Project မပျောက်ပါ</span></div>
+  <button class="primary wide" onclick="newProject()">＋ New Project (Clean)</button>
 </section>
 </main></div>
-<footer>© 2026 Yoon Recap</footer>
+<footer>© 2026 Yoon Recap • Free Browser Workflow</footer>
 </div>
-<script>
-let current=1, videoURL='', finalURL='', thumbURL='';
-function go(n){current=n;document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById('page'+n).classList.add('active');document.querySelectorAll('.step').forEach(x=>x.classList.toggle('active',+x.dataset.step===n));window.scrollTo({top:0,behavior:'smooth'});}
-function toggleTheme(){document.body.classList.toggle('light');}
-const vf=document.getElementById('videoFile');
-vf.onchange=()=>{const f=vf.files[0];if(!f)return;videoURL=URL.createObjectURL(f);document.getElementById('video').src=videoURL;document.getElementById('videoPreview').hidden=false;document.getElementById('fileInfo').innerHTML='<b>'+f.name+'</b> • '+(f.size/1024/1024).toFixed(1)+' MB';};
-function processVideo(){if(!vf.files[0]){alert('Video ရွေးပေးပါ။');return}go(2);}
-async function transcribe(){const f=vf.files[0],s=document.getElementById('status2');if(!f){s.textContent='Video ရွေးပေးပါ။';return}s.textContent='⏳ AI transcription လုပ်နေပါတယ်...';const fd=new FormData();fd.append('video',f);try{const r=await fetch('/api/transcribe',{method:'POST',body:fd});const d=await r.json();if(!r.ok)throw Error(d.error);document.getElementById('transcript').value=d.text||'';s.textContent='✓ Transcript ပြီးပါပြီ';}catch(e){s.textContent='❌ '+e.message}}
-async function translateText(){const t=document.getElementById('transcript').value.trim(),s=document.getElementById('status2');if(!t){s.textContent='Transcript အရင်ထည့်ပါ။';return}s.textContent='⏳ မြန်မာဘာသာပြန်နေပါတယ်...';try{const r=await fetch('/api/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:t})});const d=await r.json();if(!r.ok)throw Error(d.error);document.getElementById('translation').value=d.text;s.textContent='✓ မြန်မာဘာသာပြန်ပြီးပါပြီ';}catch(e){s.textContent='❌ '+e.message}}
-async function generateVoice(){const text=document.getElementById('voiceText').value.trim()||document.getElementById('translation').value.trim(),s=document.getElementById('status3');if(!text){s.textContent='စာသားထည့်ပါ။';return}document.getElementById('voiceText').value=text;s.textContent='⏳ AI Voice ထုတ်နေပါတယ်...';try{const r=await fetch('/api/tts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,voice:document.getElementById('voice').value})});if(!r.ok){const d=await r.json();throw Error(d.error)}const b=await r.blob();const a=document.getElementById('audio');a.src=URL.createObjectURL(b);a.hidden=false;s.textContent='✓ Voice ready';}catch(e){s.textContent='❌ '+e.message}}
-document.getElementById('finalFile').onchange=e=>{const f=e.target.files[0];if(!f)return;finalURL=URL.createObjectURL(f);const v=document.getElementById('finalPreview');v.src=finalURL;v.hidden=false};
-document.getElementById('thumbFile').onchange=e=>{const f=e.target.files[0];if(!f)return;thumbURL=URL.createObjectURL(f);const i=document.getElementById('thumbPreview');i.src=thumbURL;i.hidden=false};
-function downloadFinal(){if(finalURL){const a=document.createElement('a');a.href=finalURL;a.download='Yoon-Recap-Final.mp4';a.click()}else alert('Final video ထည့်ပေးပါ။')}
-function downloadThumb(){if(thumbURL){const a=document.createElement('a');a.href=thumbURL;a.download='Yoon-Recap-Thumbnail.png';a.click()}else alert('Thumbnail ထည့်ပေးပါ။')}
-</script>
+<script src="/app.js"></script>
 </body></html>
