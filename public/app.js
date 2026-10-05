@@ -17,7 +17,7 @@ async function newProject(){
  const db=await openDB();await new Promise((res,rej)=>{const tx=db.transaction(STORE,"readwrite");const r=tx.objectStore(STORE).delete(KEY);tx.oncomplete=res;tx.onerror=()=>rej(tx.error)});
  location.reload();
 }
-$("videoFile").onchange=async e=>{const f=e.target.files[0];if(!f)return;if(f.size>900*1024*1024){alert("900MB ထက်မကြီးရပါ။");return}project.video=f;project.videoName=f.name;videoURL=URL.createObjectURL(f);$("video").src=videoURL;$("videoPreview").hidden=false;$("fileInfo").innerHTML="<b>"+f.name+"</b> • "+(f.size/1024/1024).toFixed(1)+" MB";await saveProject()};
+$("videoFile").onchange=async e=>{const f=e.target.files[0];if(!f)return;project.video=f;project.videoName=f.name;videoURL=URL.createObjectURL(f);$("video").src=videoURL;$("videoPreview").hidden=false;$("fileInfo").innerHTML="<b>"+f.name+"</b> • "+(f.size/1024/1024).toFixed(1)+" MB";await saveProject()};
 function processVideo(){if(!project.video){alert("Video ရွေးပေးပါ။");return}go(2)}
 function transcribe(){ $("status2").textContent="ℹ️ Free mode: Transcript ကို ကိုယ်တိုင် paste/type လုပ်နိုင်ပါတယ်။ Paid API မသုံးပါ။";$("transcript").focus()}
 function translateText(){const t=$("transcript").value.trim();if(!t){$("status2").textContent="Transcript အရင်ထည့်ပါ။";return} $("translation").value=t;saveProject();$("status2").textContent="✓ Text ကို Recap အတွက် ပြင်ပြီး သိမ်းထားပါတယ်။"}
