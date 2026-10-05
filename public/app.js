@@ -1,32 +1,218 @@
+import { pipeline } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1";
+
 const DB_NAME="yoon-recap-db", STORE="projects", KEY="current";
 let current=1, videoURL="", finalURL="", thumbURL="", project={};
+let whisperer=null, recording=false;
 const $=id=>document.getElementById(id);
+
 function openDB(){return new Promise((resolve,reject)=>{const r=indexedDB.open(DB_NAME,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(STORE))r.result.createObjectStore(STORE)};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
+
 async function saveProject(){
- project.name=project.name||"My Project"; project.transcript=$("transcript").value; project.translation=$("translation").value; project.voiceText=$("voiceText").value; project.voice=$("voice").value; project.step=current; project.updated=Date.now();
- const db=await openDB(); const tx=db.transaction(STORE,"readwrite"); tx.objectStore(STORE).put(project,KEY); $("saveState").textContent="Saved • "+new Date(project.updated).toLocaleTimeString(); 
+ try{
+  project.name=project.name||"My Project";
+  project.transcript=$("transcript").value;
+  project.translation=$("translation").value;
+  project.voiceText=$("voiceText").value;
+  project.voice=$("voice").value;
+  project.step=current;
+  project.updated=Date.now();
+  const db=await openDB();
+  const tx=db.transaction(STORE,"readwrite");
+  tx.objectStore(STORE).put(project,KEY);
+  $("saveState").textContent="Saved • "+new Date(project.updated).toLocaleTimeString();
+ }catch(e){console.warn("Save failed:",e)}
 }
+
 async function loadProject(){
- try{const db=await openDB();const r=db.transaction(STORE).objectStore(STORE).get(KEY);r.onsuccess=()=>{project=r.result||{name:"My Project"}; $("projectName").textContent=project.name||"My Project"; $("transcript").value=project.transcript||""; $("translation").value=project.translation||""; $("voiceText").value=project.voiceText||""; if(project.step)go(project.step); if(project.theme==="light")document.body.classList.add("light"); if(project.video){videoURL=URL.createObjectURL(project.video);$("video").src=videoURL;$("videoPreview").hidden=false;$("fileInfo").innerHTML="<b>"+(project.videoName||"Saved video")+"</b> • Saved locally";} if(project.thumb){thumbURL=URL.createObjectURL(project.thumb);$("thumbPreview").src=thumbURL;$("thumbPreview").hidden=false;} if(project.final){finalURL=URL.createObjectURL(project.final);$("finalPreview").src=finalURL;$("finalPreview").hidden=false;}}}catch(e){console.log(e)}
+ try{
+  const db=await openDB();
+  const r=db.transaction(STORE).objectStore(STORE).get(KEY);
+  r.onsuccess=()=>{
+   project=r.result||{name:"My Project"};
+   $("projectName").textContent=project.name||"My Project";
+   $("transcript").value=project.transcript||"";
+   $("translation").value=project.translation||"";
+   $("voiceText").value=project.voiceText||"";
+   if(project.step)showStep(project.step,false);
+   if(project.theme==="light")document.body.classList.add("light");
+   if(project.video){
+    videoURL=URL.createObjectURL(project.video);
+    $("video").src=videoURL;$("videoPreview").hidden=false;
+    $("fileInfo").innerHTML="<b>"+(project.videoName||"Saved video")+"</b> • Saved locally";
+   }
+   if(project.thumb){thumbURL=URL.createObjectURL(project.thumb);$("thumbPreview").src=thumbURL;$("thumbPreview").hidden=false}
+   if(project.final){finalURL=URL.createObjectURL(project.final);$("finalPreview").src=finalURL;$("finalPreview").hidden=false}
+  };
+ }catch(e){console.log(e)}
 }
-function go(n){current=n;document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));$("page"+n).classList.add("active");document.querySelectorAll(".step").forEach(x=>x.classList.toggle("active",+x.dataset.step===n));project.step=n;saveProject();window.scrollTo({top:0,behavior:"smooth"})}
+
+function showStep(n,save=true){
+ current=n;
+ document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
+ $("page"+n).classList.add("active");
+ document.querySelectorAll(".step").forEach(x=>x.classList.toggle("active",+x.dataset.step===n));
+ project.step=n;
+ if(save)saveProject();
+ window.scrollTo({top:0,behavior:"smooth"});
+}
+function go(n){showStep(n,true)}
 function toggleTheme(){document.body.classList.toggle("light");project.theme=document.body.classList.contains("light")?"light":"dark";saveProject()}
 async function renameProject(){const n=prompt("Project နာမည်ထည့်ပါ",project.name||"My Project");if(n&&n.trim()){project.name=n.trim();$("projectName").textContent=project.name;await saveProject()}}
 async function newProject(){
  if(!confirm("Project အသစ်လုပ်မယ်ဆိုရင် လက်ရှိ Project ရဲ့ data အကုန်ရှင်းမယ်။ ဆက်လုပ်မလား?"))return;
- const db=await openDB();await new Promise((res,rej)=>{const tx=db.transaction(STORE,"readwrite");const r=tx.objectStore(STORE).delete(KEY);tx.oncomplete=res;tx.onerror=()=>rej(tx.error)});
+ const db=await openDB();
+ await new Promise((res,rej)=>{const tx=db.transaction(STORE,"readwrite");tx.objectStore(STORE).delete(KEY);tx.oncomplete=res;tx.onerror=()=>rej(tx.error)});
  location.reload();
 }
-$("videoFile").onchange=async e=>{const f=e.target.files[0];if(!f)return;project.video=f;project.videoName=f.name;videoURL=URL.createObjectURL(f);$("video").src=videoURL;$("videoPreview").hidden=false;$("fileInfo").innerHTML="<b>"+f.name+"</b> • "+(f.size/1024/1024).toFixed(1)+" MB";await saveProject()};
-function processVideo(){if(!project.video){alert("Video ရွေးပေးပါ။");return}go(2)}
-function transcribe(){ $("status2").textContent="ℹ️ Free mode: Transcript ကို ကိုယ်တိုင် paste/type လုပ်နိုင်ပါတယ်။ Paid API မသုံးပါ။";$("transcript").focus()}
-function translateText(){const t=$("transcript").value.trim();if(!t){$("status2").textContent="Transcript အရင်ထည့်ပါ။";return} $("translation").value=t;saveProject();$("status2").textContent="✓ Text ကို Recap အတွက် ပြင်ပြီး သိမ်းထားပါတယ်။"}
-function populateVoices(){const list=speechSynthesis.getVoices(),sel=$("voice");sel.innerHTML='<option value="">Default</option>';list.forEach((v,i)=>{const o=document.createElement("option");o.value=i;o.textContent=v.name+" • "+v.lang;sel.appendChild(o)});if(project.voice)sel.value=project.voice}
-function generateVoice(){const text=$("voiceText").value.trim()||$("translation").value.trim();if(!text){$("status3").textContent="စာသားထည့်ပါ။";return}$("voiceText").value=text;saveProject();if(!("speechSynthesis" in window)){$("status3").textContent="ဒီ browser မှာ Voice မထောက်ပံ့ပါ။";return}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);const i=parseInt($("voice").value);const v=speechSynthesis.getVoices()[i];if(v)u.voice=v;u.lang=v?.lang||"my-MM";u.rate=.95;u.onstart=()=>$("status3").textContent="▶ Voice playing...";u.onend=()=>$("status3").textContent="✓ Voice ပြီးပါပြီ";speechSynthesis.speak(u)}
-$("transcript").oninput=saveProject;$("translation").oninput=saveProject;$("voiceText").oninput=saveProject;$("voice").onchange=saveProject;
-$("finalFile").onchange=async e=>{const f=e.target.files[0];if(!f)return;project.final=f;finalURL=URL.createObjectURL(f);$("finalPreview").src=finalURL;$("finalPreview").hidden=false;await saveProject()};
-$("thumbFile").onchange=async e=>{const f=e.target.files[0];if(!f)return;project.thumb=f;thumbURL=URL.createObjectURL(f);$("thumbPreview").src=thumbURL;$("thumbPreview").hidden=false;await saveProject()};
+
+$("videoFile").onchange=async e=>{
+ const f=e.target.files[0];if(!f)return;
+ project.video=f;project.videoName=f.name;
+ videoURL=URL.createObjectURL(f);
+ $("video").src=videoURL;$("videoPreview").hidden=false;
+ $("fileInfo").innerHTML="<b>"+f.name+"</b> • "+(f.size/1024/1024).toFixed(1)+" MB";
+ await saveProject();
+};
+
+function processVideo(){
+ if(!project.video){alert("Video ရွေးပေးပါ။");return}
+ go(2);
+}
+
+async function getWhisper(){
+ if(whisperer)return whisperer;
+ $("status2").textContent="⏳ Free Whisper model ကို ပထမဆုံးအကြိမ် download လုပ်နေပါတယ်...";
+ whisperer=await pipeline("automatic-speech-recognition","Xenova/whisper-tiny",{dtype:"q8"});
+ return whisperer;
+}
+
+function getVideoAudioBlob(file){
+ return new Promise(async(resolve,reject)=>{
+  try{
+   const url=URL.createObjectURL(file);
+   const video=document.createElement("video");
+   video.src=url;video.muted=false;video.playsInline=true;video.preload="auto";
+   await new Promise((res,rej)=>{video.onloadedmetadata=()=>res();video.onerror=()=>rej(new Error("Video audio မဖတ်နိုင်ပါ"))});
+   const AudioCtx=window.AudioContext||window.webkitAudioContext;
+   if(!AudioCtx)throw new Error("Web Audio မထောက်ပံ့ပါ");
+   const ctx=new AudioCtx();
+   const source=ctx.createMediaElementSource(video);
+   const dest=ctx.createMediaStreamDestination();
+   source.connect(dest);
+   const chunks=[];
+   const mime=["audio/webm;codecs=opus","audio/webm","audio/mp4"].find(x=>MediaRecorder.isTypeSupported(x))||"";
+   const rec=new MediaRecorder(dest.stream,mime?{mimeType:mime}:undefined);
+   rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+   rec.onerror=e=>reject(e.error||new Error("Audio recording failed"));
+   rec.onstop=async()=>{
+    try{
+     const blob=new Blob(chunks,{type:rec.mimeType||"audio/webm"});
+     source.disconnect();video.pause();URL.revokeObjectURL(url);await ctx.close();
+     resolve(blob);
+    }catch(e){reject(e)}
+   };
+   rec.start(1000);
+   video.onended=()=>{if(rec.state!=="inactive")rec.stop()};
+   await video.play();
+  }catch(e){reject(e)}
+ });
+}
+
+async function transcribe(){
+ if(recording)return;
+ if(!project.video){$("status2").textContent="⚠️ Page 1 မှာ Video အရင်ထည့်ပါ။";return}
+ recording=true;
+ const btn=document.querySelector('#page2 .mini');
+ if(btn)btn.disabled=true;
+ try{
+  $("status2").textContent="🎧 Video အသံကို ဖတ်နေပါတယ်...";
+  const audioBlob=await getVideoAudioBlob(project.video);
+  $("status2").textContent="🧠 Whisper က Transcript ထုတ်နေပါတယ်...";
+  const pipe=await getWhisper();
+  const buffer=await audioBlob.arrayBuffer();
+  const audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  const decoded=await audioCtx.decodeAudioData(buffer);
+  const target=16000;
+  const input=decoded.sampleRate===target
+    ? decoded.getChannelData(0)
+    : resample(decoded,target);
+  const result=await pipe(input,{chunk_length_s:30,stride_length_s:5,return_timestamps:false});
+  const text=(result.text||"").trim();
+  $("transcript").value=text;
+  await saveProject();
+  $("status2").textContent=text?"✓ Auto Transcript ပြီးပါပြီ":"⚠️ အသံထဲက စကားသံ မတွေ့ပါ။";
+  if(text){$("translation").value=text;await saveProject()}
+ }catch(e){
+  console.error(e);
+  $("status2").textContent="❌ Auto Transcript မအောင်မြင်ပါ: "+(e.message||e);
+ }finally{
+  recording=false;
+  if(btn)btn.disabled=false;
+ }
+}
+
+function resample(audio,targetRate){
+ const src=audio.sampleRate, data=audio.getChannelData(0);
+ if(src===targetRate)return data;
+ const ratio=src/targetRate, len=Math.round(data.length/ratio), out=new Float32Array(len);
+ for(let i=0;i<len;i++)out[i]=data[Math.min(Math.floor(i*ratio),data.length-1)];
+ return out;
+}
+
+function translateText(){
+ const t=$("transcript").value.trim();
+ if(!t){$("status2").textContent="Transcript အရင်ထည့်ပါ။";return}
+ $("translation").value=t;saveProject();
+ $("status2").textContent="✓ Text ကို Recap အတွက် ပြင်ပြီး သိမ်းထားပါတယ်။";
+}
+
+function populateVoices(){
+ if(!("speechSynthesis"in window))return;
+ const list=speechSynthesis.getVoices(),sel=$("voice");
+ sel.innerHTML='<option value="">Default</option>';
+ list.forEach((v,i)=>{const o=document.createElement("option");o.value=i;o.textContent=v.name+" • "+v.lang;sel.appendChild(o)});
+ if(project.voice)sel.value=project.voice;
+}
+
+function generateVoice(){
+ const text=$("voiceText").value.trim()||$("translation").value.trim();
+ if(!text){$("status3").textContent="စာသားထည့်ပါ။";return}
+ $("voiceText").value=text;saveProject();
+ if(!("speechSynthesis"in window)){$("status3").textContent="ဒီ browser မှာ Voice မထောက်ပံ့ပါ။";return}
+ speechSynthesis.cancel();
+ const u=new SpeechSynthesisUtterance(text);
+ const i=parseInt($("voice").value);
+ const v=speechSynthesis.getVoices()[i];
+ if(v)u.voice=v;
+ u.lang=v?.lang||"my-MM";u.rate=.95;
+ u.onstart=()=>$("status3").textContent="▶ Voice playing...";
+ u.onend=()=>$("status3").textContent="✓ Voice ပြီးပါပြီ";
+ speechSynthesis.speak(u);
+}
+
+$("transcript").oninput=saveProject;
+$("translation").oninput=saveProject;
+$("voiceText").oninput=saveProject;
+$("voice").onchange=saveProject;
+
+$("finalFile").onchange=async e=>{
+ const f=e.target.files[0];if(!f)return;
+ project.final=f;finalURL=URL.createObjectURL(f);
+ $("finalPreview").src=finalURL;$("finalPreview").hidden=false;await saveProject();
+};
+$("thumbFile").onchange=async e=>{
+ const f=e.target.files[0];if(!f)return;
+ project.thumb=f;thumbURL=URL.createObjectURL(f);
+ $("thumbPreview").src=thumbURL;$("thumbPreview").hidden=false;await saveProject();
+};
+
 function downloadBlob(blob,name){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click()}
 function downloadFinal(){if(project.final)downloadBlob(project.final,"Yoon-Recap-Final.mp4");else if(finalURL){const a=document.createElement("a");a.href=finalURL;a.download="Yoon-Recap-Final.mp4";a.click()}else alert("Final video ထည့်ပေးပါ။")}
 function downloadThumb(){if(project.thumb)downloadBlob(project.thumb,"Yoon-Recap-Thumbnail.png");else if(thumbURL){const a=document.createElement("a");a.href=thumbURL;a.download="Yoon-Recap-Thumbnail.png";a.click()}else alert("Thumbnail ထည့်ပေးပါ။")}
-speechSynthesis.onvoiceschanged=populateVoices; window.addEventListener("beforeunload",saveProject); populateVoices(); loadProject();
+
+if("speechSynthesis"in window){
+ speechSynthesis.onvoiceschanged=populateVoices;
+ populateVoices();
+}
+window.addEventListener("beforeunload",saveProject);
+loadProject();
