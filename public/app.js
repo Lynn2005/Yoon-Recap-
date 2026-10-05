@@ -11,7 +11,16 @@ function toggleTheme(){document.body.classList.toggle("light");project.theme=doc
 async function renameProject(){const n=prompt("Project နာမည်ထည့်ပါ",project.name||"My Project");if(n&&n.trim()){project.name=n.trim();$("projectName").textContent=project.name;await saveProject()}}
 async function newProject(){if(!confirm("Project အသစ်လုပ်မယ်ဆိုရင် လက်ရှိ Project ရဲ့ data အကုန်ရှင်းမယ်။ ဆက်လုပ်မလား?"))return;const db=await openDB();await new Promise((res,rej)=>{const tx=db.transaction(STORE,"readwrite");tx.objectStore(STORE).delete(KEY);tx.oncomplete=res;tx.onerror=()=>rej(tx.error)});location.reload()}
 $("videoFile").onchange=async e=>{const f=e.target.files[0];if(!f)return;project.video=f;project.videoName=f.name;videoURL=URL.createObjectURL(f);$("video").src=videoURL;$("videoPreview").hidden=false;$("fileInfo").innerHTML="<b>"+f.name+"</b> • "+(f.size/1024/1024).toFixed(1)+" MB";await saveProject()};
-function processVideo(){if(!project.video){alert("Video ရွေးပေးပါ။");return}go(2)}
+function processVideo(){
+ if(!project.video){
+  alert("Video ရွေးပေးပါ။");
+  return;
+ }
+ showStep(2,false);
+ $("status2").textContent="✓ Video ရပါပြီ။ Transcript လုပ်ရန် Transcribe ကိုနှိပ်ပါ။";
+ $("status2").style.display="block";
+ window.scrollTo({top:0,behavior:"smooth"});
+}
 
 async function getWhisper(){
  if(whisperer)return whisperer;
