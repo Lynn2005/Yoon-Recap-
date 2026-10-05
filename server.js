@@ -98,7 +98,16 @@ async function transcribeGeminiVideo(filePath,key){
   const job=path.join("work",path.basename(filePath)); fs.mkdirSync(job,{recursive:true});
   const audio=path.join(job,"audio.mp3");
   try{
-    await execFileAsync("ffmpeg",["-y","-i",filePath,"-vn","-ac","1","-ar","16000","-b:a","64k",audio],{maxBuffer:1024*1024});
+    let probe;
+    try{
+      probe=await execFileAsync("ffprobe",["-v","error","-select_streams","a:0","-show_entries","stream=codec_name","-of","default=nw=1:nk=1",filePath],{maxBuffer:1024*1024});
+    }catch{
+      throw new Error("ဒီ Video မှာ အသံ(Audio) မပါပါ။ အသံပါတဲ့ MP4/MOV video ကို ပြန်တင်ပါ။");
+    }
+    if(!String(probe.stdout||"").trim()){
+      throw new Error("ဒီ Video မှာ အသံ(Audio) မပါပါ။ အသံပါတဲ့ MP4/MOV video ကို ပြန်တင်ပါ။");
+    }
+    await execFileAsync("ffmpeg",["-y","-i",filePath,"-map","0:a:0","-vn","-ac","1","-ar","16000","-b:a","64k",audio],{maxBuffer:1024*1024});
     await execFileAsync("ffmpeg",["-y","-i",audio,"-f","segment","-segment_time","1500","-c","copy",path.join(job,"part-%03d.mp3")],{maxBuffer:1024*1024});
     const parts=fs.readdirSync(job).filter(x=>/^part-\d+\.mp3$/.test(x)).sort();
     let full="",allSrt=[],offset=0;
