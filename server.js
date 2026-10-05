@@ -133,6 +133,37 @@ async function transcribeGeminiVideo(filePath,key){
     return {text:full.trim(),srt:allSrt.filter(Boolean).map((x,i)=>x.replace(/^\d+/m,()=>String(i+1))).join("\n")};
   }finally{fs.rmSync(job,{recursive:true,force:true});}
 }
+app.post("/api/recap",async(req,res)=>{
+  const key=getGeminiKey(req);
+  if(!key)return res.status(400).json({error:"Gemini API Key ထည့်ပါ။"});
+  const transcript=String(req.body?.transcript||"").trim();
+  const style=String(req.body?.style||"cinematic").trim();
+  if(!transcript)return res.status(400).json({error:"Transcript မရှိပါ။"});
+  const prompt=`You are a professional movie recap writer for Myanmar TikTok/Facebook short videos.
+Return ONLY valid JSON with these keys:
+summary: concise Myanmar summary in 3-5 sentences,
+recap: natural spoken Burmese recap script, engaging and cinematic, 350-650 Burmese characters, no greetings, no hashtags, no invented events,
+hook: one short Burmese hook sentence,
+title: short Burmese recap title.
+Rules: preserve the events and meaning in the transcript, do not invent facts, use casual natural Myanmar wording, make the ending engaging. Style: ${style}.
+Transcript:
+${transcript.slice(0,120000)}`;
+  try{
+    const data=await geminiFetch("https://generativelanguage.googleapis.com/v1beta/interactions",{
+      method:"POST",geminiKey:key,headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        model:"gemini-3.5-flash",
+        input:[{type:"user_input",content:[{type:"text",text:prompt}]}],
+        generation_config:{response_mime_type:"application/json"}
+      })
+    });
+    let raw=data.output_text||"";
+    let parsed; try{parsed=JSON.parse(raw);}catch{
+      const m=raw.match(/\{[\s\S]*\}/); if(m)parsed=JSON.parse(m[0]); else throw new Error("AI JSON response မရပါ။");
+    }
+    res.json(parsed);
+  }catch(e){res.status(500).json({error:e.message||"Recap generation failed"});}
+});
 app.post("/api/transcribe",upload.single("video"),async(req,res)=>{
   if(!req.file)return res.status(400).json({error:"Video ရွေးပါ။"});
   const key=getGeminiKey(req);
