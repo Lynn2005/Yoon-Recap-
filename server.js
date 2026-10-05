@@ -1,7 +1,6 @@
 import "dotenv/config";
 import express from "express";
 import multer from "multer";
-import OpenAI from "openai";
 import fs from "fs";
 import path from "path";
 import {execFile} from "child_process";
@@ -13,47 +12,134 @@ const MAX_UPLOAD_MB=900;
 const MAX_AUDIO_MB=20;
 const upload=multer({dest:"uploads/",limits:{fileSize:MAX_UPLOAD_MB*1024*1024}});
 app.use(express.json({limit:"5mb"})); app.use(express.static("public"));
-app.get("/api/health",(req,res)=>res.json({ok:true,app:"Yoon Recap",maxUploadMB:MAX_UPLOAD_MB}));
-function getClient(){if(!process.env.OPENAI_API_KEY)return null;return new OpenAI({apiKey:process.env.OPENAI_API_KEY});}
-async function transcribeLargeVideo(filePath){
- const client=getClient(); if(!client)throw new Error("Render > Environment မှာ OPENAI_API_KEY ထည့်ပါ။");
- const job=path.join("work",path.basename(filePath)); fs.mkdirSync(job,{recursive:true});
- const audio=path.join(job,"audio.mp3");
- try{
-  await execFileAsync("ffmpeg",["-y","-i",filePath,"-vn","-ac","1","-ar","16000","-b:a","64k",audio],{maxBuffer:1024*1024});
-  await execFileAsync("ffmpeg",["-y","-i",audio,"-f","segment","-segment_time","1800","-c","copy",path.join(job,"part-%03d.mp3")],{maxBuffer:1024*1024});
-  const parts=fs.readdirSync(job).filter(x=>/^part-\d+\.mp3$/.test(x)).sort();
-  let full="";
-  for(const p of parts){
-   const size=fs.statSync(path.join(job,p)).size;
-   if(size>MAX_AUDIO_MB*1024*1024)throw new Error("Audio chunk is too large. Please retry with a shorter video.");
-   const r=await client.audio.transcriptions.create({file:fs.createReadStream(path.join(job,p)),model:"gpt-4o-mini-transcribe",response_format:"text"});
-   full+=(full?"\n":"")+(r.text||"");
+app.get("/api/health",(req,res)=>res.json({ok:true,app:"Yoon Recap",transcription:"Gemini 3.5 Transcribe",maxUploadMB:MAX_UPLOAD_MB}));
+
+function getGeminiKey(req){
+  return String(req.body?.geminiKey||req.headers["x-gemini-api-key"]||process.env.GEMINI_API_KEY||"").trim();
+}
+async function geminiFetch(url,options={}){
+  const key=options.geminiKey;
+  const headers={...(options.headers||{}),"x-goog-api-key":key};
+  const r=await fetch(url,{...options,headers});
+  const text=await r.text();
+  let data={}; try{data=text?JSON.parse(text):{}}catch{}
+  if(!r.ok) throw new Error(data?.error?.message||text||("Gemini API "+r.status));
+  return data;
+}
+async function uploadGeminiFile(filePath,mime,key){
+  const size=fs.statSync(filePath).size;
+  const start=await geminiFetch("https://generativelanguage.googleapis.com/upload/v1beta/files",{
+    method:"POST",geminiKey:key,
+    headers:{
+      "X-Goog-Upload-Protocol":"resumable",
+      "X-Goog-Upload-Command":"start",
+      "X-Goog-Upload-Header-Content-Length":String(size),
+      "X-Goog-Upload-Header-Content-Type":mime,
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({file:{display_name:path.basename(filePath)}})
+  });
+  const uploadUrl=start?.upload_url||start?.headers?.["x-goog-upload-url"];
+  if(!uploadUrl) throw new Error("Gemini upload URL မရပါ။");
+  const stream=fs.createReadStream(filePath);
+  const r=await fetch(uploadUrl,{
+    method:"POST",
+    headers:{
+      "Content-Length":String(size),
+      "X-Goog-Upload-Offset":"0",
+      "X-Goog-Upload-Command":"upload, finalize",
+      "Content-Type":mime
+    },
+    body:stream,
+    duplex:"half"
+  });
+  const text=await r.text(); let data={}; try{data=text?JSON.parse(text):{}}catch{}
+  if(!r.ok) throw new Error(data?.error?.message||text||("Gemini file upload "+r.status));
+  return data.file||data;
+}
+async function waitGeminiFile(name,key){
+  for(let i=0;i<120;i++){
+    const f=await geminiFetch("https://generativelanguage.googleapis.com/v1beta/"+name,{geminiKey:key});
+    if(f.state==="ACTIVE")return f;
+    if(f.state==="FAILED")throw new Error("Gemini file processing failed.");
+    await new Promise(r=>setTimeout(r,2500));
   }
-  return full;
- }finally{
-  fs.rmSync(job,{recursive:true,force:true});
- }
+  throw new Error("Gemini file processing timeout.");
+}
+function sec(v){
+  if(typeof v==="number")return v;
+  const s=String(v||"").trim();
+  if(!s)return 0;
+  const m=s.match(/(?:(\d+(?:\.\d+)?)h)?(?:(\d+(?:\.\d+)?)m)?(?:(\d+(?:\.\d+)?)s)?$/i);
+  if(m&&(m[1]||m[2]||m[3]))return (+m[1]||0)*3600+(+m[2]||0)*60+(+m[3]||0);
+  return parseFloat(s)||0;
+}
+function srtTime(x){
+  x=Math.max(0,x); const h=Math.floor(x/3600),m=Math.floor(x%3600/60),s=Math.floor(x%60),ms=Math.floor((x-Math.floor(x))*1000);
+  return String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0")+","+String(ms).padStart(3,"0");
+}
+function wordsToSrt(words,offset){
+  const out=[]; let group=[],start=null,lastEnd=0;
+  for(const w of words){
+    const text=String(w.text||"").trim(); if(!text)continue;
+    const a=offset+sec(w.start_offset), b=offset+sec(w.end_offset);
+    if(start===null)start=a;
+    group.push(text); lastEnd=b;
+    const joined=group.join(" ");
+    if(group.length>=11 || /[.!?၊။]$/.test(text) || (b-a>1.2 && group.length>=5)){
+      out.push((out.length+1)+"\n"+srtTime(start)+" --> "+srtTime(lastEnd)+"\n"+joined+"\n");
+      group=[]; start=null;
+    }
+  }
+  if(group.length)out.push((out.length+1)+"\n"+srtTime(start)+" --> "+srtTime(lastEnd)+"\n"+group.join(" ")+"\n");
+  return out.join("\n");
+}
+async function transcribeGeminiVideo(filePath,key){
+  const job=path.join("work",path.basename(filePath)); fs.mkdirSync(job,{recursive:true});
+  const audio=path.join(job,"audio.mp3");
+  try{
+    await execFileAsync("ffmpeg",["-y","-i",filePath,"-vn","-ac","1","-ar","16000","-b:a","64k",audio],{maxBuffer:1024*1024});
+    await execFileAsync("ffmpeg",["-y","-i",audio,"-f","segment","-segment_time","1500","-c","copy",path.join(job,"part-%03d.mp3")],{maxBuffer:1024*1024});
+    const parts=fs.readdirSync(job).filter(x=>/^part-\d+\.mp3$/.test(x)).sort();
+    let full="",allSrt=[],offset=0;
+    for(const p of parts){
+      const fp=path.join(job,p), size=fs.statSync(fp).size;
+      if(size>MAX_AUDIO_MB*1024*1024)throw new Error("Audio chunk is too large. Please use a shorter video.");
+      const file=await uploadGeminiFile(fp,"audio/mpeg",key);
+      const active=await waitGeminiFile(file.name,key);
+      const interaction=await geminiFetch("https://generativelanguage.googleapis.com/v1beta/interactions",{
+        method:"POST",geminiKey:key,headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          model:"gemini-3.5-transcribe",
+          input:[{type:"audio",uri:active.uri,mime_type:active.mimeType||"audio/mpeg"}],
+          generation_config:{transcription_config:{mode:{type:"verbatim",timestamp_granularities:["word"]}}}
+        })
+      });
+      const text=interaction.output_text||"";
+      full+=(full?"\n":"")+text;
+      const words=[];
+      for(const st of interaction.steps||[])for(const content of st.content||[])for(const ann of content.annotations||[]){
+        if(ann.type==="word_info")words.push(ann);
+      }
+      if(words.length)allSrt.push(wordsToSrt(words,offset));
+      const last=words.at(-1);
+      if(last)offset+=sec(last.end_offset);
+      else{
+        const n=Number((p.match(/part-(\d+)/)||[])[1]||0);
+        offset=(n+1)*1500;
+      }
+      try{await geminiFetch("https://generativelanguage.googleapis.com/v1beta/"+file.name,{method:"DELETE",geminiKey:key});}catch{}
+    }
+    return {text:full.trim(),srt:allSrt.filter(Boolean).map((x,i)=>x.replace(/^\d+/m,()=>String(i+1))).join("\n")};
+  }finally{fs.rmSync(job,{recursive:true,force:true});}
 }
 app.post("/api/transcribe",upload.single("video"),async(req,res)=>{
- if(!req.file)return res.status(400).json({error:"Video ရွေးပါ။"});
- try{
-  const text=await transcribeLargeVideo(req.file.path);
-  res.json({text,segments:0});
- }catch(e){res.status(500).json({error:e.message||"Transcription failed"});}
- finally{fs.unlink(req.file?.path,()=>{});}
+  if(!req.file)return res.status(400).json({error:"Video ရွေးပါ။"});
+  const key=getGeminiKey(req);
+  if(!key)return res.status(400).json({error:"Gemini API Key ထည့်ပါ။"});
+  try{const r=await transcribeGeminiVideo(req.file.path,key);res.json(r);}
+  catch(e){res.status(500).json({error:e.message||"Gemini transcription failed"});}
+  finally{fs.unlink(req.file?.path,()=>{});}
 });
 app.use((err,req,res,next)=>{if(err instanceof multer.MulterError&&err.code==="LIMIT_FILE_SIZE")return res.status(413).json({error:"File size 900MB ထက်မကျော်ရပါ။"});next(err);});
-app.post("/api/translate",async(req,res)=>{
- const text=String(req.body?.text||"").trim();if(!text)return res.status(400).json({error:"စာသားထည့်ပါ။"});
- const client=getClient();if(!client)return res.status(500).json({error:"Render > Environment မှာ OPENAI_API_KEY ထည့်ပါ။"});
- try{const r=await client.chat.completions.create({model:"gpt-4o-mini",messages:[{role:"system",content:"You are a Myanmar movie recap editor. Translate the transcript into natural, concise Burmese suitable for spoken movie/story recap narration. Preserve names and important details. Do not add explanations."},{role:"user",content:text}]});res.json({text:r.choices[0]?.message?.content||""});}
- catch(e){res.status(500).json({error:e.message||"Translation failed"});}
-});
-app.post("/api/tts",async(req,res)=>{
- const client=getClient();if(!client)return res.status(500).json({error:"Render > Environment မှာ OPENAI_API_KEY ထည့်ပါ။"});
- const text=String(req.body?.text||"").trim(),voice=req.body?.voice||"alloy";if(!text)return res.status(400).json({error:"စာသားထည့်ပါ။"});
- try{const speech=await client.audio.speech.create({model:"gpt-4o-mini-tts",voice,input:text,response_format:"mp3"});res.setHeader("Content-Type","audio/mpeg");res.send(Buffer.from(await speech.arrayBuffer()));}
- catch(e){res.status(500).json({error:e.message||"TTS failed"});}
-});
 app.listen(PORT,()=>console.log("Yoon Recap running on port "+PORT));
