@@ -1,204 +1,22 @@
-let step=1;
-let videoFile=null, finalFile=null, thumbFile=null, videoURL="", finalURL="", thumbURL="";
-let whisperer=null, busy=false;
-const $=id=>document.getElementById(id);
-
-function setStep(n){
-  step=n;
-  document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id==="page"+n));
-  document.querySelectorAll(".step").forEach(b=>b.classList.toggle("active",Number(b.dataset.step)===n));
-  window.scrollTo(0,0);
-  saveText();
-}
-function saveText(){
-  try{
-    localStorage.setItem("yoon-recap-text",JSON.stringify({
-      transcript:$("transcript").value,
-      translation:$("translation").value,
-      voiceText:$("voiceText").value
-    }));
-  }catch(e){}
-}
-function loadText(){
-  try{
-    const x=JSON.parse(localStorage.getItem("yoon-recap-text")||"{}");
-    $("transcript").value=x.transcript||"";
-    $("translation").value=x.translation||"";
-    $("voiceText").value=x.voiceText||"";
-  }catch(e){}
-}
-function showStatus(id,msg){$(id).textContent=msg}
-
-function chooseVideo(){
-  $("videoFile").click();
-}
-async function onVideo(e){
-  const f=e.target.files&&e.target.files[0];
-  if(!f)return;
-  videoFile=f;
-  if(videoURL)URL.revokeObjectURL(videoURL);
-  videoURL=URL.createObjectURL(f);
-  $("video").src=videoURL;
-  $("videoBox").hidden=false;
-  $("uploadTitle").textContent=f.name;
-  $("fileInfo").textContent=(f.size/1024/1024).toFixed(1)+" MB • Video ready";
-  showStatus("status2","Video ready");
-}
-function nextFromUpload(){
-  if(!videoFile){alert("အရင်ဆုံး Video ရွေးပါ။");return}
-  setStep(2);
-  showStatus("status2","✓ Video ရပါပြီ။ Auto Transcript သို့မဟုတ် ကိုယ်တိုင်ရေးနိုင်ပါတယ်။");
-}
-function copyTranscript(){
-  const t=$("transcript").value.trim();
-  if(!t){showStatus("status2","Transcript အရင်ထည့်ပါ။");return}
-  $("translation").value=t;
-  saveText();
-  showStatus("status2","✓ Transcript ကို Recap box ထဲကူးပြီးပါပြီ။");
-}
-
-async function getWhisper(){
-  if(whisperer)return whisperer;
-  showStatus("status2","⏳ Free Whisper model ကို download လုပ်နေပါတယ်...");
-  const mod=await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1");
-  whisperer=await mod.pipeline("automatic-speech-recognition","Xenova/whisper-tiny",{dtype:"q8"});
-  return whisperer;
-}
-let ffmpeg=null;
-async function getFFmpeg(){
-  if(ffmpeg)return ffmpeg;
-  showStatus("status2","⏳ Video audio extractor ကို ပထမဆုံးအကြိမ် download လုပ်နေပါတယ်...");
-  const mod=await import("https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.15/dist/esm/index.js");
-  ffmpeg=new mod.FFmpeg();
-  await ffmpeg.load({
-    coreURL:"https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm/ffmpeg-core.js",
-    wasmURL:"https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm/ffmpeg-core.wasm"
-  });
-  return ffmpeg;
-}
-async function extractAudio(file){
-  const f=await getFFmpeg();
-  const name="input_"+Date.now()+".mp4";
-  const out="audio_"+Date.now()+".wav";
-  await f.writeFile(name,new Uint8Array(await file.arrayBuffer()));
-  await f.exec(["-i",name,"-vn","-ac","1","-ar","16000","-c:a","pcm_s16le",out]);
-  const data=await f.readFile(out);
-  try{await f.deleteFile(name);await f.deleteFile(out)}catch(e){}
-  return new Blob([data.buffer],{type:"audio/wav"});
-}
-function resample(audio,target){
-  const data=audio.getChannelData(0), ratio=audio.sampleRate/target;
-  const out=new Float32Array(Math.round(data.length/ratio));
-  for(let i=0;i<out.length;i++)out[i]=data[Math.min(Math.floor(i*ratio),data.length-1)];
-  return out;
-}
-async function autoTranscript(){
-  if(busy)return;
-  if(!videoFile){showStatus("status2","⚠️ Page 1 မှာ Video အရင်ရွေးပါ။");return}
-  busy=true; $("autoBtn").disabled=true;
-  try{
-    showStatus("status2","🎧 Video အသံကို ဖတ်နေပါတယ်...");
-    const blob=await extractAudio(videoFile);
-    showStatus("status2","⏳ Whisper model download...");
-    const pipe=await getWhisper();
-    showStatus("status2","🧠 Transcript လုပ်နေပါတယ်...");
-    const buf=await blob.arrayBuffer();
-    const AC=window.AudioContext||window.webkitAudioContext;
-    const ctx=new AC();
-    const decoded=await ctx.decodeAudioData(buf);
-    await ctx.close();
-    const input=decoded.sampleRate===16000?decoded.getChannelData(0):resample(decoded,16000);
-    const result=await pipe(input,{chunk_length_s:30,stride_length_s:5,return_timestamps:false});
-    const text=(result.text||"").trim();
-    $("transcript").value=text;
-    if(!$("translation").value.trim())$("translation").value=text;
-    if(!$("voiceText").value.trim())$("voiceText").value=$("translation").value;
-    saveText();
-    showStatus("status2",text?"✓ Auto Transcript ပြီးပါပြီ။":"⚠️ စကားသံ မတွေ့ပါ။");
-  }catch(e){
-    console.error(e);
-    showStatus("status2","❌ "+(e.message||"Auto Transcript မအောင်မြင်ပါ"));
-  }finally{
-    busy=false;$("autoBtn").disabled=false;
-  }
-}
-function populateVoices(){
-  if(!("speechSynthesis" in window))return;
-  const s=$("voice"), old=s.value;
-  s.innerHTML='<option value="">Default Voice</option>';
-  speechSynthesis.getVoices().forEach((v,i)=>{
-    const o=document.createElement("option");
-    o.value=String(i); o.textContent=v.name+" • "+v.lang; s.appendChild(o);
-  });
-  if(old)s.value=old;
-}
-function playVoice(){
-  const text=$("voiceText").value.trim()||$("translation").value.trim();
-  if(!text){showStatus("status3","စာသားထည့်ပါ။");return}
-  $("voiceText").value=text;saveText();
-  if(!("speechSynthesis" in window)){showStatus("status3","ဒီ browser မှာ Speech Voice မရပါ။");return}
-  speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(text);
-  const i=parseInt($("voice").value);
-  const voices=speechSynthesis.getVoices();
-  const v=Number.isNaN(i)?null:voices[i];
-  if(v){u.voice=v;u.lang=v.lang}else u.lang="my-MM";
-  u.rate=.95;
-  u.onstart=()=>showStatus("status3","▶ Voice playing...");
-  u.onend=()=>showStatus("status3","✓ Voice ပြီးပါပြီ");
-  speechSynthesis.speak(u);
-}
-function onFinal(e){
-  finalFile=e.target.files&&e.target.files[0];
-  if(!finalFile)return;
-  if(finalURL)URL.revokeObjectURL(finalURL);
-  finalURL=URL.createObjectURL(finalFile);
-  $("finalPreview").src=finalURL;$("finalPreview").hidden=false;
-}
-function onThumb(e){
-  thumbFile=e.target.files&&e.target.files[0];
-  if(!thumbFile)return;
-  if(thumbURL)URL.revokeObjectURL(thumbURL);
-  thumbURL=URL.createObjectURL(thumbFile);
-  $("thumbPreview").src=thumbURL;$("thumbPreview").hidden=false;
-}
-function downloadFile(file,name){
-  if(!file){alert("ဖိုင်အရင်ထည့်ပါ။");return}
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(file);a.download=name;a.click();
-  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-}
-function newProject(){
-  if(!confirm("Project အသစ်စမလား?"))return;
-  try{localStorage.removeItem("yoon-recap-text")}catch(e){}
-  location.reload();
-}
-document.addEventListener("DOMContentLoaded",()=>{
-  loadText();
-  $("chooseVideo").addEventListener("click",chooseVideo);
-  $("videoFile").addEventListener("change",onVideo);
-  $("next1").addEventListener("click",nextFromUpload);
-  $("autoBtn").addEventListener("click",autoTranscript);
-  $("copyBtn").addEventListener("click",copyTranscript);
-  $("next2").addEventListener("click",()=>{saveText();$("voiceText").value=$("voiceText").value||$("translation").value;saveText();setStep(3)});
-  $("next3").addEventListener("click",()=>setStep(4));
-  $("back2").addEventListener("click",()=>setStep(1));
-  $("back3").addEventListener("click",()=>setStep(2));
-  $("back4").addEventListener("click",()=>setStep(3));
-  $("playBtn").addEventListener("click",playVoice);
-  $("finalFile").addEventListener("change",onFinal);
-  $("thumbFile").addEventListener("change",onThumb);
-  $("downloadFinal").addEventListener("click",()=>downloadFile(finalFile,"Yoon-Recap-Final.mp4"));
-  $("downloadThumb").addEventListener("click",()=>downloadFile(thumbFile,"Yoon-Recap-Thumbnail.png"));
-  $("newBtn").addEventListener("click",newProject);
-  $("newBtn2").addEventListener("click",newProject);
-  document.querySelectorAll(".step").forEach(b=>b.addEventListener("click",()=>{
-    const n=Number(b.dataset.step);
-    if(n===1||videoFile||n===2)setStep(n);
-  }));
-  ["transcript","translation","voiceText"].forEach(id=>$(id).addEventListener("input",saveText));
-  if("speechSynthesis" in window){
-    speechSynthesis.onvoiceschanged=populateVoices;
-    populateVoices();
-  }
-});
+let step=1,videoFile=null,finalFile=null,thumbFile=null,videoURL="",finalURL="",thumbURL="",whisperer=null,ffmpeg=null,busy=false;const $=id=>document.getElementById(id);
+function setStep(n){step=n;document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id==="page"+n));document.querySelectorAll(".step").forEach(b=>b.classList.toggle("active",+b.dataset.step===n));scrollTo(0,0);saveText()}
+function saveText(){try{localStorage.setItem("yoon-recap-text",JSON.stringify({srt:$("srt").value,translation:$("translation").value,voiceText:$("voiceText").value,caption:$("caption").value,thumbPrompt:$("thumbPrompt").value}))}catch(e){}}
+function loadText(){try{let x=JSON.parse(localStorage.getItem("yoon-recap-text")||"{}");$("srt").value=x.srt||"";$("translation").value=x.translation||"";$("voiceText").value=x.voiceText||"";$("caption").value=x.caption||"";$("thumbPrompt").value=x.thumbPrompt||""}catch(e){}}
+function status(id,m){$(id).textContent=m}
+function onVideo(e){let f=e.target.files?.[0];if(!f)return;videoFile=f;if(videoURL)URL.revokeObjectURL(videoURL);videoURL=URL.createObjectURL(f);$("video").src=videoURL;$("videoBox").hidden=false;$("uploadTitle").textContent=f.name;$("fileInfo").textContent=(f.size/1048576).toFixed(1)+" MB • Video ready"}
+async function getFFmpeg(){if(ffmpeg)return ffmpeg;status("status2","⏳ Audio extractor loading...");let m=await import("https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.15/dist/esm/index.js");ffmpeg=new m.FFmpeg();await ffmpeg.load({coreURL:"https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm/ffmpeg-core.js",wasmURL:"https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm/ffmpeg-core.wasm"});return ffmpeg}
+async function extractAudio(file){let f=await getFFmpeg(),id=Date.now(),n="in"+id+".mp4",o="a"+id+".wav";await f.writeFile(n,new Uint8Array(await file.arrayBuffer()));await f.exec(["-i",n,"-vn","-ac","1","-ar","16000","-c:a","pcm_s16le",o]);let d=await f.readFile(o);try{await f.deleteFile(n);await f.deleteFile(o)}catch(e){}return new Blob([d],{type:"audio/wav"})}
+async function getWhisper(){if(whisperer)return whisperer;status("status2","⏳ Whisper model downloading...");let m=await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1");whisperer=await m.pipeline("automatic-speech-recognition","Xenova/whisper-tiny",{dtype:"q8"});return whisperer}
+function st(sec){let h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=Math.floor(sec%60),ms=Math.floor(sec%1*1000);return String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0")+","+String(ms).padStart(3,"0")}
+function makeSrt(t,d){let w=t.trim().split(/\s+/).filter(Boolean),n=Math.max(1,Math.ceil(w.length/12)),c=Math.ceil(w.length/n),a=[];for(let i=0;i<n;i++){let q=w.slice(i*c,(i+1)*c).join(" ");if(q){let x=(d||n*5)*i/n,y=(d||n*5)*(i+1)/n;a.push((a.length+1)+"\n"+st(x)+" --> "+st(y)+"\n"+q+"\n")}}return a.join("\n")}
+async function autoSrt(){if(busy)return;if(!videoFile){status("status2","⚠️ Video အရင်ရွေးပါ။");return}busy=true;$("autoBtn").disabled=true;try{status("status2","🎧 Video audio ဖတ်နေပါတယ်...");let b=await extractAudio(videoFile),p=await getWhisper();status("status2","🧠 Transcript လုပ်နေပါတယ်...");let ac=new(window.AudioContext||window.webkitAudioContext)(),d=await ac.decodeAudioData(await b.arrayBuffer());await ac.close();let r=await p(d.getChannelData(0),{chunk_length_s:30,stride_length_s:5,return_timestamps:false}),t=(r.text||"").trim();if(!t)throw Error("စကားသံ မတွေ့ပါ");$("srt").value=makeSrt(t,$("video").duration||30);if(!$("translation").value)$("translation").value=t;if(!$("voiceText").value)$("voiceText").value=$("translation").value;saveText();status("status2","✓ Auto SRT ပြီးပါပြီ။")}catch(e){console.error(e);status("status2","❌ "+(e.message||"Auto SRT failed"))}finally{busy=false;$("autoBtn").disabled=false}}
+function dl(blob,name){let a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+function copy(t){if(!t)return;navigator.clipboard?.writeText(t)}
+function copyTranscript(){let t=$("srt").value.replace(/^\d+\s*$/gm,"").replace(/\d\d:\d\d:\d\d,\d{3}\s*-->\s*\d\d:\d\d:\d\d,\d{3}/g,"").replace(/\n{2,}/g,"\n").trim();$("translation").value=t;saveText();copy(t);status("status2","✓ Transcript copied to Myanmar box")}
+function voices(){if(!("speechSynthesis"in window))return;let s=$("voice"),old=s.value;s.innerHTML='<option value="">Default Voice</option>';speechSynthesis.getVoices().forEach((v,i)=>{let o=document.createElement("option");o.value=i;o.textContent=v.name+" • "+v.lang;s.appendChild(o)});s.value=old}
+function playVoice(){let t=$("voiceText").value.trim()||$("translation").value.trim();if(!t){status("status3","Script ထည့်ပါ။");return}speechSynthesis.cancel();let u=new SpeechSynthesisUtterance(t),i=+$("voice").value,v=speechSynthesis.getVoices();if(!Number.isNaN(i)&&v[i]){u.voice=v[i];u.lang=v[i].lang}else u.lang="my-MM";u.rate=+$("rate").value||.95;u.onstart=()=>status("status3","▶ Voice playing...");u.onend=()=>status("status3","✓ Voice preview ပြီးပါပြီ");speechSynthesis.speak(u)}
+function style(){let p=$("stylePreview");p.style.transform=$("mirrorOn").checked?"scaleX(-1)":"";p.style.filter=$("blurOn").checked?"blur(3px)":"";p.style.aspectRatio=$("verticalOn").checked?"9/16":"16/9";p.style.maxWidth=$("verticalOn").checked?"260px":"100%";p.style.margin="14px auto 0"}
+function thumbPrompt(){let s=$("translation").value.trim()||"dramatic movie recap";$("thumbPrompt").value="Create a high-click TikTok movie recap thumbnail, realistic cinematic Myanmar social-media style, vertical 9:16, dramatic lighting, expressive main character, strong emotion, clean background, space for Burmese title, no watermark. Story: "+s.slice(0,350);saveText();copy($("thumbPrompt").value)}
+function caption(){let s=$("translation").value.trim(),x=(s.split(/[.!?\n]/).find(q=>q.trim())||"ဒီဇာတ်လမ်းမှာ မထင်မှတ်တာတွေ ဖြစ်လာပါတယ်").trim();$("caption").value=x+" 😱\nအဆုံးထိကြည့်ပြီး ဘာဖြစ်မလဲ ခန့်မှန်းကြည့်ပါ။\n\n#fyp #foryou #tiktokmyanmar #movie #movierecap #recap #မြန်မာ";saveText()}
+function newProject(){if(confirm("Project အသစ်စမလား?")){localStorage.removeItem("yoon-recap-text");location.reload()}}
+document.addEventListener("DOMContentLoaded",()=>{loadText();$("chooseVideo").onclick=()=>$("videoFile").click();$("videoFile").onchange=onVideo;$("next1").onclick=()=>{if(!videoFile)return alert("Video အရင်ရွေးပါ။");setStep(2);status("status2","✓ Video ready")};$("autoBtn").onclick=autoSrt;$("downloadSrt").onclick=()=>{if($("srt").value)dl(new Blob([$("srt").value],{type:"text/plain"}),"Yoon-Recap.srt")};$("copySrt").onclick=()=>copy($("srt").value);$("copyTranscript").onclick=copyTranscript;$("next2").onclick=()=>{if(!$("voiceText").value)$("voiceText").value=$("translation").value;saveText();setStep(3)};$("back2").onclick=()=>setStep(1);$("back3").onclick=()=>setStep(2);$("next3").onclick=()=>setStep(4);$("back4").onclick=()=>setStep(3);$("playBtn").onclick=playVoice;$("makeThumbPrompt").onclick=thumbPrompt;$("makeCaption").onclick=caption;$("copyCaption").onclick=()=>copy($("caption").value);$("newBtn").onclick=newProject;$("newBtn2").onclick=newProject;["blurOn","mirrorOn","verticalOn"].forEach(x=>$(x).onchange=style);$("finalFile").onchange=e=>{finalFile=e.target.files?.[0];if(finalFile){finalURL=URL.createObjectURL(finalFile);$("finalPreview").src=finalURL;$("finalPreview").hidden=false}};$("thumbFile").onchange=e=>{thumbFile=e.target.files?.[0];if(thumbFile){thumbURL=URL.createObjectURL(thumbFile);$("thumbPreview").src=thumbURL;$("thumbPreview").hidden=false}};$("downloadFinal").onclick=()=>finalFile&&dl(finalFile,"Yoon-Recap-Final.mp4");$("downloadThumb").onclick=()=>thumbFile&&dl(thumbFile,"Yoon-Recap-Thumbnail.png");document.querySelectorAll(".step").forEach(b=>b.onclick=()=>{let n=+b.dataset.step;if(n===1||videoFile)setStep(n)});["srt","translation","voiceText","caption"].forEach(x=>$(x).oninput=saveText);if("speechSynthesis"in window){speechSynthesis.onvoiceschanged=voices;voices()}});
