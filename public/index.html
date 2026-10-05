@@ -3,67 +3,84 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Yoon Recap</title>
+<title>Yoon Recap Studio</title>
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <div class="app">
 <header class="topbar">
-  <div class="brand"><span class="logo">YR</span><div><b>Yoon Recap</b><small>Movie • Story • Myanmar Creator</small></div></div>
-  <div class="topActions"><button class="ghost" onclick="toggleTheme()">☼</button><button class="newBtn" onclick="newProject()">＋ New Project</button></div>
+  <div class="brand"><span class="logo">YR</span><div><b>Yoon Recap</b><small>Free Movie Recap Studio</small></div></div>
+  <button id="newBtn" class="ghost">＋ New</button>
 </header>
-<div class="projectBar">
-  <div><span class="dot"></span><div><b id="projectName">My Project</b><small id="saveState">Auto saved</small></div></div>
-  <button class="ghost" onclick="renameProject()">Rename</button>
-</div>
-<div class="layout">
-<aside class="sidebar">
-  <div class="step active" data-step="1" onclick="go(1)"><i>01</i><span>Upload Video<small>ဗီဒီယိုထည့်ရန်</small></span></div>
-  <div class="step" data-step="2" onclick="go(2)"><i>02</i><span>Transcript & Translate<small>စာသား / ဘာသာပြန်</small></span></div>
-  <div class="step" data-step="3" onclick="go(3)"><i>03</i><span>AI Voice<small>မြန်မာအသံ</small></span></div>
-  <div class="step" data-step="4" onclick="go(4)"><i>04</i><span>Final Video<small>Export / Thumbnail</small></span></div>
-</aside>
+
+<nav class="steps">
+  <button class="step active" data-step="1"><strong>01</strong><span>Upload<small>Video</small></span></button>
+  <button class="step" data-step="2"><strong>02</strong><span>Transcript<small>စာသား</small></span></button>
+  <button class="step" data-step="3"><strong>03</strong><span>AI Voice<small>အသံ</small></span></button>
+  <button class="step" data-step="4"><strong>04</strong><span>Final<small>Export</small></span></button>
+</nav>
+
 <main class="content">
 <section class="page active" id="page1">
-  <div class="hero"><span class="eyebrow">STEP 01</span><h1>Upload your story video</h1><p>Project ကို ဒီဖုန်း/browser ထဲမှာ သိမ်းထားပြီး Reload လုပ်လည်း ဆက်သုံးနိုင်ပါတယ်။</p></div>
-  <div class="upload card" id="drop">
+  <div class="hero"><span>STEP 01</span><h1>Upload Story Video</h1><p>ဗီဒီယိုကို ရွေးပြီး Next နှိပ်ပါ။</p></div>
+  <div class="card upload">
     <input id="videoFile" type="file" accept="video/*" hidden>
-    <div class="uploadIcon">↑</div><h2>Video ထည့်ပါ</h2><p>MP4, MOV, WEBM • Local upload • No fixed MB limit</p>
-    <button class="primary" onclick="document.getElementById('videoFile').click()">Choose Video</button>
-    <div id="fileInfo"></div>
+    <div class="uploadIcon">＋</div>
+    <h2 id="uploadTitle">Video ရွေးပါ</h2>
+    <p id="fileInfo">MP4 / MOV / WEBM</p>
+    <button id="chooseVideo" class="primary">Choose Video</button>
   </div>
-  <div class="preview card" id="videoPreview" hidden><video id="video" controls></video></div>
-  <button class="next primary wide" onclick="processVideo()">Continue to Transcript →</button>
+  <div id="videoBox" class="card" hidden><video id="video" controls playsinline></video></div>
+  <button id="next1" class="primary wide">Next → Transcript</button>
 </section>
+
 <section class="page" id="page2">
-  <div class="hero"><span class="eyebrow">STEP 02</span><h1>Transcript & Translate</h1><p>စာသားတွေကို project ထဲမှာ အလိုအလျောက်သိမ်းပေးပါတယ်။</p></div>
-  <div class="grid2">
-    <div class="card"><div class="cardHead"><h3>Original Transcript</h3><button class="mini" onclick="transcribe()">Transcribe</button></div><textarea id="transcript" placeholder="Transcript ဒီမှာရေး/ထည့်ပါ..."></textarea></div>
-    <div class="card"><div class="cardHead"><h3>Myanmar Recap</h3><button class="mini" onclick="translateText()">Translate</button></div><textarea id="translation" placeholder="မြန်မာဘာသာပြန် / Recap စာသား..."></textarea></div>
-  </div>
-  <div id="status2" class="status"></div>
-  <button class="next primary wide" onclick="go(3)">Continue to AI Voice →</button>
-</section>
-<section class="page" id="page3">
-  <div class="hero"><span class="eyebrow">STEP 03</span><h1>Myanmar Voice</h1><p>Paid API မလိုဘဲ ဖုန်း/browser ရဲ့ built-in speech voice ကို အသုံးပြုနိုင်ပါတယ်။</p></div>
+  <div class="hero"><span>STEP 02</span><h1>Transcript</h1><p>Auto Transcript မရရင် စာသားကို ကိုယ်တိုင်ထည့်လို့ရပါတယ်။</p></div>
   <div class="card">
-    <label>Voice Script</label><textarea id="voiceText" rows="9" placeholder="မြန်မာစာသား..."></textarea>
-    <div class="voiceRow"><div><label>Browser Voice</label><select id="voice"><option value="">Default</option></select></div><button class="primary" onclick="generateVoice()">▶ Play Voice</button></div>
-    <div id="status3" class="status"></div><audio id="audio" controls hidden></audio>
+    <div class="row"><h3>Original Transcript</h3><button id="autoBtn" class="mini">Auto Transcript</button></div>
+    <textarea id="transcript" placeholder="Transcript စာသားထည့်ပါ..."></textarea>
+    <div id="status2" class="status"></div>
   </div>
-  <button class="next primary wide" onclick="go(4)">Continue to Final →</button>
+  <div class="card">
+    <div class="row"><h3>Myanmar Recap Script</h3><button id="copyBtn" class="mini">Copy Transcript</button></div>
+    <textarea id="translation" placeholder="မြန်မာ Recap စာသားကို ဒီမှာပြင်ရေးပါ..."></textarea>
+  </div>
+  <div class="navrow"><button id="back2" class="secondary">← Back</button><button id="next2" class="primary">Next → AI Voice</button></div>
 </section>
+
+<section class="page" id="page3">
+  <div class="hero"><span>STEP 03</span><h1>Myanmar AI Voice</h1><p>Browser ထဲက free Speech Voice ကိုသုံးပြီး အသံစမ်းနိုင်ပါတယ်။</p></div>
+  <div class="card">
+    <label>Voice Script</label>
+    <textarea id="voiceText" placeholder="Recap script..."></textarea>
+    <label>Voice</label>
+    <select id="voice"><option value="">Default Voice</option></select>
+    <button id="playBtn" class="primary wide">▶ Play Voice</button>
+    <div id="status3" class="status"></div>
+  </div>
+  <div class="navrow"><button id="back3" class="secondary">← Back</button><button id="next3" class="primary">Next → Final</button></div>
+</section>
+
 <section class="page" id="page4">
-  <div class="hero"><span class="eyebrow">STEP 04</span><h1>Final Video & Thumbnail</h1><p>ဖိုင်တွေကို ဒီ project ထဲမှာ မှတ်ထားပေးပါတယ်။</p></div>
-  <div class="grid2">
-    <div class="card"><h3>Final Video</h3><input id="finalFile" type="file" accept="video/*"><video id="finalPreview" controls hidden></video><button class="secondary" onclick="downloadFinal()">Download Video</button></div>
-    <div class="card"><h3>Thumbnail</h3><input id="thumbFile" type="file" accept="image/*"><img id="thumbPreview" hidden><button class="secondary" onclick="downloadThumb()">Download Thumbnail</button></div>
+  <div class="hero"><span>STEP 04</span><h1>Final Video & Thumbnail</h1><p>Final video နဲ့ thumbnail ကို ထည့်ပြီး download လုပ်နိုင်ပါတယ်။</p></div>
+  <div class="card">
+    <h3>Final Video</h3>
+    <input id="finalFile" type="file" accept="video/*">
+    <video id="finalPreview" controls playsinline hidden></video>
+    <button id="downloadFinal" class="secondary">Download Final Video</button>
   </div>
-  <div class="finish card"><b>✓ Project Ready</b><span>Reload လုပ်လည်း Project မပျောက်ပါ</span></div>
-  <button class="primary wide" onclick="newProject()">＋ New Project (Clean)</button>
+  <div class="card">
+    <h3>Thumbnail</h3>
+    <input id="thumbFile" type="file" accept="image/*">
+    <img id="thumbPreview" hidden>
+    <button id="downloadThumb" class="secondary">Download Thumbnail</button>
+  </div>
+  <div class="finish">✓ Workflow Complete</div>
+  <div class="navrow"><button id="back4" class="secondary">← Back</button><button id="newBtn2" class="primary">＋ New Project</button></div>
 </section>
-</main></div>
-<footer>© 2026 Yoon Recap • Free Browser Workflow</footer>
+</main>
+<footer>Yoon Recap • Free Browser Workflow</footer>
 </div>
 <script src="/app.js" defer></script>
-</body></html>
+</body>
+</html>
