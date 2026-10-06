@@ -27,7 +27,9 @@ logoPreview.style.width=$("logoSize").value+"px";logoPreview.style.height=$("log
 textPreview.style.display=showText.checked?"block":"none";blurLayer.style.display=showBlur.checked?"block":"none";logoPreview.style.display=showLogo.checked&&logoPreview.src?"block":"none";
 textControls.hidden=!showText.checked;blurControls.hidden=!showBlur.checked;logoControls.hidden=!showLogo.checked;
 }
-[showText,showBlur,showLogo].forEach(x=>x.addEventListener("change",()=>{if(x.checked)active=x;update()}));
+showText.addEventListener("change",()=>{textControls.hidden=!showText.checked;if(showText.checked)active=showText;update()});
+showBlur.addEventListener("change",()=>{blurControls.hidden=!showBlur.checked;if(showBlur.checked)active=showBlur;update()});
+showLogo.addEventListener("change",()=>{logoControls.hidden=!showLogo.checked;if(showLogo.checked)active=showLogo;update()});
 document.querySelectorAll("#textControls input,#blurControls input,#logoControls input").forEach(x=>{if(x.id==="textY"){x.addEventListener("input",()=>{textPreview.style.top=x.value+"%";$("textYValue").textContent=x.value})}else{x.addEventListener("input",update)}});
 $("editText").addEventListener("input",update);
 $("logoFile").onchange=e=>{logoFile=e.target.files?.[0]||null;if(logoFile){logoPreview.src=URL.createObjectURL(logoFile);showLogo.checked=true;active=showLogo;update()}};
