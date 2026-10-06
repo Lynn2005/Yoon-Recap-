@@ -105,3 +105,9 @@ footer{text-align:center;color:#98a2b3;font-size:11px;padding:10px 0}
   .editor-options-row{gap:5px}
   .editor-option{font-size:12px;padding:9px 3px!important}
 }
+
+#renderProgress{margin:10px 0 12px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#f8fafc}
+.render-progress-top{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;margin-bottom:7px}
+#renderProgressPct{font-size:14px;color:var(--primary)}
+.render-progress-track{height:10px;border-radius:999px;background:#e5e7eb;overflow:hidden}
+#renderProgressBar{height:100%;width:0%;border-radius:999px;background:var(--primary);transition:width .35s ease}
