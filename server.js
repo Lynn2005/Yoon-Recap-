@@ -146,7 +146,7 @@ app.post("/api/tts",async(req,res)=>{
    }).filter(x=>x&&x.text);
  }
  function graphemes(s){return Array.from(new Intl.Segmenter("my",{granularity:"grapheme"}).segment(String(s||"")),x=>x.segment);}
- function split20(s,max=20){
+ function split20(s,max=25){
    const g=graphemes(String(s||"").replace(/\s+/g," ").trim()),out=[];let rest=g;
    while(rest.length>max){
      let cut=max;
@@ -174,7 +174,7 @@ app.post("/api/tts",async(req,res)=>{
    const blocks=sourceBlocks.length?sourceBlocks:[{start:0,end:0,text:rawText}];
    const audioParts=[],voiceBlocks=[];
    for(let bi=0;bi<blocks.length;bi++){
-     const parts=split20(blocks[bi].text,20);
+     const parts=split20(blocks[bi].text,25);
      if(!parts.length)continue;
      const made=[];
      for(const part of parts)made.push(await makeVoiceFile(part,audioParts.length));
@@ -196,7 +196,7 @@ app.post("/api/tts",async(req,res)=>{
    }
    let t=0;
    const voiceSrt=voiceBlocks.map((x,i)=>{const st=t;t+=x.duration;return (i+1)+"\\n"+srtTime(st)+" --> "+srtTime(t)+"\\n"+x.text}).join("\n\n")+"\n";
-   res.json({id,url:"/media/"+path.basename(out),srt:voiceSrt,voiceSrt,chunks:voiceBlocks.length,voice:voiceName,rate,maxCharsPerLine:20,provider:"Microsoft Edge AI TTS — Free"});
+   res.json({id,url:"/media/"+path.basename(out),srt:voiceSrt,voiceSrt,chunks:voiceBlocks.length,voice:voiceName,rate,maxCharsPerLine:25,provider:"Microsoft Edge AI TTS — Free"});
  }catch(e){
    res.status(500).json({error:e instanceof Error?e.message:String(e)});
  }finally{try{fs.rmSync(dir,{recursive:true,force:true});}catch{}}
