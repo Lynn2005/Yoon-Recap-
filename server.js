@@ -153,7 +153,7 @@ app.post("/api/tts",async(req,res)=>{
      if(!payload)throw new Error("MyanmarTTS audio မပြန်လာပါ။");
      const result=Array.isArray(payload)?payload[0]:payload;
      const audioUrl=typeof result==="string"?(result.startsWith("http")?result:SPACE_URL+result):result?.url;
-     if(!audioUrl)throw new Error("MyanmarTTS audio URL မရပါ။");
+     if(!audioUrl){const detail=typeof result==="object"?JSON.stringify(result):String(result);throw new Error("MyanmarTTS audio URL မရပါ။ "+detail);}
      const ar=await fetch(audioUrl,{signal:controller.signal});
      if(!ar.ok)throw new Error("MyanmarTTS audio download failed "+ar.status);
      const audio=Buffer.from(await ar.arrayBuffer());
@@ -179,7 +179,7 @@ app.post("/api/tts",async(req,res)=>{
      await execFileAsync("ffmpeg",["-y","-f","concat","-safe","0","-i",listFile,"-c","copy",out],{maxBuffer:10*1024*1024});
    }
    res.json({id,url:"/media/"+path.basename(out),chunks:chunks.length,provider:"MyanmarTTS-free"});
- }catch(e){res.status(500).json({error:e.message||"MyanmarTTS TTS failed"});}
+ }catch(e){const msg=e instanceof Error?e.message:(typeof e==="object"?JSON.stringify(e):String(e));res.status(500).json({error:msg||"MyanmarTTS TTS failed"});}
  finally{try{fs.rmSync(dir,{recursive:true,force:true});}catch{}}
 });
 app.post("/api/recap",async(req,res)=>{
