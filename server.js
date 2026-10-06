@@ -11,7 +11,7 @@ const app=express();
 const PORT=process.env.PORT||3000;
 const upload=multer({dest:"uploads/",limits:{fileSize:500*1024*1024}});
 app.use(express.json({limit:"2mb"}));
-app.use(express.static("public"));
+app.use(express.static("public"));\napp.use("/media",express.static("work"));
 
 function keyOf(req){return String(req.body?.groqKey||req.headers["x-groq-api-key"]||process.env.GROQ_API_KEY||"").trim();}
 async function groq(pathname,key,options={}){const r=await fetch("https://api.groq.com/openai/v1"+pathname,{...options,headers:{"Authorization":"Bearer "+key,...(options.headers||{})}});const text=await r.text();let data={};try{data=JSON.parse(text)}catch{}if(!r.ok)throw new Error(data?.error?.message||text||("Groq API error "+r.status));return data;}
@@ -54,6 +54,29 @@ app.post("/api/transcribe",upload.single("video"),async(req,res)=>{
  const audioPath=path.join("work",file.filename+"-audio.ogg");
  try{await extractAudio(file.path,audioPath);const form=new FormData();form.append("file",new Blob([fs.readFileSync(audioPath)],{type:"audio/ogg"}),"audio.ogg");form.append("model","whisper-large-v3-turbo");form.append("response_format","verbose_json");form.append("temperature","0");const data=await groq("/audio/transcriptions",key,{method:"POST",body:form});const text=String(data.text||"").trim();if(!text)throw new Error("အသံထဲက စကားပြောစာသား မရပါ။");res.json({text,language:data.language||null,segments:data.segments||[],srt:makeSrt(data.segments,text)});}
  catch(e){res.status(500).json({error:e.message||"Transcription failed"});}finally{fs.unlink(file.path,()=>{});fs.unlink(audioPath,()=>{});}
+});
+
+app.post("/api/translate-srt",async(req,res)=>{
+ const key=geminiKeyOf(req),srt=String(req.body?.srt||"").trim();
+ if(!key)return res.status(400).json({error:"Gemini API Key ထည့်ပါ။"});if(!srt)return res.status(400).json({error:"Original SRT မရှိပါ။"});
+ try{
+  const prompt="Translate subtitle dialogue into natural spoken Burmese. Keep every subtitle number and timestamp EXACTLY unchanged, keep the same number of blocks, translate ONLY dialogue text, and return ONLY valid SRT. SOURCE SRT:\n"+srt.slice(0,180000);
+  const data=await geminiGenerate(key,"gemini-3.8-flash",prompt),out=cleanSrtText(geminiText(data));
+  if(!validSrt(out))throw new Error("Gemini က valid SRT မပြန်ပါ။");
+  res.json({srt:out,text:out.replace(/\d+\s*\n\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}\s*\n/g,"").replace(/\n{2,}/g,"\n").trim()});
+ }catch(e){res.status(500).json({error:e.message||"Gemini translation failed"});}
+});
+
+app.post("/api/tts",async(req,res)=>{
+ const key=geminiKeyOf(req),text=String(req.body?.text||"").trim(),voice=String(req.body?.voice||"Kore");
+ if(!key)return res.status(400).json({error:"Gemini API Key ထည့်ပါ။"});if(!text)return res.status(400).json({error:"AI Voice အတွက် စာသားမရှိပါ။"});
+ const id="voice-"+Date.now()+"-"+Math.random().toString(36).slice(2,8),out=path.join("work",id+".wav");
+ try{
+  const r=await fetch("https://generativelanguage.googleapis.com/v1beta/interactions",{method:"POST",headers:{"x-goog-api-key":key,"Content-Type":"application/json"},body:JSON.stringify({model:"gemini-3.8-flash-tts",input:[{type:"user_input",content:[{type:"text",text,annotations:[{type:"speech_metadata",style:"natural, clear, warm Myanmar movie recap narration"}]}]}],response_format:{type:"audio",mime_type:"audio/wav"},generation_config:{speech_config:[{voice}]}})});
+  const raw=await r.text();let data={};try{data=JSON.parse(raw)}catch{}if(!r.ok)throw new Error(data?.error?.message||raw||("Gemini TTS error "+r.status));
+  let audio=data.output_audio?.data||null;for(const step of(data.steps||[]))for(const part of(step.content||[]))if(part?.type==="audio"&&part.data)audio=part.data;
+  if(!audio)throw new Error("Gemini TTS audio data မရပါ။");fs.writeFileSync(out,Buffer.from(audio,"base64"));res.json({id,url:"/media/"+path.basename(out)});
+ }catch(e){res.status(500).json({error:e.message||"Gemini TTS failed"});}
 });
 
 app.post("/api/recap",async(req,res)=>{
