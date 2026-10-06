@@ -39,10 +39,8 @@ async function extractAudio(videoPath,audioPath){
 function geminiKeysOf(req){
  const keys=[
    req.body?.geminiKey,
-   req.body?.geminiKey2,
    req.headers["x-gemini-api-key"],
    process.env.GEMINI_API_KEY,
-   process.env.GEMINI_API_KEY_2
  ].map(v=>String(v||"").trim()).filter(Boolean);
  return [...new Set(keys)];
 }
@@ -126,6 +124,7 @@ app.post("/api/tts",async(req,res)=>{
  const text=String(req.body?.text||"").trim();
  if(!text)return res.status(400).json({error:"AI Voice အတွက် စာသားမရှိပါ။"});
  const voice=String(req.body?.voice||"my-MM-NilarNeural");
+ const rate=Math.max(0.5,Math.min(1.5,Number(req.body?.rate||1)));
  const voiceName=voice==="myanmar-male"||voice==="my-MM-ThihaNeural"?"my-MM-ThihaNeural":"my-MM-NilarNeural";
  const id="voice-"+Date.now()+"-"+Math.random().toString(36).slice(2,8),dir=path.join("work",id+"-parts"),out=path.join("work",id+".wav");
  function splitTtsText(input,max=500){
@@ -145,7 +144,7 @@ app.post("/api/tts",async(req,res)=>{
      const mp3=path.join(dir,String(i).padStart(4,"0")+".mp3");
      const tts=new MsEdgeTTS();
      await tts.setMetadata(voiceName,OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3);
-     const edgeResult=await tts.toFile(dir,chunks[i]);
+     const edgeResult=await tts.toFile(dir,chunks[i],{rate});
      const edgePath=edgeResult?.audioFilePath||edgeResult?.audioFile||edgeResult;
      if(!edgePath||!fs.existsSync(edgePath))throw new Error("AI Voice audio file မဖန်တီးနိုင်ပါ။");
      if(String(edgePath)!==mp3)fs.renameSync(edgePath,mp3);
@@ -158,7 +157,7 @@ app.post("/api/tts",async(req,res)=>{
      fs.writeFileSync(listFile,list.map(p=>"file '"+path.resolve(p).replace(/'/g,"'\\''")+"'").join("\n"),"utf8");
      await execFileAsync("ffmpeg",["-y","-f","concat","-safe","0","-i",listFile,"-ac","1","-ar","22050","-c:a","pcm_s16le",out],{maxBuffer:10*1024*1024});
    }
-   res.json({id,url:"/media/"+path.basename(out),chunks:chunks.length,voice:voiceName,provider:"Microsoft Edge AI TTS — Free"});
+   res.json({id,url:"/media/"+path.basename(out),chunks:chunks.length,voice:voiceName,rate,provider:"Microsoft Edge AI TTS — Free"});
  }catch(e){
    res.status(500).json({error:e instanceof Error?e.message:String(e)});
  }finally{try{fs.rmSync(dir,{recursive:true,force:true});}catch{}}
