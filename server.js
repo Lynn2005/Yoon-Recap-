@@ -36,7 +36,17 @@ async function extractAudio(videoPath,audioPath){
   }
   if(!fs.existsSync(audioPath) || fs.statSync(audioPath).size<100) throw new Error("ဒီ Video ထဲမှာ Audio track မပါပါ။ အသံပါတဲ့ video ကိုရွေးပါ။");
 }
-function geminiKeyOf(req){return String(req.body?.geminiKey||req.headers["x-gemini-api-key"]||process.env.GEMINI_API_KEY||"").trim();}
+function geminiKeysOf(req){
+ const keys=[
+   req.body?.geminiKey,
+   req.body?.geminiKey2,
+   req.headers["x-gemini-api-key"],
+   process.env.GEMINI_API_KEY,
+   process.env.GEMINI_API_KEY_2
+ ].map(v=>String(v||"").trim()).filter(Boolean);
+ return [...new Set(keys)];
+}
+function geminiKeyOf(req){return geminiKeysOf(req)[0]||"";}
 const GEMINI_MODELS=["gemini-3.8-flash","gemini-3.7-flash","gemini-3.5-flash-lite"];
 const RETRY_DELAYS=[1500,3000];
 
@@ -94,12 +104,20 @@ app.post("/api/transcribe",upload.single("video"),async(req,res)=>{
 });
 
 app.post("/api/translate-srt",async(req,res)=>{
- const key=geminiKeyOf(req),srt=String(req.body?.srt||"").trim();
- if(!key)return res.status(400).json({error:"Gemini API Key ထည့်ပါ။"});if(!srt)return res.status(400).json({error:"Original SRT မရှိပါ။"});
+ const keys=geminiKeysOf(req),srt=String(req.body?.srt||"").trim();
+ if(!keys.length)return res.status(400).json({error:"Gemini API Key ထည့်ပါ။"});if(!srt)return res.status(400).json({error:"Original SRT မရှိပါ။"});
  try{
   const prompt="Translate subtitle dialogue into natural spoken Burmese. Keep every subtitle number and timestamp EXACTLY unchanged, keep the same number of blocks, translate ONLY dialogue text, and return ONLY valid SRT. SOURCE SRT:\n"+srt.slice(0,180000);
-  const data=await geminiGenerate(key,"gemini-3.8-flash",prompt),out=cleanSrtText(geminiText(data));
-  if(!validSrt(out))throw new Error("Gemini က valid SRT မပြန်ပါ။");
+  let lastErr=null,out="";
+  for(const key of keys){
+    try{
+      const data=await geminiGenerate(key,"gemini-3.8-flash",prompt);
+      const candidate=cleanSrtText(geminiText(data));
+      if(!validSrt(candidate))throw new Error("Gemini က valid SRT မပြန်ပါ။");
+      out=candidate;break;
+    }catch(e){lastErr=e;}
+  }
+  if(!out)throw lastErr||new Error("Gemini translation failed");
   res.json({srt:out,text:out.replace(/\d+\s*\n\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}\s*\n/g,"").replace(/\n{2,}/g,"\n").trim()});
  }catch(e){res.status(500).json({error:e.message||"Gemini translation failed"});}
 });
