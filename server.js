@@ -103,54 +103,33 @@ app.post("/api/translate-srt",async(req,res)=>{
 });
 
 app.post("/api/tts",async(req,res)=>{
- const key=geminiKeyOf(req),text=String(req.body?.text||"").trim(),voice=String(req.body?.voice||"Kore");
- if(!key)return res.status(400).json({error:"Gemini API Key ထည့်ပါ။"});if(!text)return res.status(400).json({error:"AI Voice အတွက် စာသားမရှိပါ။"});
-
- // Long Burmese scripts are split into small chunks so Gemini TTS does not hang on one huge request.
- function splitTtsText(input,max=900){
+ const text=String(req.body?.text||"").trim();
+ if(!text)return res.status(400).json({error:"AI Voice အတွက် စာသားမရှိပါ။"});
+ function splitTtsText(input,max=180){
    const parts=input.replace(/\r/g,"").split(/\n+/).map(x=>x.trim()).filter(Boolean),out=[];let buf="";
    for(const part of parts){
      if((buf+" "+part).trim().length<=max){buf=(buf+" "+part).trim();continue;}
      if(buf)out.push(buf);
-     if(part.length<=max){buf=part;continue;}
      let rest=part;
-     while(rest.length>max){let cut=Math.max(rest.lastIndexOf("။",max),rest.lastIndexOf(" ",max));if(cut<300)cut=max;out.push(rest.slice(0,cut+1).trim());rest=rest.slice(cut+1).trim();}
+     while(rest.length>max){let cut=Math.max(rest.lastIndexOf("။",max),rest.lastIndexOf(" ",max));if(cut<40)cut=max;out.push(rest.slice(0,cut+1).trim());rest=rest.slice(cut+1).trim();}
      buf=rest;
    }
-   if(buf)out.push(buf); return out;
+   if(buf)out.push(buf);
+   return out;
  }
- async function ttsOne(chunk){
-   const ttsModels=["gemini-3.8-flash-lite-tts","gemini-3.8-flash-tts"];
-   let data={},lastError=null;
-   for(const model of ttsModels){
-     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),45000);
-     try{
-       const r=await fetch("https://generativelanguage.googleapis.com/v1beta/interactions",{
-         method:"POST",headers:{"x-goog-api-key":key,"Content-Type":"application/json"},
-         body:JSON.stringify({model,input:[{type:"user_input",content:[{type:"text",text:chunk,annotations:[{type:"speech_metadata",style:"natural, clear, warm Myanmar movie recap narration"}]}]}],response_format:{type:"audio",mime_type:"audio/wav"},generation_config:{speech_config:[{voice}]} }),
-         signal:controller.signal
-       });
-       const raw=await r.text();data={};try{data=JSON.parse(raw)}catch{}
-       if(r.ok){let audio=data.output_audio?.data||null;for(const step of(data.steps||[]))for(const part of(step.content||[]))if(part?.type==="audio"&&part.data)audio=part.data;if(audio)return Buffer.from(audio,"base64");}
-       lastError=new Error(data?.error?.message||raw||("Gemini TTS error "+r.status));lastError.status=r.status;
-       if(!isRetryableGemini(r.status,lastError.message))throw lastError;
-     }catch(e){
-       if(e.name==="AbortError"){lastError=new Error("Gemini TTS chunk response 45 စက္ကန့်ကျော်နေပါတယ်။");lastError.status=504;}
-       else lastError=e;
-       if(!isRetryableGemini(lastError?.status,String(lastError?.message||lastError))&&e.name!=="AbortError")throw lastError;
-     }finally{clearTimeout(timer);}
-   }
-   throw lastError||new Error("Gemini TTS audio မရပါ။");
- }
- const id="voice-"+Date.now()+"-"+Math.random().toString(36).slice(2,8),dir=path.join("work",id+"-parts"),out=path.join("work",id+".wav");
+ const id="voice-"+Date.now()+"-"+Math.random().toString(36).slice(2,8),dir=path.join("work",id+"-parts"),out=path.join("work",id+".mp3");
  try{
    fs.mkdirSync(dir,{recursive:true});
-   const chunks=splitTtsText(text,900);
-   if(!chunks.length)throw new Error("AI Voice အတွက် စာသားမရှိပါ။");
+   const chunks=splitTtsText(text);
    const list=[];
    for(let i=0;i<chunks.length;i++){
-     const p=path.join(dir,String(i).padStart(4,"0")+".wav");
-     const audio=await ttsOne(chunks[i]);fs.writeFileSync(p,audio);list.push(p);
+     const p=path.join(dir,String(i).padStart(4,"0")+".mp3");
+     const u="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=my&dt=t&q="+encodeURIComponent(chunks[i]);
+     const r2=await fetch(u,{headers:{"User-Agent":"Mozilla/5.0"}});
+     if(!r2.ok)throw new Error("Free Burmese TTS service error "+r2.status);
+     const b=Buffer.from(await r2.arrayBuffer());
+     if(b.length<100)throw new Error("Burmese TTS audio မရပါ။");
+     fs.writeFileSync(p,b);list.push(p);
    }
    if(list.length===1)fs.copyFileSync(list[0],out);
    else{
@@ -158,11 +137,9 @@ app.post("/api/tts",async(req,res)=>{
      fs.writeFileSync(listFile,list.map(p=>"file '"+path.resolve(p).replace(/'/g,"'\\''")+"'").join("\n"),"utf8");
      await execFileAsync("ffmpeg",["-y","-f","concat","-safe","0","-i",listFile,"-c","copy",out],{maxBuffer:10*1024*1024});
    }
-   res.json({id,url:"/media/"+path.basename(out),chunks:chunks.length});
- }catch(e){res.status(500).json({error:e.message||"Gemini TTS failed"});}
- finally{
-   try{fs.rmSync(dir,{recursive:true,force:true});}catch{}
- }
+   res.json({id,url:"/media/"+path.basename(out),chunks:chunks.length,provider:"free-burmese-tts"});
+ }catch(e){res.status(500).json({error:e.message||"Free TTS failed"});}
+ finally{try{fs.rmSync(dir,{recursive:true,force:true});}catch{}}
 });
 app.post("/api/recap",async(req,res)=>{
  const key=keyOf(req),transcript=String(req.body?.transcript||"").trim(),style=String(req.body?.style||"cinematic");
@@ -176,7 +153,7 @@ app.post("/api/recap",async(req,res)=>{
 app.post("/api/render",upload.fields([{name:"video",maxCount:1},{name:"logo",maxCount:1}]),async(req,res)=>{
  const video=req.files?.video?.[0],logo=req.files?.logo?.[0],srt=String(req.body?.srt||"").trim(),voiceId=String(req.body?.voiceId||"").replace(/[^a-zA-Z0-9_-]/g,"");
  if(!video)return res.status(400).json({error:"Video ရွေးပါ။"});if(!validSrt(srt))return res.status(400).json({error:"Burmese SRT မရှိပါ။"});
- const voicePath=path.join("work",voiceId+".wav");if(!voiceId||!fs.existsSync(voicePath))return res.status(400).json({error:"AI Voice file မတွေ့ပါ။"});
+ const voicePath=path.join("work",voiceId+".mp3");if(!voiceId||!fs.existsSync(voicePath))return res.status(400).json({error:"AI Voice file မတွေ့ပါ။"});
  const base=path.basename(video.path),srtPath=path.join("work",base+"-my.srt"),out=path.join("work",base+"-final.mp4"),textPath=path.join("work",base+"-text.txt");
  try{
   fs.writeFileSync(srtPath,srt,"utf8");fs.writeFileSync(textPath,String(req.body?.text||"Myanmar Recap"),"utf8");
