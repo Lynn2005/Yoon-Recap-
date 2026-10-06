@@ -1,5 +1,6 @@
 const $=id=>document.getElementById(id);
-let file=null,videoUrl=null,voiceId=localStorage.getItem("yoon_voice_id")||null,logoFile=null;
+let file=null,videoUrl=null,voiceId=localStorage.getItem("yoon_voice_id")||null,voiceUrl=localStorage.getItem("yoon_voice_url")||null,logoFile=null;
+if(voiceId&&voiceUrl){$("voicePreview").src=voiceUrl;$("voicePreview").hidden=false;}
 
 const savedGroq=localStorage.getItem("yoon_groq_key"),savedGemini=localStorage.getItem("yoon_gemini_key");
 if(localStorage.getItem("yoon_original_srt"))$("originalSrt").value=localStorage.getItem("yoon_original_srt");
@@ -27,7 +28,7 @@ $("downloadOriginal").onclick=()=>download("original.srt",$("originalSrt").value
 $("translate").onclick=async()=>{const srt=$("originalSrt").value.trim();if(!srt)return status("trstatus","⚠️ Original SRT အရင်ထုတ်ပါ။");if(!gemini())return status("trstatus","⚠️ Gemini API Key ထည့်ပါ။");const b=$("translate");b.disabled=true;status("trstatus","⏳ Gemini နဲ့ မြန်မာဘာသာပြန်နေပါတယ်...");try{const d=await apiJson(await fetch("/api/translate-srt",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({geminiKey:gemini(),srt})}));$("burmeseSrt").value=d.srt;localStorage.setItem("yoon_burmese_srt",$("burmeseSrt").value);status("trstatus","✅ Burmese SRT ပြီးပါပြီ။")}catch(e){status("trstatus","❌ "+e.message)}finally{b.disabled=false}};
 $("downloadBurmese").onclick=()=>download("burmese.srt",$("burmeseSrt").value,"application/x-subrip");
 
-$("makeVoice").onclick=async()=>{const text=$("burmeseSrt").value.replace(/\d+\s*\n\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}\s*\n/g,"").replace(/\n{2,}/g,"\n").trim();if(!text)return status("vstatus","⚠️ Burmese SRT အရင်ထုတ်ပါ။");const b=$("makeVoice");b.disabled=true;status("vstatus","⏳ MyanmarTTS Free AI Voice ထုတ်နေပါတယ်...");try{const d=await apiJson(await fetch("/api/tts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text,voice:$("voice").value})}));voiceId=d.id;localStorage.setItem("yoon_voice_id",voiceId);$("voicePreview").src=d.url;$("voicePreview").hidden=false;status("vstatus","✅ MyanmarTTS Free AI Voice ပြီးပါပြီ။")}catch(e){status("vstatus","❌ "+e.message)}finally{b.disabled=false}};
+$("makeVoice").onclick=async()=>{const text=$("burmeseSrt").value.replace(/\d+\s*\n\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}\s*\n/g,"").replace(/\n{2,}/g,"\n").trim();if(!text)return status("vstatus","⚠️ Burmese SRT အရင်ထုတ်ပါ။");const b=$("makeVoice");b.disabled=true;status("vstatus","⏳ MyanmarTTS Free AI Voice ထုတ်နေပါတယ်...");try{const d=await apiJson(await fetch("/api/tts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text,voice:$("voice").value})}));voiceId=d.id;voiceUrl=d.url;localStorage.setItem("yoon_voice_id",voiceId);localStorage.setItem("yoon_voice_url",voiceUrl);$("voicePreview").src=voiceUrl;$("voicePreview").hidden=false;status("vstatus","✅ MyanmarTTS Free AI Voice ပြီးပါပြီ။")}catch(e){status("vstatus","❌ "+e.message)}finally{b.disabled=false}};
 
 const showText=$("showText"),showBlur=$("showBlur"),showLogo=$("showLogo"),textControls=$("textControls"),blurControls=$("blurControls"),logoControls=$("logoControls"),textPreview=$("textPreview"),blurLayer=$("blurLayer"),logoPreview=$("logoPreview");
 let active=null;let activeOption=showText;
