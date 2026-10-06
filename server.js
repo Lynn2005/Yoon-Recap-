@@ -155,6 +155,7 @@ app.post("/api/recap",async(req,res)=>{
 });
 
 const renderJobs=new Map();
+let renderRunning=false;
 
 async function runRenderJob(job){
  const {video,logo,voice,srt,voiceId,body}=job;
@@ -167,6 +168,8 @@ async function runRenderJob(job){
   const ls=Math.max(30,Math.min(500,Number(body?.logoSize||72))),lx=Math.max(5,Math.min(95,Number(body?.logoX||90))),ly=Math.max(5,Math.min(95,Number(body?.logoY||10)));
   const fontFile=MYANMAR_FONT_FILE;
   const f=[];let cur="[0:v]";
+  // Cap the working video dimension to 1920px to prevent FFmpeg from exhausting Render Free memory on 2K/4K uploads.
+  f.push(cur+"scale=w=1920:h=1920:force_original_aspect_ratio=decrease:force_divisible_by=2[v0]");cur="[v0]";
   if(showBlur){
    f.push(cur+"split=2[base][b0]");
    f.push("[b0]crop=w=trunc(iw*"+bw+"/100/2)*2:h=trunc(ih*"+bh+"/100/2)*2:x=iw*"+bx+"/100-ow/2:y=ih*"+by+"/100-oh/2,boxblur=luma_radius="+ba+":luma_power=1[bl]");
@@ -176,16 +179,17 @@ async function runRenderJob(job){
   const sp=srtPath.replace(/\\/g,"/").replace(/:/g,"\\:");
   f.push(cur+"subtitles='"+sp+"':fontsdir=/usr/share/fonts/noto:force_style='FontName=Noto Sans Myanmar,FontSize=20,Outline=2,Shadow=0,Alignment=2,MarginV=60'[vs]");cur="[vs]";
   if(showText){const tp=textPath.replace(/\\/g,"/");f.push(cur+"drawtext=fontfile="+fontFile+":textfile='"+tp+"':fontsize="+fsx+":fontcolor=white:borderw=3:bordercolor=black:x=w*"+tx+"/100-text_w/2:y=h*"+ty+"/100-text_h/2[vt]");cur="[vt]";}
-  const args=["-y","-hide_banner","-loglevel","error","-i",video.path,"-i",voice.path];
+  const args=["-y","-hide_banner","-loglevel","error","-threads","1","-filter_threads","1","-filter_complex_threads","1","-i",video.path,"-i",voice.path];
   if(showLogo&&logo){f.push("[2:v]scale="+ls+":"+ls+"[lg]");f.push(cur+"[lg]overlay=x=w*"+lx+"/100-overlay_w/2:y=h*"+ly+"/100-overlay_h/2[vout]");cur="[vout]";args.push("-i",logo.path);}
   args.push("-filter_complex",f.join(";"),"-map",cur,"-map","1:a:0","-c:v","libx264","-preset","veryfast","-crf","20","-pix_fmt","yuv420p","-c:a","aac","-b:a","192k","-movflags","+faststart","-shortest",out);
   job.progress=15;
-  const result=await execFileAsync("ffmpeg",args,{maxBuffer:50*1024*1024});
+  const result=await execFileAsync("ffmpeg",args,{maxBuffer:8*1024*1024});
   job.progress=100;job.state="done";job.url="/media/"+path.basename(out);job.filename=path.basename(out);
  }catch(e){
   const msg=e?.stderr||e?.message||"Final render failed";
   job.state="error";job.error=String(msg).slice(-6000);
  }finally{
+  renderRunning=false;
   fs.unlink(video.path,()=>{});if(logo)fs.unlink(logo.path,()=>{});if(job.cleanupVoice&&voice?.path)fs.unlink(voice.path,()=>{});fs.unlink(srtPath,()=>{});fs.unlink(textPath,()=>{});
   setTimeout(()=>renderJobs.delete(job.id),30*60*1000);
  }
@@ -198,8 +202,12 @@ app.post("/api/render",upload.fields([{name:"video",maxCount:1},{name:"logo",max
  if(!voice&&(!voiceId||!fs.existsSync(savedVoicePath)))return res.status(400).json({error:"သိမ်းထားတဲ့ AI Voice file မတွေ့ပါ။ AI Voice ကို ပြန်ထုတ်ပါ။"});
  const renderVoice=voice||{path:savedVoicePath};
  const id="render-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);
+ if(renderRunning){
+   fs.unlink(video.path,()=>{});if(logo)fs.unlink(logo.path,()=>{});if(voice)fs.unlink(voice.path,()=>{});
+   return res.status(429).json({error:"Final Video render တစ်ခု လုပ်နေပြီးသားပါ။ ပြီးသွားမှ ပြန်စမ်းပါ။"});
+ }
  const job={id,video,logo,voice:renderVoice,cleanupVoice:!!voice,srt,voiceId,body:req.body,progress:5,state:"processing"};
- renderJobs.set(id,job);
+ renderJobs.set(id,job);renderRunning=true;
  res.status(202).json({jobId:id,status:"processing",progress:5});
  setImmediate(()=>runRenderJob(job));
 });
