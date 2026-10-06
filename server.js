@@ -201,6 +201,7 @@ app.post("/api/render",upload.fields([{name:"video",maxCount:1},{name:"logo",max
   const fsx=Math.max(14,Math.min(100,Number(req.body?.fontSize||28))),tx=Math.max(5,Math.min(95,Number(req.body?.textX||50))),ty=Math.max(5,Math.min(95,Number(req.body?.textY||88)));
   const bx=Math.max(5,Math.min(95,Number(req.body?.blurX||50))),by=Math.max(5,Math.min(95,Number(req.body?.blurY||82))),bw=Math.max(10,Math.min(100,Number(req.body?.blurW||90))),bh=Math.max(5,Math.min(80,Number(req.body?.blurH||22))),ba=Math.max(0,Math.min(24,Number(req.body?.blurAmount||8)));
   const ls=Math.max(30,Math.min(500,Number(req.body?.logoSize||72))),lx=Math.max(5,Math.min(95,Number(req.body?.logoX||90))),ly=Math.max(5,Math.min(95,Number(req.body?.logoY||10)));
+  const fontFile="/usr/share/fonts/truetype/noto/NotoSansMyanmar-Regular.ttf";
   const f=[];let cur="[0:v]";
   if(showBlur){f.push(cur+"split=2[base][b0]");f.push("[b0]crop=w=trunc(iw*"+bw+"/100/2)*2:h=trunc(ih*"+bh+"/100/2)*2:x=iw*"+bx+"/100-w/2:y=ih*"+by+"/100-h/2,boxblur=luma_radius="+ba+":luma_power=1[bl]");f.push("[base][bl]overlay=x=iw*"+bx+"/100-overlay_w/2:y=ih*"+by+"/100-overlay_h/2[vb]");cur="[vb]";}
   const sp=srtPath.replace(/\\/g,"/").replace(/:/g,"\\:");f.push(cur+"subtitles='"+sp+"':fontsdir=/usr/share/fonts/noto:force_style='FontName=Noto Sans Myanmar,FontSize=20,Outline=2,Shadow=0,Alignment=2,MarginV=60'[vs]");cur="[vs]";
