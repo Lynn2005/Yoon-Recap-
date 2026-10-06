@@ -223,9 +223,10 @@ async function runRenderJob(job){
   const bx=Math.max(5,Math.min(95,Number(body?.blurX||50))),by=Math.max(5,Math.min(95,Number(body?.blurY||82))),bw=Math.max(10,Math.min(100,Number(body?.blurW||90))),bh=Math.max(5,Math.min(80,Number(body?.blurH||22))),ba=Math.max(0,Math.min(24,Number(body?.blurAmount||8)));
   const ls=Math.max(30,Math.min(500,Number(body?.logoSize||72))),lx=Math.max(5,Math.min(95,Number(body?.logoX||90))),ly=Math.max(5,Math.min(95,Number(body?.logoY||10)));
   const fontFile=font?.path||MYANMAR_FONT_FILE;
-  const fontColor=String(body?.fontColor||"#ffffff");
-  const borderColor=String(body?.borderColor||"#000000");
-  const borderWidth=Math.max(0,Math.min(12,Number(body?.borderWidth||3)));
+  const safeFilterValue=v=>String(v||"").trim().replace(/\\/g,"/").replace(/'/g,"\\'");
+  const fontColor=/^#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?$/.test(String(body?.fontColor||""))?String(body.fontColor):"#ffffff";
+  const borderColor=/^#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?$/.test(String(body?.borderColor||""))?String(body.borderColor):"#000000";
+  const borderWidth=Math.max(0,Math.min(12,Number(body?.borderWidth??3)));
   const f=[];let cur="[0:v]";
   // Cap the working video dimension to 1920px to prevent FFmpeg from exhausting Render Free memory on 2K/4K uploads.
   f.push(cur+"scale=w=1280:h=1280:force_original_aspect_ratio=decrease:force_divisible_by=2[v0]");cur="[v0]";
@@ -237,7 +238,12 @@ async function runRenderJob(job){
   }
   const sp=srtPath.replace(/\\/g,"/").replace(/:/g,"\\:");
   f.push(cur+"subtitles='"+sp+"':fontsdir=/usr/share/fonts/noto:force_style='FontName=Noto Sans Myanmar,FontSize=20,Outline=2,Shadow=0,Alignment=2,MarginV=60'[vs]");cur="[vs]";
-  if(showText){const tp=textPath.replace(/\\/g,"/");f.push(cur+"drawtext=fontfile="+fontFile+":textfile='"+tp+"':fontsize="+fsx+":fontcolor="+fontColor+":borderw="+borderWidth+":bordercolor="+borderColor+":x=w*"+tx+"/100-text_w/2:y=h*"+ty+"/100-text_h/2[vt]");cur="[vt]";}
+  if(showText){
+    const tp=safeFilterValue(textPath);
+    const ff=safeFilterValue(fontFile);
+    f.push(cur+"drawtext=fontfile='"+ff+"':textfile='"+tp+"':fontsize="+fsx+":fontcolor="+fontColor+":borderw="+borderWidth+":bordercolor="+borderColor+":x=w*"+tx+"/100-text_w/2:y=h*"+ty+"/100-text_h/2:fix_bounds=1[vt]");
+    cur="[vt]";
+  }
   const args=["-y","-hide_banner","-loglevel","error","-threads","1","-filter_threads","1","-filter_complex_threads","1","-i",video.path,"-i",voice.path];
   if(showLogo&&logo){f.push("[2:v]scale="+ls+":"+ls+"[lg]");f.push(cur+"[lg]overlay=x=main_w*"+lx+"/100-overlay_w/2:y=main_h*"+ly+"/100-overlay_h/2[vout]");cur="[vout]";args.push("-i",logo.path);}
   args.push("-filter_complex",f.join(";"),"-map",cur,"-map","1:a:0","-c:v","libx264","-preset","ultrafast","-crf","24","-pix_fmt","yuv420p","-c:a","aac","-b:a","128k","-movflags","+faststart","-shortest",out);
