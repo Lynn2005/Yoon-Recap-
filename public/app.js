@@ -38,7 +38,7 @@ function dragElement(el,type,xId,yId){
     const enabled=$(type==="blur"?"showBlur":type==="text"?"showText":"showLogo").checked;
     if(!enabled)return;
     if(type==="text" && e.target===textResizeHandle)return;
-    e.preventDefault();
+    if(e.pointerType==="mouse") e.preventDefault();
     e.stopPropagation();
     const box=$("editorPreview").getBoundingClientRect();
     const startX=e.clientX,startY=e.clientY;
