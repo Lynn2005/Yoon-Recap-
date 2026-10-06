@@ -129,20 +129,20 @@ app.post("/api/tts",async(req,res)=>{
  if(!inputSrt&&!rawText)return res.status(400).json({error:"AI Voice အတွက် စာသားမရှိပါ။"});
  const id="voice-"+Date.now()+"-"+Math.random().toString(36).slice(2,8),dir=path.join("work",id+"-parts"),out=path.join("work",id+".wav");
  function parseSrt(s){
-   return String(s||"").replace(/\\r/g,"").split(/\\n\\s*\\n/).map(block=>{
-     const lines=block.split("\\n"),m=lines.findIndex(x=>/\\d{2}:\\d{2}:\\d{2},\\d{3}\\s*-->\\s*\\d{2}:\\d{2}:\\d{2},\\d{3}/.test(x));
+   return String(s||"").replace(/\r/g,"").split(/\n\s*\n/).map(block=>{
+     const lines=block.split("\n"),m=lines.findIndex(x=>/\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}/.test(x));
      if(m<0)return null;
-     const tm=lines[m].match(/(\\d{2}:\\d{2}:\\d{2},\\d{3})\\s*-->\\s*(\\d{2}:\\d{2}:\\d{2},\\d{3})/);
+     const tm=lines[m].match(/(\d{2}:\d{2}:\d{2},\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2},\d{3})/);
      const sec=t=>{const [h,mi,rest]=t.split(":");const [se,ms]=rest.split(",");return +h*3600+ +mi*60+ +se+ +ms/1000};
      return {start:sec(tm[1]),end:sec(tm[2]),text:lines.slice(m+1).join(" ").replace(/<[^>]+>/g,"").trim()};
    }).filter(x=>x&&x.text);
  }
  function graphemes(s){return Array.from(new Intl.Segmenter("my",{granularity:"grapheme"}).segment(String(s||"")),x=>x.segment);}
  function split20(s,max=20){
-   const g=graphemes(String(s||"").replace(/\\s+/g," ").trim()),out=[];let rest=g;
+   const g=graphemes(String(s||"").replace(/\s+/g," ").trim()),out=[];let rest=g;
    while(rest.length>max){
      let cut=max;
-     for(let i=max;i>=Math.max(1,max-8);i--)if(/[\\s၊၊။!?]/.test(rest[i-1])){cut=i;break;}
+     for(let i=max;i>=Math.max(1,max-8);i--)if(/[\s၊၊။!?]/.test(rest[i-1])){cut=i;break;}
      const part=rest.slice(0,cut).join("").trim();if(part)out.push(part);
      rest=rest.slice(cut).join("").trim()?graphemes(rest.slice(cut).join("").trim()):[];
    }
@@ -183,11 +183,11 @@ app.post("/api/tts",async(req,res)=>{
      await execFileAsync("ffmpeg",["-y","-i",audioParts[0],"-ac","1","-ar","22050","-c:a","pcm_s16le",out],{maxBuffer:5*1024*1024});
    }else{
      const listFile=path.join(dir,"concat.txt");
-     fs.writeFileSync(listFile,audioParts.map(p=>"file '"+path.resolve(p).replace(/'/g,"'\\''")+"'").join("\\n"),"utf8");
+     fs.writeFileSync(listFile,audioParts.map(p=>"file '"+path.resolve(p).replace(/'/g,"'\\''")+"'").join("\n"),"utf8");
      await execFileAsync("ffmpeg",["-y","-f","concat","-safe","0","-i",listFile,"-ac","1","-ar","22050","-c:a","pcm_s16le",out],{maxBuffer:10*1024*1024});
    }
    let t=0;
-   const voiceSrt=voiceBlocks.map((x,i)=>{const st=t;t+=x.duration;return (i+1)+"\\n"+srtTime(st)+" --> "+srtTime(t)+"\\n"+x.text}).join("\\n\\n")+"\\n";
+   const voiceSrt=voiceBlocks.map((x,i)=>{const st=t;t+=x.duration;return (i+1)+"\\n"+srtTime(st)+" --> "+srtTime(t)+"\\n"+x.text}).join("\n\n")+"\n";
    res.json({id,url:"/media/"+path.basename(out),srt:voiceSrt,voiceSrt,chunks:voiceBlocks.length,voice:voiceName,rate,maxCharsPerLine:20,provider:"Microsoft Edge AI TTS — Free"});
  }catch(e){
    res.status(500).json({error:e instanceof Error?e.message:String(e)});
