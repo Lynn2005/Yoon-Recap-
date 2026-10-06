@@ -173,8 +173,8 @@ app.post("/api/render",upload.fields([{name:"video",maxCount:1},{name:"logo",max
   const args=["-y","-i",video.path,"-i",voicePath];
   if(showLogo&&logo){f.push("[2:v]scale="+ls+":"+ls+"[lg]");f.push(cur+"[lg]overlay=x=w*"+lx+"/100-overlay_w/2:y=h*"+ly+"/100-overlay_h/2[vout]");cur="[vout]";args.push("-i",logo.path);}
   args.push("-filter_complex",f.join(";"),"-map",cur,"-map","1:a:0","-c:v","libx264","-preset","veryfast","-crf","20","-c:a","aac","-b:a","192k","-movflags","+faststart","-shortest",out);
-  await execFileAsync("ffmpeg",args,{maxBuffer:20*1024*1024});res.json({url:"/media/"+path.basename(out),filename:path.basename(out)});
- }catch(e){res.status(500).json({error:e.message||"Final render failed"});}
+  args.splice(1,0,"-hide_banner","-loglevel","error");args.splice(args.length-2,0,"-pix_fmt","yuv420p");await execFileAsync("ffmpeg",args,{maxBuffer:50*1024*1024});res.json({url:"/media/"+path.basename(out),filename:path.basename(out)});
+ }catch(e){const msg=e?.stderr||e?.message||"Final render failed";res.status(500).json({error:String(msg).slice(-6000)});}
  finally{fs.unlink(video.path,()=>{});if(logo)fs.unlink(logo.path,()=>{});fs.unlink(srtPath,()=>{});fs.unlink(textPath,()=>{});}
 });
 
