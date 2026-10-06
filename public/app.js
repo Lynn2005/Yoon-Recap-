@@ -25,18 +25,28 @@ $("makeCaption").onclick=()=>{$("caption").value=(($("hook").value||$("title").v
 const editVideo=$("editVideo"), editText=$("editText"), textPreview=$("textPreview"), blurLayer=$("blurLayer"), blurOriginal=$("blurOriginal"), blurAmount=$("blurAmount"), blurValue=$("blurValue"), fontSize=$("fontSize"), fontValue=$("fontValue"), logoFile=$("logoFile"), logoPreview=$("logoPreview"), logoSize=$("logoSize"), logoValue=$("logoValue"), logoPos=$("logoPos"), textX=$("textX"), textY=$("textY"), textXValue=$("textXValue"), textYValue=$("textYValue"), logoX=$("logoX"), logoY=$("logoY"), logoXValue=$("logoXValue"), logoYValue=$("logoYValue"), blurX=$("blurX"), blurY=$("blurY"), blurW=$("blurW"), blurH=$("blurH"), blurXValue=$("blurXValue"), blurYValue=$("blurYValue"), blurWValue=$("blurWValue"), blurHValue=$("blurHValue");
 function syncEditorVideo(){if(file){editVideo.src=previewUrl;editVideo.currentTime=0;}}
 const showText=$("showText"),showBlur=$("showBlur"),showLogo=$("showLogo"),textControls=$("textControls"),blurControls=$("blurControls"),logoControls=$("logoControls");
-function toggleEditorOptions(){
-  textControls.hidden=!showText.checked;
-  blurControls.hidden=!showBlur.checked;
-  logoControls.hidden=!showLogo.checked;
+let activeEditorOption=null;
+function setActiveEditorOption(option){
+  if(option && !option.checked) option=null;
+  activeEditorOption=option;
+  textControls.hidden=activeEditorOption!==showText;
+  blurControls.hidden=activeEditorOption!==showBlur;
+  logoControls.hidden=activeEditorOption!==showLogo;
   textPreview.style.display=showText.checked?"block":"none";
   blurLayer.style.display=showBlur.checked?"block":"none";
   logoPreview.style.display=showLogo.checked&&logoPreview.src?"block":"none";
-  const handles=document.querySelectorAll(".resize-handle");
-  handles.forEach(h=>h.style.display="none");
-  if(showText.checked) document.querySelector(".text-handle")?.style.setProperty("display","block");
-  if(showBlur.checked) document.querySelector(".blur-layer .resize-handle")?.style.setProperty("display","block");
-  if(showLogo.checked&&logoPreview.src) document.querySelector(".logo-handle")?.style.setProperty("display","block");
+  document.querySelectorAll(".resize-handle").forEach(h=>h.style.display="none");
+  if(activeEditorOption===showText && showText.checked) document.querySelector(".text-handle")?.style.setProperty("display","block");
+  if(activeEditorOption===showBlur && showBlur.checked) document.querySelector(".blur-layer .resize-handle")?.style.setProperty("display","block");
+  if(activeEditorOption===showLogo && showLogo.checked&&logoPreview.src) document.querySelector(".logo-handle")?.style.setProperty("display","block");
+}
+function toggleEditorOptions(){
+  if(!activeEditorOption){
+    if(showText.checked) activeEditorOption=showText;
+    else if(showBlur.checked) activeEditorOption=showBlur;
+    else if(showLogo.checked) activeEditorOption=showLogo;
+  }
+  setActiveEditorOption(activeEditorOption);
 }
 function updateEditor(){
   if(textPreview.firstChild) textPreview.firstChild.nodeValue=editText.value||"";
@@ -56,12 +66,15 @@ function updateEditor(){
 }
 $("video").addEventListener("change",()=>{syncEditorVideo();updateEditor()});
 function activateOnly(active){
-  // Each option is independent: multiple options can stay enabled together.
-  toggleEditorOptions();updateEditor();
+  // Effects remain enabled together; only the newly selected option gets resize controls.
+  if(active?.checked) activeEditorOption=active;
+  else if(activeEditorOption===active) activeEditorOption=null;
+  setActiveEditorOption(activeEditorOption);
+  updateEditor();
 }
-showText?.addEventListener("change",()=>{toggleEditorOptions();updateEditor()});
-showBlur?.addEventListener("change",()=>{toggleEditorOptions();updateEditor()});
-showLogo?.addEventListener("change",()=>{toggleEditorOptions();updateEditor()});editText?.addEventListener("input",updateEditor);blurOriginal?.addEventListener("change",updateEditor);blurAmount?.addEventListener("input",updateEditor);fontSize?.addEventListener("input",updateEditor);logoSize?.addEventListener("input",updateEditor);logoPos?.addEventListener("change",updateEditor);textX?.addEventListener("input",updateEditor);textY?.addEventListener("input",updateEditor);logoX?.addEventListener("input",updateEditor);logoY?.addEventListener("input",updateEditor);blurX?.addEventListener("input",updateEditor);blurY?.addEventListener("input",updateEditor);blurW?.addEventListener("input",updateEditor);blurH?.addEventListener("input",updateEditor);
+showText?.addEventListener("change",()=>activateOnly(showText));
+showBlur?.addEventListener("change",()=>activateOnly(showBlur));
+showLogo?.addEventListener("change",()=>activateOnly(showLogo));editText?.addEventListener("input",updateEditor);blurOriginal?.addEventListener("change",updateEditor);blurAmount?.addEventListener("input",updateEditor);fontSize?.addEventListener("input",updateEditor);logoSize?.addEventListener("input",updateEditor);logoPos?.addEventListener("change",updateEditor);textX?.addEventListener("input",updateEditor);textY?.addEventListener("input",updateEditor);logoX?.addEventListener("input",updateEditor);logoY?.addEventListener("input",updateEditor);blurX?.addEventListener("input",updateEditor);blurY?.addEventListener("input",updateEditor);blurW?.addEventListener("input",updateEditor);blurH?.addEventListener("input",updateEditor);
 logoFile?.addEventListener("change",e=>{const f=e.target.files?.[0];if(!f)return;logoPreview.src=URL.createObjectURL(f);logoPreview.hidden=false;showLogo.checked=true;activateOnly(showLogo)});
 $("applyEditor")?.addEventListener("click",()=>{updateEditor();$("editorStatus").textContent="✅ Preview update လုပ်ပြီးပါပြီ။ Video ကို play လုပ်ပြီး live ကြည့်နိုင်ပါတယ်။"});
 toggleEditorOptions();updateEditor();
