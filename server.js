@@ -186,7 +186,7 @@ async function runRenderJob(job){
   const msg=e?.stderr||e?.message||"Final render failed";
   job.state="error";job.error=String(msg).slice(-6000);
  }finally{
-  fs.unlink(video.path,()=>{});if(logo)fs.unlink(logo.path,()=>{});if(voice?.path)fs.unlink(voice.path,()=>{});fs.unlink(srtPath,()=>{});fs.unlink(textPath,()=>{});
+  fs.unlink(video.path,()=>{});if(logo)fs.unlink(logo.path,()=>{});if(job.cleanupVoice&&voice?.path)fs.unlink(voice.path,()=>{});fs.unlink(srtPath,()=>{});fs.unlink(textPath,()=>{});
   setTimeout(()=>renderJobs.delete(job.id),30*60*1000);
  }
 }
@@ -198,7 +198,7 @@ app.post("/api/render",upload.fields([{name:"video",maxCount:1},{name:"logo",max
  if(!voice&&(!voiceId||!fs.existsSync(savedVoicePath)))return res.status(400).json({error:"သိမ်းထားတဲ့ AI Voice file မတွေ့ပါ။ AI Voice ကို ပြန်ထုတ်ပါ။"});
  const renderVoice=voice||{path:savedVoicePath};
  const id="render-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);
- const job={id,video,logo,voice:renderVoice,srt,voiceId,body:req.body,progress:5,state:"processing"};
+ const job={id,video,logo,voice:renderVoice,cleanupVoice:!!voice,srt,voiceId,body:req.body,progress:5,state:"processing"};
  renderJobs.set(id,job);
  res.status(202).json({jobId:id,status:"processing",progress:5});
  setImmediate(()=>runRenderJob(job));
