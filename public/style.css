@@ -4,10 +4,13 @@
 .text-preview{border:2px solid #ffd400;box-sizing:border-box;padding:4px 8px;border-radius:6px}
 .logo-preview{border:2px solid #ffd400;box-sizing:border-box;border-radius:6px}
 .blur-layer{border:2px solid #ffd400;box-sizing:border-box}
-.editor-options-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.editor-option{min-width:0}.download-link{display:block;margin-top:10px;padding:13px 16px;border-radius:12px;text-align:center;background:#19c37d;color:#06140d;font-weight:900;text-decoration:none}.card textarea{min-height:180px}.editor-preview{touch-action:none}
+.editor-options-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.editor-option{min-width:0}.download-link{display:block;margin-top:10px;padding:13px 16px;border-radius:12px;text-align:center;background:#19c37d;color:#06140d;font-weight:900;text-decoration:none}.card textarea{min-height:180px}.editor-preview{touch-action:pan-y}
 /* Text option: same editable yellow boundary style as Blur, with corner resize */
 .text-preview{position:absolute;min-width:70px;min-height:34px;padding:5px 30px 5px 8px;box-sizing:border-box;border:2px solid #ffd400;border-radius:6px;cursor:move;touch-action:none;user-select:none;}
 .text-resize-handle{position:absolute;right:-3px;bottom:-3px;width:22px;height:22px;border-radius:5px;background:#ffd400;border:2px solid #ffd400;box-shadow:0 2px 7px #000;z-index:30;cursor:nwse-resize;touch-action:none;}
 
 .option-panel input[type="range"]{display:block;width:100%;min-height:28px;touch-action:pan-x;pointer-events:auto;cursor:pointer;z-index:50;}
 .option-panel input[type="text"],.option-panel input[type="file"]{position:relative;z-index:50;pointer-events:auto;}
+
+#previewUpdate{margin-top:10px;background:linear-gradient(135deg,#57d7ff,#756aff);color:#071018;font-weight:900;}
+.option-panel{margin-top:10px;padding:12px;border:1px solid #252e3b;border-radius:10px;background:#0c121a;display:grid;gap:9px}.option-panel label{margin:0}.option-panel output{float:right;color:#61d8ff;font-weight:800}.option-panel input[type=range]{width:100%;margin:0;}
