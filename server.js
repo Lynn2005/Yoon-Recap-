@@ -15,7 +15,10 @@ app.use(express.static("public"));
 
 function keyOf(req){return String(req.body?.groqKey||req.headers["x-groq-api-key"]||process.env.GROQ_API_KEY||"").trim();}
 async function groq(pathname,key,options={}){const r=await fetch("https://api.groq.com/openai/v1"+pathname,{...options,headers:{"Authorization":"Bearer "+key,...(options.headers||{})}});const text=await r.text();let data={};try{data=JSON.parse(text)}catch{}if(!r.ok)throw new Error(data?.error?.message||text||("Groq API error "+r.status));return data;}
-async function extractAudio(videoPath,audioPath){await execFileAsync("ffmpeg",["-y","-i",videoPath,"-map","0:a:0?","-vn","-ac","1","-ar","16000","-c:a","libopus","-b:a","48k",audioPath],{maxBuffer:10*1024*1024});}
+async function extractAudio(videoPath,audioPath){
+  await execFileAsync("ffmpeg",["-y","-i",videoPath,"-map","0:a:0","-vn","-ac","1","-ar","16000","-c:a","libopus","-b:a","48k",audioPath],{maxBuffer:10*1024*1024});
+  if(!fs.existsSync(audioPath) || fs.statSync(audioPath).size<100) throw new Error("ဒီ Video ထဲမှာ Audio track မတွေ့ပါ။ အသံပါတဲ့ video ကိုရွေးပါ။");
+}
 function cleanJson(s){
   const x=String(s||"").trim().replace(/^\`\`\`json/i,"").replace(/^\`\`\`/,"").replace(/\`\`\`$/,"").trim();
   const m=x.match(/\{[\s\S]*\}/); return JSON.parse(m?m[0]:x);
@@ -38,6 +41,10 @@ app.post("/api/recap",async(req,res)=>{
  }catch(e){res.status(500).json({error:e.message||"Recap generation failed"});}
 });
 
+app.use((req,res,next)=>{
+  if(req.path.startsWith("/api/")) return res.status(404).json({error:"API endpoint မတွေ့ပါ။ Server ကို ပြန် Deploy လုပ်ပါ။"});
+  next();
+});
 app.use((err,req,res,next)=>{
   if(err instanceof multer.MulterError)return res.status(413).json({error:"Video size 500MB ထက် မကျော်ရပါ။"});
   res.status(500).json({error:err.message||"Server error"});
