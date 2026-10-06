@@ -1,5 +1,8 @@
 const $=id=>document.getElementById(id);let file=null;
 function key(){return $("key").value.trim()}
+const savedKey=localStorage.getItem("yoon_gemini_key");
+if(savedKey){$("key").value=savedKey;$("keyStatus").textContent="✅ Saved Key ကို အလိုအလျောက်ထည့်ထားပါတယ်။"}
+$("saveKey").onclick=()=>{const k=key();if(!k){$("keyStatus").textContent="⚠️ အရင် API Key ထည့်ပါ။";return}localStorage.setItem("yoon_gemini_key",k);$("keyStatus").textContent="✅ API Key သိမ်းပြီးပါပြီ။ ဒီ browser မှာ နောက်တစ်ခါလည်း ပြန်သုံးလို့ရပါတယ်။"};
 function status(id,msg){$(id).textContent=msg}
 function copy(v){if(v)navigator.clipboard?.writeText(v)}
 function download(name,text,type="text/plain"){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click()}
