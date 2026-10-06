@@ -186,7 +186,7 @@ async function runRenderJob(job){
   const msg=e?.stderr||e?.message||"Final render failed";
   job.state="error";job.error=String(msg).slice(-6000);
  }finally{
-  fs.unlink(video.path,()=>{});if(logo)fs.unlink(logo.path,()=>{});if(voice)fs.unlink(voice.path,()=>{});fs.unlink(srtPath,()=>{});fs.unlink(textPath,()=>{});
+  fs.unlink(video.path,()=>{});if(logo)fs.unlink(logo.path,()=>{});if(voice?.path)fs.unlink(voice.path,()=>{});fs.unlink(srtPath,()=>{});fs.unlink(textPath,()=>{});
   setTimeout(()=>renderJobs.delete(job.id),30*60*1000);
  }
 }
