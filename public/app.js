@@ -155,6 +155,16 @@ $("render").onclick=async()=>{
   const f=new FormData();f.append("video",file);f.append("srt",srt);f.append("voiceId",voiceId);f.append("text",$("editText").value);f.append("showText",showText.checked?"1":"0");f.append("showBlur",showBlur.checked?"1":"0");f.append("showLogo",showLogo.checked?"1":"0");
   ["fontSize","textWeight","textX","textY","blurAmount","blurX","blurY","blurW","blurH","logoSize","logoX","logoY"].forEach(id=>f.append(id,$(id).value));
   if(logoFile)f.append("logo",logoFile);
+  // Send the AI voice currently saved in the website to the render server.
+  // The server will use this uploaded voice instead of requiring the old work/<voiceId>.wav path.
+  if(voiceUrl){
+    try{
+      const vr=await fetch(voiceUrl,{cache:"no-store"});
+      if(!vr.ok)throw new Error("Saved AI Voice ကို မဖတ်နိုင်ပါ။");
+      const vb=await vr.blob();
+      f.append("voice",vb,"saved-ai-voice.wav");
+    }catch(e){throw new Error("သိမ်းထားတဲ့ AI Voice ကို Final Video ထဲထည့်မရပါ။ AI Voice ကို တစ်ခါပြန်ထုတ်ပါ။");}
+  }
   const d=await apiJson(await fetch("/api/render",{method:"POST",body:f}));
   clearInterval(timer);setProgress(100);
   const label=document.getElementById("renderProgressLabel");if(label)label.textContent="Final Video Complete";
