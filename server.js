@@ -5,6 +5,7 @@ import fs from "fs";
 import path from "path";
 import {execFile} from "child_process";
 import {promisify} from "util";
+import {MsEdgeTTS,OUTPUT_FORMAT} from "msedge-tts";
 const execFileAsync=promisify(execFile);
 
 const app=express();
@@ -106,44 +107,37 @@ app.post("/api/translate-srt",async(req,res)=>{
 app.post("/api/tts",async(req,res)=>{
  const text=String(req.body?.text||"").trim();
  if(!text)return res.status(400).json({error:"AI Voice အတွက် စာသားမရှိပါ။"});
+ const voice=String(req.body?.voice||"my-MM-NilarNeural");
+ const voiceName=voice==="myanmar-male"||voice==="my-MM-ThihaNeural"?"my-MM-ThihaNeural":"my-MM-NilarNeural";
  const id="voice-"+Date.now()+"-"+Math.random().toString(36).slice(2,8),dir=path.join("work",id+"-parts"),out=path.join("work",id+".wav");
- function splitTtsText(input,max=180){
-   const clean=input.replace(/\r/g,"").replace(/\n+/g," ").trim(),outParts=[];let rest=clean;
+ function splitTtsText(input,max=500){
+   const clean=input.replace(/\r/g,"").replace(/\n+/g," ").trim(),parts=[];let rest=clean;
    while(rest.length>max){
      let cut=Math.max(rest.lastIndexOf("။",max),rest.lastIndexOf("၊",max),rest.lastIndexOf(" ",max));
-     if(cut<40)cut=max;
-     outParts.push(rest.slice(0,cut+1).trim());rest=rest.slice(cut+1).trim();
+     if(cut<80)cut=max;
+     parts.push(rest.slice(0,cut+1).trim());rest=rest.slice(cut+1).trim();
    }
-   if(rest)outParts.push(rest);
-   return outParts;
- }
- async function googleTts(chunk){
-   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
-   try{
-     const u="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=my&dt=t&q="+encodeURIComponent(chunk);
-     const r=await fetch(u,{signal:controller.signal,headers:{"User-Agent":"Mozilla/5.0"}});
-     if(!r.ok)throw new Error("Google Burmese TTS request failed "+r.status);
-     const audio=Buffer.from(await r.arrayBuffer());
-     if(audio.length<100)throw new Error("Google Burmese TTS audio empty ဖြစ်နေပါတယ်။");
-     return audio;
-   }finally{clearTimeout(timer);}
+   if(rest)parts.push(rest);
+   return parts;
  }
  try{
    fs.mkdirSync(dir,{recursive:true});
    const chunks=splitTtsText(text),list=[];
    for(let i=0;i<chunks.length;i++){
-     const mp3=path.join(dir,String(i).padStart(4,"0")+".mp3"),wav=path.join(dir,String(i).padStart(4,"0")+".wav");
-     fs.writeFileSync(mp3,await googleTts(chunks[i]));
-     await execFileAsync("ffmpeg",["-y","-i",mp3,"-ac","1","-ar","22050","-c:a","pcm_s16le",wav],{maxBuffer:5*1024*1024});
-     list.push(wav);
+     const mp3=path.join(dir,String(i).padStart(4,"0")+".mp3");
+     const tts=new MsEdgeTTS();
+     await tts.setMetadata(voiceName,OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3);
+     await tts.toFile(chunks[i],mp3);
+     list.push(mp3);
    }
-   if(list.length===1)fs.copyFileSync(list[0],out);
-   else{
+   if(list.length===1){
+     await execFileAsync("ffmpeg",["-y","-i",list[0],"-ac","1","-ar","22050","-c:a","pcm_s16le",out],{maxBuffer:5*1024*1024});
+   }else{
      const listFile=path.join(dir,"concat.txt");
      fs.writeFileSync(listFile,list.map(p=>"file '"+path.resolve(p).replace(/'/g,"'\\''")+"'").join("\n"),"utf8");
-     await execFileAsync("ffmpeg",["-y","-f","concat","-safe","0","-i",listFile,"-c:a","pcm_s16le",out],{maxBuffer:10*1024*1024});
+     await execFileAsync("ffmpeg",["-y","-f","concat","-safe","0","-i",listFile,"-ac","1","-ar","22050","-c:a","pcm_s16le",out],{maxBuffer:10*1024*1024});
    }
-   res.json({id,url:"/media/"+path.basename(out),chunks:chunks.length,provider:"Google Burmese TTS (free)"});
+   res.json({id,url:"/media/"+path.basename(out),chunks:chunks.length,voice:voiceName,provider:"Microsoft Edge AI TTS — Free"});
  }catch(e){
    res.status(500).json({error:e instanceof Error?e.message:String(e)});
  }finally{try{fs.rmSync(dir,{recursive:true,force:true});}catch{}}
