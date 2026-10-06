@@ -26,13 +26,13 @@
 </section>
 
 <section class="card"><div class="badge">STEP 04</div><h2>🔊 AI Voice</h2>
-<label>🎙️ AI Voice Upload → SRT</label><input id="voiceUpload" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg"><small>ကိုယ်ပိုင် AI Voice / MP3 / WAV တင်ပြီး SRT ထုတ်နိုင်ပါတယ်။ Upload အသံကို Final Video မှာသုံးပါမယ်။</small><button id="transcribeVoice" type="button">📝 Upload Audio → ၂၅ အက္ခရာ SRT ထုတ်မယ်</button><label>🇲🇲 Free Burmese AI Voice</label><select id="voice"><option value="myanmar-female">👩 Nilar — Female Natural</option><option value="myanmar-male">👨 Thiha — Male Natural</option></select>
+<label>🇲🇲 Free Burmese AI Voice</label><select id="voice"><option value="myanmar-female">👩 Nilar — Female Natural</option><option value="myanmar-male">👨 Thiha — Male Natural</option></select>
 <label>⚡ Voice Speed <output id="voiceSpeedValue">1.0x</output></label><input id="voiceSpeed" type="range" min="0.5" max="1.5" step="0.1" value="1.0"><small>0.5x = နှေး • 1.0x = ပုံမှန် • 1.5x = မြန်</small>
 <button id="makeVoice">🎙 Free AI Voice ထုတ်မယ်</button><audio id="voicePreview" controls hidden></audio><label>📄 External SRT Upload → Voice SRT</label><input id="srtUpload" type="file" accept=".srt,text/srt,text/plain"><small>အပြင်က .srt ဖိုင်ကို တင်လိုက်တာနဲ့ Voice SRT ထဲ တန်းဝင်ပါမယ်။</small><label>📝 Voice SRT — ၂၅ အက္ခရာစီ</label><textarea id="voiceSrt" placeholder="AI Voice ကနေထုတ်ထားတဲ့ ၂၅ အက္ခရာစီ SRT"></textarea><div class="grid"><button id="downloadVoiceSrt">📥 Voice SRT</button></div><div id="vstatus" class="status"></div>
 </section>
 
 <section class="card editor"><div class="badge">STEP 05</div><h2>🎞️ Subtitles + Adjust</h2>
-<p>AI Voice နဲ့အချိန်ကိုက်ထားတဲ့ Voice SRT ကို Final Video မှာသုံးမယ်။ အပေါ်က Burmese SRT မသုံးပါ။</p>
+<p>External SRT Upload ထဲမှာ SRT ရှိရင် subtitles ထိုးမယ်။ မရှိရင် subtitle မထိုးဘဲ Final Video ထုတ်မယ်။</p>
 <div class="editor-preview" id="editorPreview"><video id="editVideo" controls playsinline></video><div id="blurLayer" class="blur-layer"></div><img id="logoPreview" class="logo-preview" hidden><div id="textPreview" class="text-preview">Myanmar Recap</div></div>
 <div class="editor-options-row">
 <label class="editor-option"><input id="showText" type="checkbox" checked><span>📝 စာသား</span></label>
@@ -43,7 +43,7 @@
 <div id="logoControls" class="option-panel" hidden><label>Logo</label><input id="logoFile" type="file" accept="image/png,image/jpeg,image/webp"><label>Size <output id="logoValue">72</output>px</label><input id="logoSize" type="range" min="30" max="180" value="72"><label>X <output id="logoXValue">90</output>%</label><input id="logoX" type="range" min="5" max="95" value="90"><label>Y <output id="logoYValue">10</output>%</label><input id="logoY" type="range" min="5" max="95" value="10"></div><button id="previewUpdate" type="button" onclick="update()">🔄 Preview Update</button>
 </section>
 
-<section class="card"><div class="badge">STEP 06</div><h2>🚀 Final Video</h2><p>Video + Burmese subtitles + Gemini AI Voice + Adjustments ကို FFmpeg နဲ့ တစ်ခုတည်းရောပြီး MP4 ထုတ်မယ်။</p>
+<section class="card"><div class="badge">STEP 06</div><h2>🚀 Final Video</h2><p>Video + AI Voice + (ရှိရင်) External SRT subtitles + Adjustments ကို FFmpeg နဲ့ MP4 ထုတ်မယ်။</p>
 <button id="render">🎬 Final MP4 Render</button><div id="fstatus" class="status"></div><a id="finalLink" class="download-link" hidden target="_blank">📥 Final MP4 Download</a></section>
 <footer>Yoon Recap Studio 4.0 • Upload → Audio → Original SRT → Gemini → AI Voice → Adjust → Final</footer>
-</main><script src="/app.js?v=4.9.0"></script></body></html>
+</main><script src="/app.js?v=5.0.0"></script></body></html>
