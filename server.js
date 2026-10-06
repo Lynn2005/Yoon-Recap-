@@ -75,7 +75,7 @@ Return ONLY the transcript text in natural Burmese/Myanmar language when Burmese
 If another language is spoken, preserve that language.
 Do not summarize. Do not invent dialogue. Keep the original order.
 `;
-    const data=await gemini("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",key,{
+    const data=await gemini("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent",key,{
       method:"POST",
       body:JSON.stringify({contents:[{role:"user",parts:[
         {text:prompt},
@@ -105,7 +105,7 @@ Style: ${style}.
 Rules: use ONLY events stated in the transcript, never invent scenes, names, motives or endings. Casual spoken Burmese, easy to narrate, strong ending, no greetings, no hashtags.
 Transcript:
 ${transcript.slice(0,120000)}`;
-    const data=await gemini("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",key,{
+    const data=await gemini("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent",key,{
       method:"POST",
       body:JSON.stringify({contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{temperature:0.7,responseMimeType:"application/json"}})
     });
