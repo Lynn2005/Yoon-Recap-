@@ -28,11 +28,11 @@
 <section class="card"><div class="badge">STEP 04</div><h2>🔊 AI Voice</h2>
 <label>🎙️ AI Voice Upload</label><input id="voiceUpload" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg"><small>ကိုယ်ပိုင် AI Voice / MP3 / WAV တင်နိုင်ပါတယ်။ Upload လုပ်ထားရင် Final Video မှာ အဲဒီအသံကိုသုံးပါမယ်။</small><label>🇲🇲 Free Burmese AI Voice</label><select id="voice"><option value="myanmar-female">👩 Nilar — Female Natural</option><option value="myanmar-male">👨 Thiha — Male Natural</option></select>
 <label>⚡ Voice Speed <output id="voiceSpeedValue">1.0x</output></label><input id="voiceSpeed" type="range" min="0.5" max="1.5" step="0.1" value="1.0"><small>0.5x = နှေး • 1.0x = ပုံမှန် • 1.5x = မြန်</small>
-<button id="makeVoice">🎙 Free AI Voice ထုတ်မယ်</button><audio id="voicePreview" controls hidden></audio><div id="vstatus" class="status"></div>
+<button id="makeVoice">🎙 Free AI Voice ထုတ်မယ်</button><audio id="voicePreview" controls hidden></audio><label>📝 Voice SRT — ၂၅ အက္ခရာစီ</label><textarea id="voiceSrt" placeholder="AI Voice ကနေထုတ်ထားတဲ့ ၂၅ အက္ခရာစီ SRT"></textarea><div class="grid"><button id="downloadVoiceSrt">📥 Voice SRT</button></div><div id="vstatus" class="status"></div>
 </section>
 
 <section class="card editor"><div class="badge">STEP 05</div><h2>🎞️ Subtitles + Adjust</h2>
-<p>Final မထုတ်ခင် စာသား / Blur / Logo ကို live preview မှာ ချိန်ပါ။</p>
+<p>AI Voice နဲ့အချိန်ကိုက်ထားတဲ့ Voice SRT ကို Final Video မှာသုံးမယ်။ အပေါ်က Burmese SRT မသုံးပါ။</p>
 <div class="editor-preview" id="editorPreview"><video id="editVideo" controls playsinline></video><div id="blurLayer" class="blur-layer"></div><img id="logoPreview" class="logo-preview" hidden><div id="textPreview" class="text-preview">Myanmar Recap</div></div>
 <div class="editor-options-row">
 <label class="editor-option"><input id="showText" type="checkbox" checked><span>📝 စာသား</span></label>
@@ -46,4 +46,4 @@
 <section class="card"><div class="badge">STEP 06</div><h2>🚀 Final Video</h2><p>Video + Burmese subtitles + Gemini AI Voice + Adjustments ကို FFmpeg နဲ့ တစ်ခုတည်းရောပြီး MP4 ထုတ်မယ်။</p>
 <button id="render">🎬 Final MP4 Render</button><div id="fstatus" class="status"></div><a id="finalLink" class="download-link" hidden target="_blank">📥 Final MP4 Download</a></section>
 <footer>Yoon Recap Studio 4.0 • Upload → Audio → Original SRT → Gemini → AI Voice → Adjust → Final</footer>
-</main><script src="/app.js?v=4.6.3"></script></body></html>
+</main><script src="/app.js?v=4.7.0"></script></body></html>
