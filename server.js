@@ -103,7 +103,7 @@ app.post("/api/render",upload.fields([{name:"video",maxCount:1},{name:"logo",max
   const f=[];let cur="[0:v]";
   if(showBlur){f.push(cur+"split=2[base][b0]");f.push("[b0]crop=w=trunc(iw*"+bw+"/100/2)*2:h=trunc(ih*"+bh+"/100/2)*2:x=iw*"+bx+"/100-w/2:y=ih*"+by+"/100-h/2,boxblur=luma_radius="+ba+":luma_power=1[bl]");f.push("[base][bl]overlay=x=iw*"+bx+"/100-overlay_w/2:y=ih*"+by+"/100-overlay_h/2[vb]");cur="[vb]";}
   const sp=srtPath.replace(/\\/g,"/").replace(/:/g,"\\:");f.push(cur+"subtitles='"+sp+"':fontsdir=/usr/share/fonts/noto:force_style='FontName=Noto Sans Myanmar,FontSize=20,Outline=2,Shadow=0,Alignment=2,MarginV=60'[vs]");cur="[vs]";
-  if(showText){const tp=textPath.replace(/\\/g,"/");f.push(cur+"drawtext=fontfile=/usr/share/fonts/noto/NotoSansMyanmar-Bold.ttf:textfile='"+tp+"':fontsize="+fsx+":fontcolor=white:borderw=3:bordercolor=black:x=w*"+tx+"/100-text_w/2:y=h*"+ty+"/100-text_h/2[vt]");cur="[vt]";}
+  if(showText){const tp=textPath.replace(/\\/g,"/");f.push(cur+"drawtext=fontfile="+fontFile+":textfile='"+tp+"':fontsize="+fsx+":fontcolor=white:borderw=3:bordercolor=black:x=w*"+tx+"/100-text_w/2:y=h*"+ty+"/100-text_h/2[vt]");cur="[vt]";}
   const args=["-y","-i",video.path,"-i",voicePath];
   if(showLogo&&logo){f.push("[2:v]scale="+ls+":"+ls+"[lg]");f.push(cur+"[lg]overlay=x=w*"+lx+"/100-overlay_w/2:y=h*"+ly+"/100-overlay_h/2[vout]");cur="[vout]";args.push("-i",logo.path);}
   args.push("-filter_complex",f.join(";"),"-map",cur,"-map","1:a:0","-c:v","libx264","-preset","veryfast","-crf","20","-c:a","aac","-b:a","192k","-movflags","+faststart","-shortest",out);
