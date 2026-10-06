@@ -29,20 +29,23 @@ logoPreview.style.width=$("logoSize").value+"px";logoPreview.style.height=$("log
 textPreview.style.display=showText.checked?"block":"none";blurLayer.style.display=showBlur.checked?"block":"none";logoPreview.style.display=showLogo.checked&&logoPreview.src?"block":"none";
 textControls.hidden=!showText.checked;blurControls.hidden=!showBlur.checked;logoControls.hidden=!showLogo.checked;
 }
-function selectEditorOption(){
-  // Checkbox တစ်ခုချင်းစီ independent ဖြစ်မယ်။
-  // ✔️ ဖြစ်ရင် effect + adjustment tool ပြမယ်။
-  // ❌ ဖြစ်ရင် effect + adjustment tool ဖျောက်မယ်။
-  textControls.hidden=!showText.checked;
-  blurControls.hidden=!showBlur.checked;
-  logoControls.hidden=!showLogo.checked;
+function selectEditorOption(selected){
+  // Effects are independent, but only the most recently selected option's
+  // adjustment tool is shown.
+  textControls.hidden=true;
+  blurControls.hidden=true;
+  logoControls.hidden=true;
 
-  active=showLogo.checked?showLogo:(showBlur.checked?showBlur:(showText.checked?showText:null));
+  if(selected===showText && showText.checked) textControls.hidden=false;
+  if(selected===showBlur && showBlur.checked) blurControls.hidden=false;
+  if(selected===showLogo && showLogo.checked) logoControls.hidden=false;
+
+  active=selected?.checked?selected:null;
   update();
 }
-showText.addEventListener("change",selectEditorOption);
-showBlur.addEventListener("change",selectEditorOption);
-showLogo.addEventListener("change",selectEditorOption);
+showText.addEventListener("change",()=>selectEditorOption(showText));
+showBlur.addEventListener("change",()=>selectEditorOption(showBlur));
+showLogo.addEventListener("change",()=>selectEditorOption(showLogo));
 
 document.querySelectorAll("#textControls input,#blurControls input,#logoControls input").forEach(x=>{if(x.id==="textY"){x.addEventListener("input",()=>{textPreview.style.top=x.value+"%";$("textYValue").textContent=x.value})}else{x.addEventListener("input",update)}});
 $("editText").addEventListener("input",update);
