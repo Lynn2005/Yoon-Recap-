@@ -9,7 +9,15 @@ $("saveGroq").onclick=()=>{localStorage.setItem("yoon_groq_key",$("groqKey").val
 $("saveGemini").onclick=()=>{localStorage.setItem("yoon_gemini_key",$("geminiKey").value.trim());$("keyStatus").textContent="✅ Gemini Key သိမ်းပြီးပါပြီ။"};
 const groq=()=>$("groqKey").value.trim(),gemini=()=>$("geminiKey").value.trim();
 function status(id,msg){$(id).textContent=msg}
-async function apiJson(r){const t=await r.text();let d;try{d=JSON.parse(t)}catch{throw Error(r.status+" Server က JSON မပြန်ပါ။")}if(!r.ok)throw Error(d.error||("Request failed "+r.status));return d}
+async function apiJson(r){
+ const t=await r.text();let d=null;try{d=JSON.parse(t)}catch{}
+ if(!r.ok){
+   if(r.status===502||r.status===503||r.status===504) throw Error("Server ခဏမရသေးပါ။ Render deploy/restart ဖြစ်နေခြင်း သို့မဟုတ် request timeout ဖြစ်နိုင်ပါတယ်။ 10 စက္ကန့်အကြာ ပြန်စမ်းပါ။");
+   throw Error(d?.error||t||("Request failed "+r.status));
+ }
+ if(!d)throw Error("Server က JSON မပြန်ပါ။");
+ return d;
+}
 function download(name,text,type="text/plain"){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 
 $("video").onchange=e=>{file=e.target.files?.[0];if(videoUrl)URL.revokeObjectURL(videoUrl);if(file){videoUrl=URL.createObjectURL(file);$("preview").src=videoUrl;$("preview").hidden=false;$("editVideo").src=videoUrl}};
