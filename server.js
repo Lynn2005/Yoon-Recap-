@@ -127,7 +127,10 @@ app.post("/api/tts",async(req,res)=>{
      const mp3=path.join(dir,String(i).padStart(4,"0")+".mp3");
      const tts=new MsEdgeTTS();
      await tts.setMetadata(voiceName,OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3);
-     await tts.toFile(chunks[i],mp3);
+     const edgeResult=await tts.toFile(dir,chunks[i]);
+     const edgePath=edgeResult?.audioFilePath||edgeResult?.audioFile||edgeResult;
+     if(!edgePath||!fs.existsSync(edgePath))throw new Error("AI Voice audio file မဖန်တီးနိုင်ပါ။");
+     if(String(edgePath)!==mp3)fs.renameSync(edgePath,mp3);
      list.push(mp3);
    }
    if(list.length===1){
