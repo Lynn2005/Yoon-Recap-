@@ -107,25 +107,51 @@ app.post("/api/tts",async(req,res)=>{
  if(!key)return res.status(400).json({error:"Gemini API Key ထည့်ပါ။"});if(!text)return res.status(400).json({error:"AI Voice အတွက် စာသားမရှိပါ။"});
  const id="voice-"+Date.now()+"-"+Math.random().toString(36).slice(2,8),out=path.join("work",id+".wav");
  try{
-  let r=null,raw="",data={};let lastTtsError=null;
-  const ttsModels=["gemini-3.8-flash-tts","gemini-3.7-flash-tts","gemini-3.5-flash-lite-tts"];
+  // TTS ကို မြန်အောင် model ၂ ခုအတွင်းသာ fallback လုပ်ပြီး တစ်ခုစီကို တစ်ကြိမ်ပဲခေါ်ပါ။
+  // အကြာကြီး hang မနေစေရန် request timeout ထည့်ထားသည်။
+  const ttsModels=["gemini-3.8-flash-tts","gemini-3.7-flash-tts"];
+  let data={},lastError=null;
   for(const model of ttsModels){
-    for(let attempt=0;attempt<=RETRY_DELAYS.length;attempt++){
-      r=await fetch("https://generativelanguage.googleapis.com/v1beta/interactions",{method:"POST",headers:{"x-goog-api-key":key,"Content-Type":"application/json"},body:JSON.stringify({model,input:[{type:"user_input",content:[{type:"text",text,annotations:[{type:"speech_metadata",style:"natural, clear, warm Myanmar movie recap narration"}]}]}],response_format:{type:"audio",mime_type:"audio/wav"},generation_config:{speech_config:[{voice}]}})});
-      raw=await r.text();data={};try{data=JSON.parse(raw)}catch{}
-      if(r.ok){lastTtsError=null;break}
-      lastTtsError=new Error(data?.error?.message||raw||("Gemini TTS error "+r.status));lastTtsError.status=r.status;
-      if(!isRetryableGemini(r.status,lastTtsError.message))throw lastTtsError;
-      if(attempt<RETRY_DELAYS.length)await sleep(RETRY_DELAYS[attempt]);
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),20000);
+    try{
+      const r=await fetch("https://generativelanguage.googleapis.com/v1beta/interactions",{
+        method:"POST",
+        headers:{"x-goog-api-key":key,"Content-Type":"application/json"},
+        body:JSON.stringify({
+          model,
+          input:[{type:"user_input",content:[{type:"text",text,annotations:[{type:"speech_metadata",style:"natural, clear, warm Myanmar movie recap narration"}]}]}],
+          response_format:{type:"audio",mime_type:"audio/wav"},
+          generation_config:{speech_config:[{voice}]}
+        }),
+        signal:controller.signal
+      });
+      const raw=await r.text();data={};try{data=JSON.parse(raw)}catch{}
+      if(r.ok){
+        lastError=null;
+        break;
+      }
+      lastError=new Error(data?.error?.message||raw||("Gemini TTS error "+r.status));
+      lastError.status=r.status;
+      if(!isRetryableGemini(r.status,lastError.message))throw lastError;
+    }catch(e){
+      lastError=e.name==="AbortError"
+        ? new Error("Gemini AI Voice response အရမ်းကြာနေပါတယ်။ စာသားကို နည်းနည်းတိုအောင်လုပ်ပြီး ပြန်စမ်းပါ။")
+        : e;
+      if(!isRetryableGemini(lastError?.status,String(lastError?.message||lastError)) && e.name!=="AbortError")throw lastError;
+    }finally{
+      clearTimeout(timer);
     }
-    if(r?.ok)break;
+    if(lastError?.message?.includes("အရမ်းကြာနေပါတယ်")) break;
   }
-  if(!r?.ok)throw lastTtsError||new Error("Gemini TTS unavailable");
-  let audio=data.output_audio?.data||null;for(const step of(data.steps||[]))for(const part of(step.content||[]))if(part?.type==="audio"&&part.data)audio=part.data;
-  if(!audio)throw new Error("Gemini TTS audio data မရပါ။");fs.writeFileSync(out,Buffer.from(audio,"base64"));res.json({id,url:"/media/"+path.basename(out)});
+  if(lastError)throw lastError;
+  let audio=data.output_audio?.data||null;
+  for(const step of(data.steps||[]))for(const part of(step.content||[]))if(part?.type==="audio"&&part.data)audio=part.data;
+  if(!audio)throw new Error("Gemini TTS audio data မရပါ။");
+  fs.writeFileSync(out,Buffer.from(audio,"base64"));
+  res.json({id,url:"/media/"+path.basename(out)});
  }catch(e){res.status(500).json({error:e.message||"Gemini TTS failed"});}
 });
-
 app.post("/api/recap",async(req,res)=>{
  const key=keyOf(req),transcript=String(req.body?.transcript||"").trim(),style=String(req.body?.style||"cinematic");
  if(!key)return res.status(400).json({error:"Groq API Key ထည့်ပါ။"});if(!transcript)return res.status(400).json({error:"Transcript မရှိပါ။"});
