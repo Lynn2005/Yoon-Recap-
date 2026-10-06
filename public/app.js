@@ -56,12 +56,12 @@ function updateEditor(){
 }
 $("video").addEventListener("change",()=>{syncEditorVideo();updateEditor()});
 function activateOnly(active){
-  [showText,showBlur,showLogo].forEach(x=>{if(x!==active)x.checked=false});
+  // Each option is independent: multiple options can stay enabled together.
   toggleEditorOptions();updateEditor();
 }
-showText?.addEventListener("change",()=>{if(showText.checked)activateOnly(showText);else{toggleEditorOptions();updateEditor()}});
-showBlur?.addEventListener("change",()=>{if(showBlur.checked)activateOnly(showBlur);else{toggleEditorOptions();updateEditor()}});
-showLogo?.addEventListener("change",()=>{if(showLogo.checked)activateOnly(showLogo);else{toggleEditorOptions();updateEditor()}});editText?.addEventListener("input",updateEditor);blurOriginal?.addEventListener("change",updateEditor);blurAmount?.addEventListener("input",updateEditor);fontSize?.addEventListener("input",updateEditor);logoSize?.addEventListener("input",updateEditor);logoPos?.addEventListener("change",updateEditor);textX?.addEventListener("input",updateEditor);textY?.addEventListener("input",updateEditor);logoX?.addEventListener("input",updateEditor);logoY?.addEventListener("input",updateEditor);blurX?.addEventListener("input",updateEditor);blurY?.addEventListener("input",updateEditor);blurW?.addEventListener("input",updateEditor);blurH?.addEventListener("input",updateEditor);
+showText?.addEventListener("change",()=>{toggleEditorOptions();updateEditor()});
+showBlur?.addEventListener("change",()=>{toggleEditorOptions();updateEditor()});
+showLogo?.addEventListener("change",()=>{toggleEditorOptions();updateEditor()});editText?.addEventListener("input",updateEditor);blurOriginal?.addEventListener("change",updateEditor);blurAmount?.addEventListener("input",updateEditor);fontSize?.addEventListener("input",updateEditor);logoSize?.addEventListener("input",updateEditor);logoPos?.addEventListener("change",updateEditor);textX?.addEventListener("input",updateEditor);textY?.addEventListener("input",updateEditor);logoX?.addEventListener("input",updateEditor);logoY?.addEventListener("input",updateEditor);blurX?.addEventListener("input",updateEditor);blurY?.addEventListener("input",updateEditor);blurW?.addEventListener("input",updateEditor);blurH?.addEventListener("input",updateEditor);
 logoFile?.addEventListener("change",e=>{const f=e.target.files?.[0];if(!f)return;logoPreview.src=URL.createObjectURL(f);logoPreview.hidden=false;showLogo.checked=true;activateOnly(showLogo)});
 $("applyEditor")?.addEventListener("click",()=>{updateEditor();$("editorStatus").textContent="✅ Preview update လုပ်ပြီးပါပြီ။ Video ကို play လုပ်ပြီး live ကြည့်နိုင်ပါတယ်။"});
 toggleEditorOptions();updateEditor();
