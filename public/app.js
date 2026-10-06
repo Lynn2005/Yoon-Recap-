@@ -115,6 +115,15 @@ textResizeHandle.addEventListener("pointerdown",e=>{
   textResizeHandle.addEventListener("pointercancel",end);
 });
 
+$("finishKeep").onclick=()=>{
+  const ids=["editText","fontSize","textX","textY","textWeight","blurAmount","blurX","blurY","blurW","blurH","logoFile","logoSize","logoX","logoY","showText","showBlur","showLogo"];
+  ids.forEach(id=>{const el=$(id);if(el)el.disabled=true});
+  $("finishKeep").disabled=true;
+  $("finishStatus").textContent="✅ ရပြီ — လက်ရှိ setting အတိုင်း lock လုပ်ထားပါပြီ။";
+  $("finishStatus").style.color="#16a34a";
+  $("previewUpdate").disabled=true;
+};
+
 $("render").onclick=async()=>{
  const srt=$("burmeseSrt").value.trim();if(!file)return status("fstatus","⚠️ Video ရွေးပါ။");if(!srt)return status("fstatus","⚠️ Burmese SRT အရင်ထုတ်ပါ။");if(!voiceId)return status("fstatus","⚠️ AI Voice အရင်ထုတ်ပါ။");
  const b=$("render");b.disabled=true;status("fstatus","⏳ Subtitles + Voice + Adjustments → Final MP4 render လုပ်နေပါတယ်...");
