@@ -170,14 +170,11 @@ app.post("/api/tts",async(req,res)=>{
      if(!parts.length)continue;
      const made=[];
      for(const part of parts)made.push(await makeVoiceFile(part,audioParts.length));
-     const total=made.reduce((a,x)=>a+x.duration,0);
-     const totalG=parts.reduce((a,x)=>a+graphemes(x).length,0)||1;
      let cursor=0;
      for(let pi=0;pi<parts.length;pi++){
        const dur=made[pi].duration;
-       const weight=graphemes(parts[pi]).length/totalG;
-       const start=cursor,end=cursor+total*weight;
-       voiceBlocks.push({start,text:parts[pi],duration:Math.max(0.05,end-start)});
+       const start=cursor,end=cursor+dur;
+       voiceBlocks.push({start,text:parts[pi],duration:Math.max(0.05,dur)});
        cursor=end;
        audioParts.push(made[pi].path);
      }
