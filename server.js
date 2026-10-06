@@ -16,8 +16,22 @@ app.use(express.static("public"));
 function keyOf(req){return String(req.body?.groqKey||req.headers["x-groq-api-key"]||process.env.GROQ_API_KEY||"").trim();}
 async function groq(pathname,key,options={}){const r=await fetch("https://api.groq.com/openai/v1"+pathname,{...options,headers:{"Authorization":"Bearer "+key,...(options.headers||{})}});const text=await r.text();let data={};try{data=JSON.parse(text)}catch{}if(!r.ok)throw new Error(data?.error?.message||text||("Groq API error "+r.status));return data;}
 async function extractAudio(videoPath,audioPath){
-  await execFileAsync("ffmpeg",["-y","-i",videoPath,"-map","0:a:0","-vn","-ac","1","-ar","16000","-c:a","libopus","-b:a","48k",audioPath],{maxBuffer:10*1024*1024});
-  if(!fs.existsSync(audioPath) || fs.statSync(audioPath).size<100) throw new Error("ဒီ Video ထဲမှာ Audio track မတွေ့ပါ။ အသံပါတဲ့ video ကိုရွေးပါ။");
+  // Check first so videos without an audio stream get a clean user error.
+  try{
+    const probe=await execFileAsync("ffprobe",["-v","error","-select_streams","a:0","-show_entries","stream=index","-of","csv=p=0",videoPath],{maxBuffer:2*1024*1024});
+    if(!String(probe.stdout||"").trim()) throw new Error("NO_AUDIO");
+  }catch(err){
+    if(err.message==="NO_AUDIO" || /Stream map.*matches no streams|Invalid argument/i.test(String(err.stderr||""))){
+      throw new Error("ဒီ Video ထဲမှာ Audio track မပါပါ။ အသံပါတဲ့ video ကိုရွေးပါ။");
+    }
+    throw err;
+  }
+  try{
+    await execFileAsync("ffmpeg",["-y","-i",videoPath,"-map","0:a:0","-vn","-ac","1","-ar","16000","-c:a","libopus","-b:a","48k",audioPath],{maxBuffer:10*1024*1024});
+  }catch(err){
+    throw new Error("Video Audio ကို extract မလုပ်နိုင်ပါ။ အသံပါတဲ့ video ကို ပြန်ရွေးပါ။");
+  }
+  if(!fs.existsSync(audioPath) || fs.statSync(audioPath).size<100) throw new Error("ဒီ Video ထဲမှာ Audio track မပါပါ။ အသံပါတဲ့ video ကိုရွေးပါ။");
 }
 function cleanJson(s){
   const x=String(s||"").trim().replace(/^\`\`\`json/i,"").replace(/^\`\`\`/,"").replace(/\`\`\`$/,"").trim();
