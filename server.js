@@ -121,7 +121,6 @@ app.post("/api/tts",async(req,res)=>{
     if(r?.ok)break;
   }
   if(!r?.ok)throw lastTtsError||new Error("Gemini TTS unavailable");
-  const raw=await r.text();let data={};try{data=JSON.parse(raw)}catch{}if(!r.ok)throw new Error(data?.error?.message||raw||("Gemini TTS error "+r.status));
   let audio=data.output_audio?.data||null;for(const step of(data.steps||[]))for(const part of(step.content||[]))if(part?.type==="audio"&&part.data)audio=part.data;
   if(!audio)throw new Error("Gemini TTS audio data မရပါ။");fs.writeFileSync(out,Buffer.from(audio,"base64"));res.json({id,url:"/media/"+path.basename(out)});
  }catch(e){res.status(500).json({error:e.message||"Gemini TTS failed"});}
