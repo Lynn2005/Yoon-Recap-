@@ -3,10 +3,11 @@
 <body><main class="wrap">
 <header><img class="yoon-avatar" src="/yoon-avatar.jpg" alt="Yoon"><div><div class="eyebrow">AI RECAP ASSISTANT</div><h1>Yoon Recap</h1><p>AI Movie Recap Studio</p></div></header>
 <section class="yoon-intro"><div><strong>မင်္ဂလာပါ 👋 Yoon ပါ</strong><span>Video တင်ပြီး Recap လုပ်လိုက်ပါ</span></div><img src="/yoon-avatar.jpg" alt="Yoon"></section>
-<section class="card key"><label>Groq API Key</label><div class="keyrow"><input id="key" type="password" placeholder="gsk_..."><button id="saveKey" type="button">💾 Save Key</button><a href="https://aistudio.google.com/app/apikey" target="_blank">Get Key</a></div><small id="keyStatus">Key ကို ဒီဖုန်းရဲ့ browser ထဲမှာသာ သိမ်းထားပါမယ်။</small></section>
+<section class="card key"><label>Groq API Key</label><div class="keyrow"><input id="key" type="password" placeholder="gsk_..."><button id="saveKey" type="button">💾 Save Key</button><a href="https://console.groq.com/keys" target="_blank">Get Groq Key</a></div><small id="keyStatus">Key ကို ဒီဖုန်းရဲ့ browser ထဲမှာသာ သိမ်းထားပါမယ်။</small></section>
 <section class="card"><div class="badge">STEP 01</div><h2>🎬 Video Upload</h2><p>Movie / story video ကိုရွေးပါ။</p><input id="video" type="file" accept="video/*"><video id="preview" controls playsinline hidden></video><button id="transcribe">🎙 Auto Transcript</button><div id="tstatus" class="status"></div></section>
 <section class="card"><div class="badge">STEP 02</div><h2>📝 Transcript</h2><textarea id="transcript" placeholder="Transcript will appear here..."></textarea><div class="grid"><button id="copyTranscript">Copy</button><button id="downloadTxt">Download TXT</button></div></section>
-<section class="card"><div class="badge">STEP 03</div><h2>🤖 Myanmar Movie Recap</h2><select id="style"><option value="cinematic">Cinematic</option><option value="casual">Casual Myanmar</option><option value="dramatic">Dramatic</option><option value="funny">Funny</option></select><button id="recap">✨ Generate Myanmar Recap</button><input id="title" placeholder="Recap title"><textarea id="hook" class="short" placeholder="Hook"></textarea><textarea id="summary" class="short" placeholder="Summary"></textarea><textarea id="script" placeholder="Myanmar recap script..."></textarea><div class="grid"><button id="copyScript">Copy Script</button><button id="downloadScript">Download Script</button></div><div id="rstatus" class="status"></div><section class="card editor"><div class="badge">STEP 05</div><h2>🎞️ Video Editor</h2><p>ပြင်နေတဲ့ video ကို တစ်နေရာတည်းမှာ live preview ကြည့်နိုင်ပါတယ်။</p>
+<section class="card"><div class="badge">STEP 03</div><h2>🤖 Myanmar Movie Recap</h2><select id="style"><option value="cinematic">Cinematic</option><option value="casual">Casual Myanmar</option><option value="dramatic">Dramatic</option><option value="funny">Funny</option></select><button id="recap">✨ Generate Myanmar Recap</button><input id="title" placeholder="Recap title"><textarea id="hook" class="short" placeholder="Hook"></textarea><textarea id="summary" class="short" placeholder="Summary"></textarea><textarea id="script" placeholder="Myanmar recap script..."></textarea><div class="grid"><button id="copyScript">Copy Script</button><button id="downloadScript">Download Script</button></div><div id="rstatus" class="status"></div></section>
+<section class="card editor"><div class="badge">STEP 05</div><h2>🎞️ Video Editor</h2><p>ပြင်နေတဲ့ video ကို တစ်နေရာတည်းမှာ live preview ကြည့်နိုင်ပါတယ်။</p>
 <div class="editor-preview" id="editorPreview"><video id="editVideo" controls playsinline></video><div id="blurLayer" class="blur-layer"></div><img id="logoPreview" class="logo-preview" hidden><div id="textPreview" class="text-preview">Myanmar Recap</div></div>
 <div class="controls">
 <label class="toggle"><input id="blurOriginal" type="checkbox" checked><span>မူရင်းစာသား Blur</span></label>
@@ -19,7 +20,7 @@
 </div>
 <button id="applyEditor">👀 Preview Update</button>
 <div id="editorStatus" class="status"></div>
-</section></section>
+</section>
 <section class="card"><div class="badge">STEP 04</div><h2>📱 TikTok Caption</h2><textarea id="caption" placeholder="Caption + hashtags"></textarea><button id="makeCaption">✨ Make Caption</button><button id="copyCaption">Copy Caption</button></section>
 <footer>Yoon Recap 2.0 • Upload → Transcript → Myanmar Recap</footer>
 </main><script src="/app.js"></script></body></html>
