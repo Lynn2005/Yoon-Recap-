@@ -147,7 +147,7 @@ app.post("/api/tts",async(req,res)=>{
          payload=JSON.parse(lines[i+1].slice(6));break;
        }
        if(lines[i].trim()==="event: error" && lines[i+1]?.startsWith("data: ")){
-         throw new Error(String(lines[i+1].slice(6)));
+         const rawErr=lines[i+1].slice(6); let msgErr=rawErr; try{const parsedErr=JSON.parse(rawErr); msgErr=parsedErr?.message||parsedErr?.error||parsedErr?.detail||JSON.stringify(parsedErr);}catch{} throw new Error(String(msgErr));
        }
      }
      if(!payload)throw new Error("MyanmarTTS audio မပြန်လာပါ။");
