@@ -1,5 +1,5 @@
 const $=id=>document.getElementById(id);
-let file=null,videoUrl=null,fontFile=null,customFontUrl=null,voiceId=localStorage.getItem("yoon_voice_id")||null,voiceUrl=localStorage.getItem("yoon_voice_url")||null,logoFile=null;
+let file=null,videoUrl=null,voiceUploadFile=null,fontFile=null,customFontUrl=null,voiceId=localStorage.getItem("yoon_voice_id")||null,voiceUrl=localStorage.getItem("yoon_voice_url")||null,logoFile=null;
 if(voiceId&&voiceUrl){$("voicePreview").src=voiceUrl;$("voicePreview").hidden=false;}
 
 const savedGroq=localStorage.getItem("yoon_groq_key"),savedGemini=localStorage.getItem("yoon_gemini_key");
@@ -22,6 +22,7 @@ async function apiJson(r){
 }
 function download(name,text,type="text/plain"){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 
+$("voiceUpload").onchange=e=>{voiceUploadFile=e.target.files?.[0]||null;if(voiceUploadFile){voiceId=null;voiceUrl=null;localStorage.removeItem("yoon_voice_id");localStorage.removeItem("yoon_voice_url");$("voicePreview").src=URL.createObjectURL(voiceUploadFile);$("voicePreview").hidden=false;status("vstatus","✅ AI Voice file ရွေးပြီးပါပြီ။ Final Video မှာ ဒီအသံကိုသုံးပါမယ်။")}};
 $("video").onchange=e=>{file=e.target.files?.[0];if(videoUrl)URL.revokeObjectURL(videoUrl);if(file){videoUrl=URL.createObjectURL(file);$("preview").src=videoUrl;$("preview").hidden=false;$("editVideo").src=videoUrl}};
 $("transcribe").onclick=async()=>{if(!file)return status("tstatus","⚠️ Video ရွေးပါ။");if(!groq())return status("tstatus","⚠️ Groq API Key ထည့်ပါ။");const b=$("transcribe");b.disabled=true;status("tstatus","⏳ Audio extract → Whisper → Original SRT ထုတ်နေပါတယ်...");try{const f=new FormData();f.append("video",file);f.append("groqKey",groq());const d=await apiJson(await fetch("/api/transcribe",{method:"POST",body:f}));$("originalSrt").value=d.srt||"";localStorage.setItem("yoon_original_srt",$("originalSrt").value);status("tstatus","✅ Audio + Transcript + Original SRT ပြီးပါပြီ။")}catch(e){status("tstatus","❌ "+e.message)}finally{b.disabled=false}};
 $("downloadOriginal").onclick=()=>download("original.srt",$("originalSrt").value,"application/x-subrip");
@@ -133,7 +134,7 @@ $("finishKeep")?.addEventListener("click",()=>{
 });
 
 $("render").onclick=async()=>{
- const srt=$("burmeseSrt").value.trim();if(!file)return status("fstatus","⚠️ Video ရွေးပါ။");if(!srt)return status("fstatus","⚠️ Burmese SRT အရင်ထုတ်ပါ။");if(!voiceId)return status("fstatus","⚠️ AI Voice အရင်ထုတ်ပါ။");
+ const srt=$("burmeseSrt").value.trim();if(!file)return status("fstatus","⚠️ Video ရွေးပါ။");if(!srt)return status("fstatus","⚠️ Burmese SRT အရင်ထုတ်ပါ။");if(!voiceId&&!voiceUploadFile)return status("fstatus","⚠️ AI Voice ကို Generate လုပ်ပါ သို့မဟုတ် Upload လုပ်ပါ။");
  const b=$("render");b.disabled=true;let pct=1;
  const makeProgress=()=>{let p=document.getElementById("renderProgress");if(!p){p=document.createElement("div");p.id="renderProgress";p.innerHTML='<div class="render-progress-top"><span id="renderProgressLabel">Final Video Loading...</span><b id="renderProgressPct">1%</b></div><div class="render-progress-track"><div id="renderProgressBar"></div></div>';const target=document.getElementById("fstatus");target.parentNode.insertBefore(p,target);}};
  const setProgress=n=>{pct=Math.max(pct,Math.min(99,Math.round(n)));const bar=document.getElementById("renderProgressBar"),label=document.getElementById("renderProgressLabel"),num=document.getElementById("renderProgressPct");if(bar)bar.style.width=pct+"%";if(num)num.textContent=pct+"%";if(label)label.textContent=pct<99?"Final Video Loading...":"Final Video Finishing...";};
@@ -141,7 +142,7 @@ $("render").onclick=async()=>{
  try{
   const f=new FormData();f.append("video",file);f.append("srt",srt);f.append("voiceId",voiceId);f.append("text",$("editText").value);f.append("fontStyle",$("fontStyle").value);f.append("fontColor",$("textColor").value);f.append("borderColor",$("borderColor").value);f.append("borderWidth",$("borderWidth").value);f.append("showText",showText.checked?"1":"0");f.append("showBlur",showBlur.checked?"1":"0");f.append("showLogo",showLogo.checked?"1":"0");
   ["fontSize","textWeight","textX","textY","blurAmount","blurX","blurY","blurW","blurH","logoSize","logoX","logoY"].forEach(id=>f.append(id,$(id).value));if(logoFile)f.append("logo",logoFile);if(fontFile)f.append("font",fontFile);
-  if(voiceUrl){try{const vr=await fetch(voiceUrl,{cache:"no-store"});if(!vr.ok)throw new Error();const vb=await vr.blob();f.append("voice",vb,"saved-ai-voice.wav");}catch(e){throw new Error("သိမ်းထားတဲ့ AI Voice ကို Final Video ထဲထည့်မရပါ။ AI Voice ကို တစ်ခါပြန်ထုတ်ပါ။");}}
+  if(voiceUploadFile){f.append("voice",voiceUploadFile,voiceUploadFile.name);}else if(voiceUrl){try{const vr=await fetch(voiceUrl,{cache:"no-store"});if(!vr.ok)throw new Error();const vb=await vr.blob();f.append("voice",vb,"saved-ai-voice.wav");}catch(e){throw new Error("သိမ်းထားတဲ့ AI Voice ကို Final Video ထဲထည့်မရပါ။ AI Voice ကို တစ်ခါပြန်ထုတ်ပါ။");}}
   const d=await apiJson(await fetch("/api/render",{method:"POST",body:f}));const jobId=d.jobId;if(!jobId)throw new Error("Render job ID မရပါ။");
   for(let attempts=0;attempts<600;attempts++){await new Promise(r=>setTimeout(r,1000));const q=await apiJson(await fetch("/api/render/status/"+encodeURIComponent(jobId),{cache:"no-store"}));if(q.status==="processing"){setProgress(Math.max(pct,Math.min(96,Number(q.progress||5)+Math.min(70,attempts*.15))));status("fstatus","⏳ Final Video render လုပ်နေပါတယ်... "+pct+"%");continue;}if(q.status==="error")throw new Error(q.error||"Final render failed");if(q.status==="done"){setProgress(100);const label=document.getElementById("renderProgressLabel");if(label)label.textContent="Final Video Complete";$("finalLink").href=q.url;$("finalLink").hidden=false;status("fstatus","✅ Final MP4 ပြီးပါပြီ — 100%");break;}}
  }catch(e){status("fstatus","❌ "+e.message)}finally{b.disabled=false}
