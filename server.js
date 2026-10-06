@@ -36,7 +36,7 @@ async function extractAudio(videoPath,audioPath){
 }
 function geminiKeyOf(req){return String(req.body?.geminiKey||req.headers["x-gemini-api-key"]||process.env.GEMINI_API_KEY||"").trim();}
 const GEMINI_MODELS=["gemini-3.8-flash","gemini-3.7-flash","gemini-3.5-flash-lite"];
-const RETRY_DELAYS=[2000,5000,10000];
+const RETRY_DELAYS=[1500,3000];
 
 function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
 function isRetryableGemini(status,message){
@@ -71,7 +71,7 @@ async function geminiGenerate(key,requestedModel,prompt){
      }
    }
  }
- throw new Error("Gemini models are temporarily unavailable. 3.8 → 3.7 → 3.5-lite fallback နှင့် retry အားလုံး မအောင်မြင်ပါ။ နောက်မှ ပြန်စမ်းပါ။");
+ throw new Error("Gemini models are temporarily unavailable. 3.8 → 3.7 → 3.5-lite fallback လုပ်ပြီး retry ပြုလုပ်ခဲ့ပေမယ့် မအောင်မြင်ပါ။ နောက်မှ ပြန်စမ်းပါ။");
 }
 function srtTime(sec){const ms=Math.max(0,Math.round(Number(sec||0)*1000)),h=Math.floor(ms/3600000),m=Math.floor(ms%3600000/60000),s=Math.floor(ms%60000/1000),z=ms%1000;return String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0")+","+String(z).padStart(3,"0")}
 function makeSrt(segments,text){const a=Array.isArray(segments)&&segments.length?segments:[{start:0,end:Math.max(1,text.length/12),text}];return a.map((x,i)=>(i+1)+"\n"+srtTime(x.start)+" --> "+srtTime(x.end)+"\n"+String(x.text||"").trim()).join("\n\n").trim()+"\n"}
