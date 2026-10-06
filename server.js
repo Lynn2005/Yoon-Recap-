@@ -109,6 +109,51 @@ app.post("/api/transcribe",upload.single("video"),async(req,res)=>{
  catch(e){res.status(500).json({error:e.message||"Transcription failed"});}finally{fs.unlink(file.path,()=>{});fs.unlink(audioPath,()=>{});}
 });
 
+app.post("/api/transcribe-audio",upload.single("audio"),async(req,res)=>{
+ const file=req.file,key=keyOf(req);
+ if(!file)return res.status(400).json({error:"Audio file ရွေးပါ။"});
+ if(!key)return res.status(400).json({error:"Groq API Key ထည့်ပါ။"});
+ const audioPath=file.path;
+ function graphemes(s){return Array.from(new Intl.Segmenter("my",{granularity:"grapheme"}).segment(String(s||"")),x=>x.segment)}
+ function split25(s,max=25){
+   const g=graphemes(String(s||"").replace(/\s+/g," ").trim()),out=[];let rest=g;
+   while(rest.length>max){
+     let cut=max;
+     for(let i=max;i>=Math.max(1,max-8);i--)if(/[\s၊။!?]/.test(rest[i-1])){cut=i;break}
+     const part=rest.slice(0,cut).join("").trim();if(part)out.push(part);
+     rest=graphemes(rest.slice(cut).join("").trim());
+   }
+   if(rest.length)out.push(rest.join("").trim());
+   return out.filter(Boolean);
+ }
+ try{
+   const form=new FormData();
+   form.append("file",new Blob([fs.readFileSync(audioPath)]),file.originalname||"audio");
+   form.append("model","whisper-large-v3-turbo");
+   form.append("response_format","verbose_json");
+   form.append("temperature","0");
+   const data=await groq("/audio/transcriptions",key,{method:"POST",body:form});
+   const segments=Array.isArray(data.segments)?data.segments:[];
+   const blocks=[];
+   for(const seg of segments){
+     const text=String(seg?.text||"").trim(),start=Number(seg?.start||0),end=Math.max(start+0.05,Number(seg?.end||start+0.05));
+     const parts=split25(text,25);
+     if(!parts.length)continue;
+     const total=Math.max(0.05,end-start),weight=parts.reduce((n,p)=>n+graphemes(p).length,0)||parts.length;
+     let cursor=start;
+     for(const part of parts){
+       const dur=total*(graphemes(part).length/weight);
+       blocks.push({start:cursor,end:Math.min(end,cursor+dur),text:part});
+       cursor+=dur;
+     }
+     if(blocks.length)blocks[blocks.length-1].end=end;
+   }
+   const srt=makeSrt(blocks,String(data.text||""));
+   if(!validSrt(srt))throw new Error("အသံထဲက စကားပြောစာသား မရပါ။");
+   res.json({text:String(data.text||"").trim(),language:data.language||null,segments, srt, voiceSrt:srt,maxCharsPerLine:25,source:"uploaded-audio"});
+ }catch(e){res.status(500).json({error:e.message||"Audio transcription failed"});}
+ finally{fs.unlink(file.path,()=>{});}
+});
 app.post("/api/translate-srt",async(req,res)=>{
  const keys=geminiKeysOf(req),srt=String(req.body?.srt||"").trim();
  if(!keys.length)return res.status(400).json({error:"Gemini API Key ထည့်ပါ။"});if(!srt)return res.status(400).json({error:"Original SRT မရှိပါ။"});
