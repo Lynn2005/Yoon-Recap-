@@ -35,23 +35,29 @@ update();
 
 function dragElement(el,type,xId,yId){
   el.addEventListener("pointerdown",e=>{
-    if(!$(type==="blur"?"showBlur":type==="text"?"showText":"showLogo").checked)return;
+    const enabled=$(type==="blur"?"showBlur":type==="text"?"showText":"showLogo").checked;
+    if(!enabled)return;
     if(type==="text" && e.target===textResizeHandle)return;
-    e.preventDefault();e.stopPropagation();
-    el.setPointerCapture?.(e.pointerId);
+    e.preventDefault();
+    e.stopPropagation();
     const box=$("editorPreview").getBoundingClientRect();
-    const startX=e.clientX,startY=e.clientY,ox=Number($(xId).value),oy=Number($(yId).value);
+    const startX=e.clientX,startY=e.clientY;
+    const ox=Number($(xId).value),oy=Number($(yId).value);
     const move=ev=>{
-      const dx=(ev.clientX-startX)/box.width*100,dy=(ev.clientY-startY)/box.height*100;
+      const dx=(ev.clientX-startX)/box.width*100;
+      const dy=(ev.clientY-startY)/box.height*100;
       $(xId).value=Math.max(5,Math.min(95,ox+dx));
       $(yId).value=Math.max(5,Math.min(95,oy+dy));
       update();
     };
-    const end=ev=>{
-      el.releasePointerCapture?.(ev.pointerId);
-      el.removeEventListener("pointermove",move);el.removeEventListener("pointerup",end);el.removeEventListener("pointercancel",end);
+    const end=()=>{
+      document.removeEventListener("pointermove",move);
+      document.removeEventListener("pointerup",end);
+      document.removeEventListener("pointercancel",end);
     };
-    el.addEventListener("pointermove",move);el.addEventListener("pointerup",end);el.addEventListener("pointercancel",end);
+    document.addEventListener("pointermove",move);
+    document.addEventListener("pointerup",end);
+    document.addEventListener("pointercancel",end);
   });
 }
 // Text ကို Blur box လို yellow boundary + corner resize နဲ့ တိုက်ရိုက်ပြင်နိုင်စေမယ်
