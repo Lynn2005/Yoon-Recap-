@@ -10,11 +10,12 @@ $("saveGroq").onclick=()=>{localStorage.setItem("yoon_groq_key",$("groqKey").val
 $("saveGemini").onclick=()=>{localStorage.setItem("yoon_gemini_key",$("geminiKey").value.trim());$("keyStatus").textContent="✅ Gemini Key သိမ်းပြီးပါပြီ။"};
 const groq=()=>$("groqKey").value.trim(),gemini=()=>$("geminiKey").value.trim();
 function status(id,msg){$(id).textContent=msg}
+function errorText(v){if(v==null)return "";if(typeof v==="string")return v;if(v instanceof Error)return v.message||String(v);if(typeof v==="object"){return String(v.message||v.error||v.detail||v.reason||JSON.stringify(v));}return String(v)}
 async function apiJson(r){
  const t=await r.text();let d=null;try{d=JSON.parse(t)}catch{}
  if(!r.ok){
    if(r.status===502||r.status===503||r.status===504) throw Error("Server ခဏမရသေးပါ။ Render deploy/restart ဖြစ်နေခြင်း သို့မဟုတ် request timeout ဖြစ်နိုင်ပါတယ်။ 10 စက္ကန့်အကြာ ပြန်စမ်းပါ။");
-   throw Error(d?.error||t||("Request failed "+r.status));
+   throw Error(errorText(d?.error)||t||("Request failed "+r.status));
  }
  if(!d)throw Error("Server က JSON မပြန်ပါ။");
  return d;
