@@ -11,7 +11,7 @@ app.use(express.json({limit:"5mb"}));
 app.use(express.static("public"));
 
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-function keyOf(req){return String(req.body?.geminiKey||req.headers["x-gemini-api-key"]||process.env.GEMINI_API_KEY||"").trim();}
+function keyOf(req){return String(req.body?.groqKey||req.headers["x-groq-api-key"]||process.env.GROQ_API_KEY||"").trim();}
 async function gemini(url,key,options={}){
   const r=await fetch(url,{...options,headers:{"Content-Type":"application/json","x-goog-api-key":key,...(options.headers||{})}});
   const text=await r.text(); let data={}; try{data=JSON.parse(text)}catch{}
