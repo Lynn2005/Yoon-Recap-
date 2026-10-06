@@ -1,62 +1,14 @@
-let step=1,videoFile=null,finalFile=null,thumbFile=null,videoURL="",finalURL="",thumbURL="",whisperer=null,ffmpeg=null,ffmpegLoading=null,busy=false;const $=id=>document.getElementById(id);
-function setStep(n){step=n;document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id==="page"+n));document.querySelectorAll(".step").forEach(b=>b.classList.toggle("active",+b.dataset.step===n));scrollTo(0,0);saveText()}
-function saveText(){try{localStorage.setItem("yoon-recap-text",JSON.stringify({srt:$("srt").value,translation:$("translation").value,voiceText:$("voiceText").value,caption:$("caption").value,thumbPrompt:$("thumbPrompt").value}))}catch(e){}}
-function loadText(){try{let x=JSON.parse(localStorage.getItem("yoon-recap-text")||"{}");$("srt").value=x.srt||"";$("translation").value=x.translation||"";$("voiceText").value=x.voiceText||"";$("caption").value=x.caption||"";$("thumbPrompt").value=x.thumbPrompt||""}catch(e){}}
-function status(id,m){$(id).textContent=m}
-function onVideo(e){let f=e.target.files?.[0];if(!f)return;videoFile=f;if(videoURL)URL.revokeObjectURL(videoURL);videoURL=URL.createObjectURL(f);$("video").src=videoURL;$("videoBox").hidden=false;$("uploadTitle").textContent=f.name;$("fileInfo").textContent=(f.size/1048576).toFixed(1)+" MB • Video ready"}
-async function getFFmpeg(){
-  if(ffmpeg?.loaded)return ffmpeg;
-  if(ffmpegLoading)return ffmpegLoading;
-  ffmpegLoading=(async()=>{
-  status("status2","⏳ FFmpeg loading (first time only)...");
-  try{
-    const m=await import("https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.15/dist/esm/index.js");
-    const instance=new m.FFmpeg();
-    instance.on("log",({message})=>console.log("[FFmpeg]",message));
-    instance.on("progress",({progress})=>{
-      if(progress>0)status("status2","⏳ FFmpeg "+Math.round(progress*100)+"%");
-    });
-    await instance.load({
-      coreURL:"https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm/ffmpeg-core.js",
-      wasmURL:"https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm/ffmpeg-core.wasm",
-      classWorkerURL:location.origin+"/ffmpeg/worker.js"
-    });
-    if(!instance.loaded)throw new Error("FFmpeg load failed");
-    ffmpeg=instance;
-    status("status2","✓ FFmpeg ready");
-    return ffmpeg;
-  }catch(e){
-    ffmpeg=null;
-    console.error("FFmpeg load error:",e);
-    throw new Error("FFmpeg load failed: "+(e?.message||e));
-  }finally{
-    ffmpegLoading=null;
-  }
-  })();
-  return ffmpegLoading;
-}
-async function generateRecap(){
-  const key=($("srtGeminiKey").value.trim()||$("geminiKey").value.trim()||"");
-  const transcript=$("srt").value.trim()||$("translation").value.trim();
-  if(!key){status("recapStatus","⚠️ Gemini API Key ထည့်ပါ။");return}
-  if(!transcript){status("recapStatus","⚠️ Transcript အရင်ထုတ်ပါ။");return}
-  const b=$("generateRecap");b.disabled=true;status("recapStatus","⏳ AI က movie recap ရေးနေပါတယ်...");
-  try{
-    const res=await fetch("/api/recap",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({geminiKey:key,transcript,style:$("recapStyle").value})});
-    const data=await res.json();if(!res.ok)throw Error(data.error||"Recap generation failed");
-    $("aiSummary").value=data.summary||"";$("aiHook").value=data.hook||"";$("aiRecap").value=data.recap||"";if(data.recap){$("translation").value=data.recap;$("voiceText").value=data.recap}saveText();status("recapStatus","✓ Summary + Myanmar Recap ပြီးပါပြီ။");
-  }catch(e){status("recapStatus","❌ "+e.message)}finally{b.disabled=false}
-}
-function autoSrt(){return _autoSrt.apply(this,arguments)}
-async function _autoSrt(){if(busy)return;if(!videoFile){status("status2","⚠️ Video အရင်ရွေးပါ။");return}const key=($("srtGeminiKey").value.trim()||$("geminiKey")?.value.trim()||"");if(!key){status("status2","⚠️ Gemini API Key ထည့်ပါ။");return}busy=true;$("autoBtn").disabled=true;try{status("status2","☁️ Gemini AI ကို video ပို့နေပါတယ်...");const fd=new FormData();fd.append("video",videoFile);fd.append("geminiKey",key);const res=await fetch("/api/transcribe",{method:"POST",body:fd});const data=await res.json();if(!res.ok)throw Error(data.error||"Gemini transcription failed");const t=(data.text||"").trim();if(!t)throw Error("စကားသံ မတွေ့ပါ");$("srt").value=data.srt||makeSrt(t,$("video").duration||30);if(!$("translation").value)$("translation").value=t;if(!$("voiceText").value)$("voiceText").value=$("translation").value;saveText();status("status2","✓ Gemini AI SRT ပြီးပါပြီ။")}catch(e){console.error(e);status("status2","❌ "+(e.message||"Auto SRT failed"))}finally{busy=false;$("autoBtn").disabled=false}}function dl(blob,name){let a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
-function copy(t){if(!t)return;navigator.clipboard?.writeText(t)}
-function copyTranscript(){let t=$("srt").value.replace(/^\d+\s*$/gm,"").replace(/\d\d:\d\d:\d\d,\d{3}\s*-->\s*\d\d:\d\d:\d\d,\d{3}/g,"").replace(/\n{2,}/g,"\n").trim();$("translation").value=t;saveText();copy(t);status("status2","✓ Transcript copied to Myanmar box")}
-function voices(){if(!("speechSynthesis"in window))return;let s=$("voice"),old=s.value;s.innerHTML='<option value="">Default Voice</option>';speechSynthesis.getVoices().forEach((v,i)=>{let o=document.createElement("option");o.value=i;o.textContent=v.name+" • "+v.lang;s.appendChild(o)});s.value=old}
-function playVoice(){let t=$("voiceText").value.trim()||$("translation").value.trim();if(!t){status("status3","Script ထည့်ပါ။");return}speechSynthesis.cancel();let u=new SpeechSynthesisUtterance(t),i=+$("voice").value,v=speechSynthesis.getVoices();if(!Number.isNaN(i)&&v[i]){u.voice=v[i];u.lang=v[i].lang}else u.lang="my-MM";u.rate=+$("rate").value||.95;u.onstart=()=>status("status3","▶ Voice playing...");u.onend=()=>status("status3","✓ Voice preview ပြီးပါပြီ");speechSynthesis.speak(u)}
-function style(){let p=$("stylePreview");p.style.transform=$("mirrorOn").checked?"scaleX(-1)":"";p.style.filter=$("blurOn").checked?"blur(3px)":"";p.style.aspectRatio=$("verticalOn").checked?"9/16":"16/9";p.style.maxWidth=$("verticalOn").checked?"260px":"100%";p.style.margin="14px auto 0"}
-function thumbPrompt(){let s=$("translation").value.trim()||"dramatic movie recap";$("thumbPrompt").value="Create a high-click TikTok movie recap thumbnail, realistic cinematic Myanmar social-media style, vertical 9:16, dramatic lighting, expressive main character, strong emotion, clean background, space for Burmese title, no watermark. Story: "+s.slice(0,350);saveText();copy($("thumbPrompt").value)}
-function caption(){let s=$("translation").value.trim(),x=(s.split(/[.!?\n]/).find(q=>q.trim())||"ဒီဇာတ်လမ်းမှာ မထင်မှတ်တာတွေ ဖြစ်လာပါတယ်").trim();$("caption").value=x+" 😱\nအဆုံးထိကြည့်ပြီး ဘာဖြစ်မလဲ ခန့်မှန်းကြည့်ပါ။\n\n#fyp #foryou #tiktokmyanmar #movie #movierecap #recap #မြန်မာ";saveText()}
-
-async function generateGeminiTTS(){const key=$("geminiKey").value.trim(),text=$("voiceText").value.trim()||$("translation").value.trim();if(!key){status("status3","⚠️ Gemini API Key ထည့်ပါ။");return}if(!text){status("status3","Myanmar script ထည့်ပါ။");return}const btn=$("geminiTtsBtn");btn.disabled=true;status("status3","⏳ Gemini Myanmar voice generate လုပ်နေပါတယ်...");try{const res=await fetch("https://generativelanguage.googleapis.com/v1beta/interactions",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify({model:"gemini-3.8-flash-tts",input:[{type:"user_input",content:[{type:"text",text,annotations:[{type:"speech_metadata",style:"natural Burmese movie recap narrator, clear, warm, expressive, medium pace"}]}]}],response_format:{type:"audio",mime_type:"audio/wav"},generation_config:{speech_config:[{voice:$("geminiVoice").value}]}})});if(!res.ok)throw Error("Gemini API "+res.status+": "+await res.text());const data=await res.json();const audio=data.output_audio?.data||data.steps?.filter(x=>x.type==="model_output").flatMap(x=>x.content||[]).filter(x=>x.type==="audio").pop()?.data;if(!audio)throw Error("Audio data မရပါ");const bin=atob(audio),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);const blob=new Blob([u],{type:"audio/wav"});window.geminiAudioBlob=blob;$("voicePreview").src=URL.createObjectURL(blob);$("voicePreview").hidden=false;status("status3","✓ Gemini Myanmar AI Voice ပြီးပါပြီ။")}catch(e){console.error(e);status("status3","❌ "+e.message)}finally{btn.disabled=false}}
-async function renderFinalVideo(){if(busy)return;if(!videoFile){status("renderProgress","⚠️ Original video အရင်ရွေးပါ။");return}if(!window.geminiAudioBlob){status("renderProgress","⚠️ Gemini Myanmar Voice အရင် Generate လုပ်ပါ။");return}busy=true;const b=$("renderFinalBtn");b.disabled=true;try{status("renderProgress","⏳ FFmpeg loading...");const f=await getFFmpeg(),id=Date.now(),vn="src_"+id+".mp4",an="voice_"+id+".wav",out="final_"+id+".mp4";if(videoFile.size>500*1024*1024)throw Error("Video 500MB ထက်ကြီးရင် ဖုန်းမှာ render လုပ်ရတာ အရမ်းနှေးနိုင်ပါတယ်။ 500MB အောက် video သုံးပါ။");await f.writeFile(vn,new Uint8Array(await videoFile.arrayBuffer()));await f.writeFile(an,new Uint8Array(await window.geminiAudioBlob.arrayBuffer()));const v=$("verticalOn").checked,m=$("mirrorOn").checked,blur=$("blurOn").checked;let vf;if(v){const fg="scale=ih*9/16:ih:force_original_aspect_ratio=decrease";if(blur)vf="[0:v]split=2[bg][fg];[bg]scale=ih*9/16:ih:force_original_aspect_ratio=increase,crop=ih*9/16:ih,boxblur=20:10[bg2];[fg]"+fg+(m?",hflip":"")+"[fg2];[bg2][fg2]overlay=(W-w)/2:(H-h)/2,setsar=1[v]";else vf="[0:v]"+fg+(m?",hflip":"")+",setsar=1[v]"}else vf="[0:v]"+(m?"hflip,":"")+"setsar=1[v]";const args=["-i",vn,"-i",an,"-filter_complex",vf,"-map","[v]","-map","1:a:0","-c:v","libx264","-preset","ultrafast","-crf","28","-threads","2","-c:a","aac","-b:a","128k","-shortest","-movflags","+faststart",out];status("renderProgress","🎬 Video + Gemini Voice + style render လုပ်နေပါတယ်...");await f.exec(args);const data=await f.readFile(out),blob=new Blob([data],{type:"video/mp4"});window.finalVideoBlob=blob;if(finalURL)URL.revokeObjectURL(finalURL);finalURL=URL.createObjectURL(blob);$("finalPreview").src=finalURL;$("finalPreview").hidden=false;$("downloadFinal").href=finalURL;$("downloadFinal").download="Yoon-Recap-Final.mp4";$("downloadFinal").hidden=false;status("renderProgress","✅ Final MP4 ပြီးပါပြီ။");try{await f.deleteFile(vn);await f.deleteFile(an);await f.deleteFile(out)}catch(e){}}catch(e){console.error(e);status("renderProgress","❌ Render failed: "+(e.message||e))}finally{busy=false;b.disabled=false}}function newProject(){if(confirm("Project အသစ်စမလား?")){localStorage.removeItem("yoon-recap-text");location.reload()}}
-document.addEventListener("DOMContentLoaded",()=>{loadText();$("chooseVideo").onclick=()=>$("videoFile").click();$("videoFile").onchange=onVideo;$("next1").onclick=()=>{if(!videoFile)return alert("Video အရင်ရွေးပါ။");setStep(2);status("status2","✓ Video ready")};$("autoBtn").onclick=_autoSrt;$("generateRecap").onclick=generateRecap;$("copyRecap").onclick=()=>copy($("aiRecap").value);$("useRecap").onclick=()=>{$("voiceText").value=$("aiRecap").value;saveText();status("recapStatus","✓ Voice Script အဖြစ်ထည့်ပြီးပါပြီ။")};$("downloadSrt").onclick=()=>{if($("srt").value)dl(new Blob([$("srt").value],{type:"text/plain"}),"Yoon-Recap.srt")};$("copySrt").onclick=()=>copy($("srt").value);$("copyTranscript").onclick=copyTranscript;$("next2").onclick=()=>{if(!$("voiceText").value)$("voiceText").value=$("translation").value;saveText();setStep(3)};$("back2").onclick=()=>setStep(1);$("back3").onclick=()=>setStep(2);$("next3").onclick=()=>setStep(4);$("renderFinalBtn").onclick=renderFinalVideo;$("back4").onclick=()=>setStep(3);$("playBtn").onclick=playVoice;$("geminiTtsBtn").onclick=generateGeminiTTS;$("makeThumbPrompt").onclick=thumbPrompt;$("makeCaption").onclick=caption;$("copyCaption").onclick=()=>copy($("caption").value);$("newBtn").onclick=newProject;$("newBtn2").onclick=newProject;["blurOn","mirrorOn","verticalOn"].forEach(x=>$(x).onchange=style);$("finalFile").onchange=e=>{finalFile=e.target.files?.[0];if(finalFile){finalURL=URL.createObjectURL(finalFile);$("finalPreview").src=finalURL;$("finalPreview").hidden=false}};$("thumbFile").onchange=e=>{thumbFile=e.target.files?.[0];if(thumbFile){thumbURL=URL.createObjectURL(thumbFile);$("thumbPreview").src=thumbURL;$("thumbPreview").hidden=false}};$("downloadFinal").onclick=e=>{if(window.finalVideoBlob)return;if(finalFile){e.preventDefault();dl(finalFile,"Yoon-Recap-Final.mp4")}};$("downloadThumb").onclick=()=>thumbFile&&dl(thumbFile,"Yoon-Recap-Thumbnail.png");document.querySelectorAll(".step").forEach(b=>b.onclick=()=>setStep(+b.dataset.step));["srt","translation","voiceText","caption"].forEach(x=>$(x).oninput=saveText);if("speechSynthesis"in window){speechSynthesis.onvoiceschanged=voices;voices()}});
+const $=id=>document.getElementById(id);let file=null;
+function key(){return $("key").value.trim()}
+function status(id,msg){$(id).textContent=msg}
+function copy(v){if(v)navigator.clipboard?.writeText(v)}
+function download(name,text,type="text/plain"){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click()}
+$("video").onchange=e=>{file=e.target.files?.[0];if(file){const u=URL.createObjectURL(file);$("preview").src=u;$("preview").hidden=false}};
+$("transcribe").onclick=async()=>{if(!file)return status("tstatus","⚠️ Video ရွေးပါ။");if(!key())return status("tstatus","⚠️ Gemini API Key ထည့်ပါ။");const b=$("transcribe");b.disabled=true;status("tstatus","⏳ Video ကို AI ဆီပို့ပြီး အသံဖတ်နေပါတယ်...");try{const f=new FormData();f.append("video",file);f.append("geminiKey",key());const r=await fetch("/api/transcribe",{method:"POST",body:f});const d=await r.json();if(!r.ok)throw Error(d.error);$("transcript").value=d.text;status("tstatus","✅ Transcript ပြီးပါပြီ။")}catch(e){status("tstatus","❌ "+e.message)}finally{b.disabled=false}};
+$("recap").onclick=async()=>{if(!key())return status("rstatus","⚠️ Gemini API Key ထည့်ပါ။");if(!$("transcript").value.trim())return status("rstatus","⚠️ Transcript အရင်ထုတ်ပါ။");const b=$("recap");b.disabled=true;status("rstatus","⏳ Myanmar recap ရေးနေပါတယ်...");try{const r=await fetch("/api/recap",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({geminiKey:key(),transcript:$("transcript").value,style:$("style").value})});const d=await r.json();if(!r.ok)throw Error(d.error);$("title").value=d.title||"";$("hook").value=d.hook||"";$("summary").value=d.summary||"";$("script").value=d.recap||"";status("rstatus","✅ Myanmar Recap ပြီးပါပြီ။")}catch(e){status("rstatus","❌ "+e.message)}finally{b.disabled=false}};
+$("copyTranscript").onclick=()=>copy($("transcript").value);
+$("downloadTxt").onclick=()=>download("Yoon-Transcript.txt",$("transcript").value);
+$("copyScript").onclick=()=>copy($("script").value);
+$("downloadScript").onclick=()=>download("Yoon-Myanmar-Recap.txt",$("script").value);
+$("makeCaption").onclick=()=>{$("caption").value=(($("hook").value||$("title").value)||"ဒီဇာတ်လမ်းက တကယ်မထင်မှတ်ထားတဲ့အတိုင်း ဖြစ်သွားပါတယ်")+" 😱\nအဆုံးထိကြည့်ပြီး ဘာဖြစ်မလဲ ခန့်မှန်းကြည့်ပါ။\n\n#movie #movierecap #recap #tiktokmyanmar #fyp #မြန်မာ"};
+$("copyCaption").onclick=()=>copy($("caption").value);
