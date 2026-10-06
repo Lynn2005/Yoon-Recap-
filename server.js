@@ -236,8 +236,26 @@ async function runRenderJob(job){
    f.push("[base][bl]overlay=x=main_w*"+bx+"/100-overlay_w/2:y=main_h*"+by+"/100-overlay_h/2[vb]");
    cur="[vb]";
   }
-  const sp=srtPath.replace(/\\/g,"/").replace(/:/g,"\\:");
-  f.push(cur+"subtitles='"+sp+"':fontsdir=/usr/share/fonts/noto:force_style='FontName=Noto Sans Myanmar,FontSize=20,Outline=2,Shadow=0,Alignment=2,MarginV=60'[vs]");cur="[vs]";
+  // Render the AI Voice 25-character SRT with the same font/color/border settings selected in the editor.
+  // FFmpeg drawtext supports fontfile, fontcolor, bordercolor and borderw directly.
+  const parseRenderSrt=s=>String(s||"").replace(/\\r/g,"").split(/\\n\\s*\\n/).map(block=>{
+    const lines=block.split("\\n"),m=lines.findIndex(x=>/\\d{2}:\\d{2}:\\d{2},\\d{3}\\s*-->\\s*\\d{2}:\\d{2}:\\d{2},\\d{3}/.test(x));
+    if(m<0)return null;
+    const tm=lines[m].match(/(\\d{2}:\\d{2}:\\d{2},\\d{3})\\s*-->\\s*(\\d{2}:\\d{2}:\\d{2},\\d{3})/);
+    const sec=t=>{const [h,mi,rest]=t.split(":");const [se,ms]=rest.split(",");return +h*3600+ +mi*60+ +se+ +ms/1000};
+    return {start:sec(tm[1]),end:sec(tm[2]),text:lines.slice(m+1).join(" ").replace(/<[^>]+>/g,"").trim()};
+  }).filter(x=>x&&x.text);
+  const subtitleTextDir=path.join("work",base+"-subtitle-parts");
+  fs.mkdirSync(subtitleTextDir,{recursive:true});
+  const subtitleBlocks=parseRenderSrt(srt);
+  for(let si=0;si<subtitleBlocks.length;si++){
+    const sb=subtitleBlocks[si],stp=path.join(subtitleTextDir,String(si).padStart(4,"0")+".txt");
+    fs.writeFileSync(stp,sb.text,"utf8");
+    const st=safeFilterValue(stp);
+    const enable="between(t,"+sb.start+","+sb.end+")";
+    f.push(cur+"drawtext=fontfile='"+safeFilterValue(fontFile)+"':textfile='"+st+"':fontsize="+fsx+":fontcolor="+fontColor+":borderw="+borderWidth+":bordercolor="+borderColor+":x=w*"+tx+"/100-text_w/2:y=h*"+ty+"/100-text_h/2:fix_bounds=1:enable='"+enable+"'[sub"+si+"]");
+    cur="[sub"+si+"]";
+  }
   if(showText){
     const tp=safeFilterValue(textPath);
     const ff=safeFilterValue(fontFile);
@@ -255,7 +273,7 @@ async function runRenderJob(job){
   job.state="error";job.error=String(msg).slice(-6000);
  }finally{
   renderRunning=false;
-  fs.unlink(video.path,()=>{});if(logo)fs.unlink(logo.path,()=>{});if(font)fs.unlink(font.path,()=>{});if(job.cleanupVoice&&voice?.path)fs.unlink(voice.path,()=>{});fs.unlink(srtPath,()=>{});fs.unlink(textPath,()=>{});
+  fs.unlink(video.path,()=>{});if(logo)fs.unlink(logo.path,()=>{});if(font)fs.unlink(font.path,()=>{});if(job.cleanupVoice&&voice?.path)fs.unlink(voice.path,()=>{});fs.unlink(srtPath,()=>{});fs.unlink(textPath,()=>{});try{fs.rmSync(path.join("work",base+"-subtitle-parts"),{recursive:true,force:true});}catch{}
   setTimeout(()=>renderJobs.delete(job.id),30*60*1000);
  }
 }
