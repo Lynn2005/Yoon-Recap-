@@ -262,7 +262,7 @@ async function runRenderJob(job){
  const {video,logo,font,voice,srt,voiceId,body}=job;
  const base=path.basename(video.path),srtPath=path.join("work",base+"-my.srt"),out=path.join("work",base+"-final.mp4"),textPath=path.join("work",base+"-text.txt");
  try{
-  fs.writeFileSync(srtPath,srt,"utf8");fs.writeFileSync(textPath,String(body?.text||"Myanmar Recap"),"utf8");
+  if(srt)fs.writeFileSync(srtPath,srt,"utf8");fs.writeFileSync(textPath,String(body?.text||"Myanmar Recap"),"utf8");
   const showText=body?.showText==="1",showBlur=body?.showBlur==="1",showLogo=body?.showLogo==="1";
   const fsx=Math.max(10,Math.min(100,Number(body?.fontSize||28))),tx=Math.max(5,Math.min(95,Number(body?.textX||50))),ty=Math.max(5,Math.min(95,Number(body?.textY||88)));
   const bx=Math.max(5,Math.min(95,Number(body?.blurX||50))),by=Math.max(5,Math.min(95,Number(body?.blurY||82))),bw=Math.max(10,Math.min(100,Number(body?.blurW||90))),bh=Math.max(5,Math.min(80,Number(body?.blurH||22))),ba=Math.max(0,Math.min(24,Number(body?.blurAmount||8)));
@@ -292,7 +292,7 @@ async function runRenderJob(job){
   }).filter(x=>x&&x.text);
   const subtitleTextDir=path.join("work",base+"-subtitle-parts");
   fs.mkdirSync(subtitleTextDir,{recursive:true});
-  const subtitleBlocks=parseRenderSrt(srt);
+  const subtitleBlocks=srt?parseRenderSrt(srt):[];
   for(let si=0;si<subtitleBlocks.length;si++){
     const sb=subtitleBlocks[si],stp=path.join(subtitleTextDir,String(si).padStart(4,"0")+".txt");
     fs.writeFileSync(stp,sb.text,"utf8");
@@ -307,9 +307,10 @@ async function runRenderJob(job){
     f.push(cur+"drawtext=fontfile='"+ff+"':textfile='"+tp+"':fontsize="+fsx+":fontcolor="+fontColor+":borderw="+borderWidth+":bordercolor="+borderColor+":x=w*"+tx+"/100-text_w/2:y=h*"+ty+"/100-text_h/2:fix_bounds=1[vt]");
     cur="[vt]";
   }
-  const args=["-y","-hide_banner","-loglevel","error","-threads","1","-filter_threads","1","-filter_complex_threads","1","-i",video.path,"-i",voice.path];
+  const args=["-y","-hide_banner","-loglevel","error","-threads","1","-filter_threads","1","-filter_complex_threads","1","-i",video.path];
+  if(voice)args.push("-i",voice.path);
   if(showLogo&&logo){f.push("[2:v]scale="+ls+":"+ls+"[lg]");f.push(cur+"[lg]overlay=x=main_w*"+lx+"/100-overlay_w/2:y=main_h*"+ly+"/100-overlay_h/2[vout]");cur="[vout]";args.push("-i",logo.path);}
-  args.push("-filter_complex",f.join(";"),"-map",cur,"-map","1:a:0","-c:v","libx264","-preset","ultrafast","-crf","24","-pix_fmt","yuv420p","-c:a","aac","-b:a","128k","-movflags","+faststart","-shortest",out);
+  args.push("-filter_complex",f.join(";"),"-map",cur); if(voice)args.push("-map","1:a:0"); else args.push("-map","0:a:0?"); args.push("-c:v","libx264","-preset","ultrafast","-crf","24","-pix_fmt","yuv420p","-c:a","aac","-b:a","128k","-movflags","+faststart","-shortest",out);
   job.progress=15;
   const result=await execFileAsync("ffmpeg",args,{maxBuffer:8*1024*1024});
   job.progress=100;job.state="done";job.url="/media/"+path.basename(out);job.filename=path.basename(out);
@@ -325,10 +326,9 @@ async function runRenderJob(job){
 
 app.post("/api/render",upload.fields([{name:"video",maxCount:1},{name:"logo",maxCount:1},{name:"voice",maxCount:1},{name:"font",maxCount:1}]),async(req,res)=>{
  const video=req.files?.video?.[0],logo=req.files?.logo?.[0],voice=req.files?.voice?.[0],font=req.files?.font?.[0],srt=String(req.body?.srt||"").trim(),voiceId=String(req.body?.voiceId||"").replace(/[^a-zA-Z0-9_-]/g,"");
- if(!video)return res.status(400).json({error:"Video ရွေးပါ။"});if(!validSrt(srt))return res.status(400).json({error:"Burmese SRT မရှိပါ။"});
- const savedVoicePath=voice?.path||path.join("work",voiceId+".wav");
- if(!voice&&(!voiceId||!fs.existsSync(savedVoicePath)))return res.status(400).json({error:"သိမ်းထားတဲ့ AI Voice file မတွေ့ပါ။ AI Voice ကို ပြန်ထုတ်ပါ။"});
- const renderVoice=voice||{path:savedVoicePath};
+ if(!video)return res.status(400).json({error:"Video ရွေးပါ။"});
+ const savedVoicePath=voiceId?path.join("work",voiceId+".wav"):"";
+ const renderVoice=voice||((voiceId&&fs.existsSync(savedVoicePath))?{path:savedVoicePath}:null);
  const id="render-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);
  if(renderRunning){
    fs.unlink(video.path,()=>{});if(logo)fs.unlink(logo.path,()=>{});if(font)fs.unlink(font.path,()=>{});if(voice)fs.unlink(voice.path,()=>{});
