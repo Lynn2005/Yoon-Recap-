@@ -22,24 +22,19 @@ $("downloadBurmese").onclick=()=>download("burmese.srt",$("burmeseSrt").value,"a
 $("makeVoice").onclick=async()=>{const text=$("burmeseSrt").value.replace(/\d+\s*\n\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}\s*\n/g,"").replace(/\n{2,}/g,"\n").trim();if(!text)return status("vstatus","⚠️ Burmese SRT အရင်ထုတ်ပါ။");if(!gemini())return status("vstatus","⚠️ Gemini API Key ထည့်ပါ။");const b=$("makeVoice");b.disabled=true;status("vstatus","⏳ Gemini AI Voice ထုတ်နေပါတယ်...");try{const d=await apiJson(await fetch("/api/tts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({geminiKey:gemini(),text,voice:$("voice").value})}));voiceId=d.id;localStorage.setItem("yoon_voice_id",voiceId);$("voicePreview").src=d.url;$("voicePreview").hidden=false;status("vstatus","✅ AI Voice ပြီးပါပြီ။")}catch(e){status("vstatus","❌ "+e.message)}finally{b.disabled=false}};
 
 const showText=$("showText"),showBlur=$("showBlur"),showLogo=$("showLogo"),textControls=$("textControls"),blurControls=$("blurControls"),logoControls=$("logoControls"),textPreview=$("textPreview"),blurLayer=$("blurLayer"),logoPreview=$("logoPreview");
-let active=null;
+let active=null;let activeOption=showText;
 function update(){textPreview.textContent=$("editText").value||"";textPreview.style.fontSize=$("fontSize").value+"px";textPreview.style.left=$("textX").value+"%";textPreview.style.top=$("textY").value+"%";textPreview.style.fontWeight=$("textWeight").value;textPreview.style.width="fit-content";textPreview.style.height="fit-content";textPreview.style.maxWidth="92%";$("fontValue").textContent=$("fontSize").value;$("textWeightValue").textContent=$("textWeight").value;$("textXValue").textContent=$("textX").value;$("textYValue").textContent=$("textY").value;
 blurLayer.style.left=(+$("blurX").value-(+$("blurW").value/2))+"%";blurLayer.style.top=$("blurY").value+"%";blurLayer.style.width=$("blurW").value+"%";blurLayer.style.height=$("blurH").value+"%";blurLayer.style.transform="translateY(-50%)";blurLayer.style.backdropFilter="blur("+$("blurAmount").value+"px)";$("blurValue").textContent=$("blurAmount").value;$("blurXValue").textContent=$("blurX").value;$("blurYValue").textContent=$("blurY").value;$("blurWValue").textContent=$("blurW").value;$("blurHValue").textContent=$("blurH").value;
 logoPreview.style.width=$("logoSize").value+"px";logoPreview.style.height=$("logoSize").value+"px";logoPreview.style.left=$("logoX").value+"%";logoPreview.style.top=$("logoY").value+"%";logoPreview.style.right="auto";logoPreview.style.transform="translate(-50%,-50%)";$("logoValue").textContent=$("logoSize").value;$("logoXValue").textContent=$("logoX").value;$("logoYValue").textContent=$("logoY").value;
 textPreview.style.display=showText.checked?"block":"none";blurLayer.style.display=showBlur.checked?"block":"none";logoPreview.style.display=showLogo.checked&&logoPreview.src?"block":"none";
-textControls.hidden=!showText.checked;blurControls.hidden=!showBlur.checked;logoControls.hidden=!showLogo.checked;
+textControls.hidden=!(activeOption===showText && showText.checked);blurControls.hidden=!(activeOption===showBlur && showBlur.checked);logoControls.hidden=!(activeOption===showLogo && showLogo.checked);
 }
 function selectEditorOption(selected){
-  // Effects are independent, but only the most recently selected option's
-  // adjustment tool is shown.
-  textControls.hidden=true;
-  blurControls.hidden=true;
-  logoControls.hidden=true;
-
-  if(selected===showText && showText.checked) textControls.hidden=false;
-  if(selected===showBlur && showBlur.checked) blurControls.hidden=false;
-  if(selected===showLogo && showLogo.checked) logoControls.hidden=false;
-
+  // Each checkbox keeps its own effect; only the latest selected option shows its Adjust panel.
+  if(selected.checked) activeOption=selected;
+  else if(activeOption===selected){
+    activeOption=showLogo.checked?showLogo:showBlur.checked?showBlur:showText.checked?showText:null;
+  }
   active=selected?.checked?selected:null;
   update();
 }
