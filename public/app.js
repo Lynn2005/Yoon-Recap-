@@ -25,11 +25,44 @@ $("makeCaption").onclick=()=>{$("caption").value=(($("hook").value||$("title").v
 const editVideo=$("editVideo"), editText=$("editText"), textPreview=$("textPreview"), blurLayer=$("blurLayer"), blurOriginal=$("blurOriginal"), blurAmount=$("blurAmount"), blurValue=$("blurValue"), fontSize=$("fontSize"), fontValue=$("fontValue"), logoFile=$("logoFile"), logoPreview=$("logoPreview"), logoSize=$("logoSize"), logoValue=$("logoValue"), logoPos=$("logoPos"), textX=$("textX"), textY=$("textY"), textXValue=$("textXValue"), textYValue=$("textYValue"), logoX=$("logoX"), logoY=$("logoY"), logoXValue=$("logoXValue"), logoYValue=$("logoYValue"), blurX=$("blurX"), blurY=$("blurY"), blurW=$("blurW"), blurH=$("blurH"), blurXValue=$("blurXValue"), blurYValue=$("blurYValue"), blurWValue=$("blurWValue"), blurHValue=$("blurHValue");
 function syncEditorVideo(){if(file){editVideo.src=previewUrl;editVideo.currentTime=0;}}
 const showText=$("showText"),showBlur=$("showBlur"),showLogo=$("showLogo"),textControls=$("textControls"),blurControls=$("blurControls"),logoControls=$("logoControls");
-function toggleEditorOptions(){textControls.hidden=!showText.checked;blurControls.hidden=!showBlur.checked;logoControls.hidden=!showLogo.checked;textPreview.style.display=showText.checked?"block":"none";blurLayer.style.display=showBlur.checked&&blurOriginal.checked?"block":"none";logoPreview.style.display=showLogo.checked&&logoPreview.src?"block":"none";}
-function updateEditor(){textPreview.textContent=editText.value||"";textPreview.style.fontSize=fontSize.value+"px";fontValue.textContent=fontSize.value;textPreview.style.left=textX.value+"%";textPreview.style.bottom="auto";textPreview.style.top=textY.value+"%";textPreview.style.transform="translate(-50%,-50%)";textXValue.textContent=textX.value;textYValue.textContent=textY.value;blurLayer.style.backdropFilter=blurOriginal.checked?"blur("+blurAmount.value+"px)":"none";blurLayer.style.webkitBackdropFilter=blurOriginal.checked?"blur("+blurAmount.value+"px)":"none";blurLayer.style.background=blurOriginal.checked?"rgba(0,0,0,.12)":"transparent";blurLayer.style.left=(blurX.value-(blurW.value/2))+"%";blurLayer.style.width=blurW.value+"%";blurLayer.style.right="auto";blurLayer.style.top=blurY.value+"%";blurLayer.style.height=blurH.value+"%";blurLayer.style.bottom="auto";blurLayer.style.transform="translateY(-50%)";blurValue.textContent=blurAmount.value;blurXValue.textContent=blurX.value;blurYValue.textContent=blurY.value;blurWValue.textContent=blurW.value;blurHValue.textContent=blurH.value;logoPreview.style.display=showLogo.checked&&logoPreview.src?"block":"none";logoPreview.style.width=logoSize.value+"px";logoPreview.style.height=logoSize.value+"px";logoValue.textContent=logoSize.value;logoPreview.className="logo-preview "+logoPos.value;if(logoPos.value==="free"){logoPreview.style.left=logoX.value+"%";logoPreview.style.right="auto";logoPreview.style.top=logoY.value+"%";logoPreview.style.bottom="auto";logoPreview.style.transform="translate(-50%,-50%)"}else{logoPreview.style.transform="";}logoXValue.textContent=logoX.value;logoYValue.textContent=logoY.value;}
+function toggleEditorOptions(){
+  textControls.hidden=!showText.checked;
+  blurControls.hidden=!showBlur.checked;
+  logoControls.hidden=!showLogo.checked;
+  textPreview.style.display=showText.checked?"block":"none";
+  blurLayer.style.display=showBlur.checked?"block":"none";
+  logoPreview.style.display=showLogo.checked&&logoPreview.src?"block":"none";
+  const handles=document.querySelectorAll(".resize-handle");
+  handles.forEach(h=>h.style.display="none");
+  if(showText.checked) document.querySelector(".text-handle")?.style.setProperty("display","block");
+  if(showBlur.checked) document.querySelector(".blur-layer .resize-handle")?.style.setProperty("display","block");
+  if(showLogo.checked&&logoPreview.src) document.querySelector(".logo-handle")?.style.setProperty("display","block");
+}
+function updateEditor(){
+  if(textPreview.firstChild) textPreview.firstChild.nodeValue=editText.value||"";
+  else textPreview.insertBefore(document.createTextNode(editText.value||""),textPreview.firstChild);textPreview.style.fontSize=fontSize.value+"px";fontValue.textContent=fontSize.value;textPreview.style.left=textX.value+"%";textPreview.style.bottom="auto";textPreview.style.top=textY.value+"%";textPreview.style.transform="translate(-50%,-50%)";textXValue.textContent=textX.value;textYValue.textContent=textY.value;blurLayer.style.backdropFilter=blurOriginal.checked?"blur("+blurAmount.value+"px)":"none";blurLayer.style.webkitBackdropFilter=blurOriginal.checked?"blur("+blurAmount.value+"px)":"none";blurLayer.style.background=blurOriginal.checked?"rgba(0,0,0,.12)":"transparent";blurLayer.style.left=(blurX.value-(blurW.value/2))+"%";blurLayer.style.width=blurW.value+"%";blurLayer.style.right="auto";blurLayer.style.top=blurY.value+"%";blurLayer.style.height=blurH.value+"%";blurLayer.style.bottom="auto";blurLayer.style.transform="translateY(-50%)";blurValue.textContent=blurAmount.value;blurXValue.textContent=blurX.value;blurYValue.textContent=blurY.value;blurWValue.textContent=blurW.value;blurHValue.textContent=blurH.value;logoPreview.style.display=showLogo.checked&&logoPreview.src?"block":"none";logoPreview.style.width=logoSize.value+"px";logoPreview.style.height=logoSize.value+"px";logoValue.textContent=logoSize.value;logoPreview.className="logo-preview "+logoPos.value;if(logoPos.value==="free"){logoPreview.style.left=logoX.value+"%";logoPreview.style.right="auto";logoPreview.style.top=logoY.value+"%";logoPreview.style.bottom="auto";logoPreview.style.transform="translate(-50%,-50%)"}else{logoPreview.style.transform="";}logoXValue.textContent=logoX.value;logoYValue.textContent=logoY.value;
+  const lh=document.querySelector(".logo-handle");
+  if(lh){
+    lh.style.display=showLogo.checked&&logoPreview.src?"block":"none";
+    lh.style.width="22px";lh.style.height="22px";
+    if(logoPos.value==="free"){
+      lh.style.left=(+logoX.value + (+logoSize.value/Math.max(1,$("editorPreview").getBoundingClientRect().width)*100)/2)+"%";
+      lh.style.top=(+logoY.value + (+logoSize.value/Math.max(1,$("editorPreview").getBoundingClientRect().height)*100)/2)+"%";
+      lh.style.right="auto";lh.style.bottom="auto";lh.style.transform="translate(-50%,-50%)";
+    }else{
+      lh.style.left="auto";lh.style.top="auto";lh.style.right=logoPos.value.includes("right")?"2px":"auto";lh.style.left=logoPos.value.includes("left")?"2px":"auto";lh.style.bottom=logoPos.value.includes("bottom")?"2px":"auto";lh.style.top=logoPos.value.includes("top")?"2px":"auto";lh.style.transform="";
+    }
+  }
+}
 $("video").addEventListener("change",()=>{syncEditorVideo();updateEditor()});
-showText?.addEventListener("change",()=>{toggleEditorOptions();updateEditor()});showBlur?.addEventListener("change",()=>{toggleEditorOptions();updateEditor()});showLogo?.addEventListener("change",()=>{toggleEditorOptions();updateEditor()});editText?.addEventListener("input",updateEditor);blurOriginal?.addEventListener("change",updateEditor);blurAmount?.addEventListener("input",updateEditor);fontSize?.addEventListener("input",updateEditor);logoSize?.addEventListener("input",updateEditor);logoPos?.addEventListener("change",updateEditor);textX?.addEventListener("input",updateEditor);textY?.addEventListener("input",updateEditor);logoX?.addEventListener("input",updateEditor);logoY?.addEventListener("input",updateEditor);blurX?.addEventListener("input",updateEditor);blurY?.addEventListener("input",updateEditor);blurW?.addEventListener("input",updateEditor);blurH?.addEventListener("input",updateEditor);
-logoFile?.addEventListener("change",e=>{const f=e.target.files?.[0];if(!f)return;logoPreview.src=URL.createObjectURL(f);logoPreview.hidden=false;showLogo.checked=true;toggleEditorOptions();updateEditor()});
+function activateOnly(active){
+  [showText,showBlur,showLogo].forEach(x=>{if(x!==active)x.checked=false});
+  toggleEditorOptions();updateEditor();
+}
+showText?.addEventListener("change",()=>{if(showText.checked)activateOnly(showText);else{toggleEditorOptions();updateEditor()}});
+showBlur?.addEventListener("change",()=>{if(showBlur.checked)activateOnly(showBlur);else{toggleEditorOptions();updateEditor()}});
+showLogo?.addEventListener("change",()=>{if(showLogo.checked)activateOnly(showLogo);else{toggleEditorOptions();updateEditor()}});editText?.addEventListener("input",updateEditor);blurOriginal?.addEventListener("change",updateEditor);blurAmount?.addEventListener("input",updateEditor);fontSize?.addEventListener("input",updateEditor);logoSize?.addEventListener("input",updateEditor);logoPos?.addEventListener("change",updateEditor);textX?.addEventListener("input",updateEditor);textY?.addEventListener("input",updateEditor);logoX?.addEventListener("input",updateEditor);logoY?.addEventListener("input",updateEditor);blurX?.addEventListener("input",updateEditor);blurY?.addEventListener("input",updateEditor);blurW?.addEventListener("input",updateEditor);blurH?.addEventListener("input",updateEditor);
+logoFile?.addEventListener("change",e=>{const f=e.target.files?.[0];if(!f)return;logoPreview.src=URL.createObjectURL(f);logoPreview.hidden=false;showLogo.checked=true;activateOnly(showLogo)});
 $("applyEditor")?.addEventListener("click",()=>{updateEditor();$("editorStatus").textContent="✅ Preview update လုပ်ပြီးပါပြီ။ Video ကို play လုပ်ပြီး live ကြည့်နိုင်ပါတယ်။"});
 toggleEditorOptions();updateEditor();
 // Drag editor elements directly with finger or mouse
