@@ -106,7 +106,7 @@ app.post("/api/translate-srt",async(req,res)=>{
 app.post("/api/tts",async(req,res)=>{
  const text=String(req.body?.text||"").trim();
  if(!text)return res.status(400).json({error:"AI Voice အတွက် စာသားမရှိပါ။"});
- const SPACE_URL=String(process.env.MYANMAR_TTS_SPACE_URL||"https://freococo-myanmartts.hf.space").replace(/\\/$/,"");
+ const SPACE_URL=String(process.env.MYANMAR_TTS_SPACE_URL||"https://freococo-myanmartts.hf.space").replace(/\/$/,"");
  function splitTtsText(input,max=500){
    const parts=input.replace(/\\r/g,"").split(/\\n+/).map(x=>x.trim()).filter(Boolean),out=[];let buf="";
    for(const part of parts){
