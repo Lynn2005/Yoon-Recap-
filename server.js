@@ -106,94 +106,47 @@ app.post("/api/translate-srt",async(req,res)=>{
 app.post("/api/tts",async(req,res)=>{
  const text=String(req.body?.text||"").trim();
  if(!text)return res.status(400).json({error:"AI Voice အတွက် စာသားမရှိပါ။"});
- const SPACE_URL=String(process.env.MYANMAR_TTS_SPACE_URL||"https://freococo-myanmartts.hf.space").replace(/\/$/,"");
- function splitTtsText(input,max=500){
-   const parts=input.replace(/\r/g,"").split(/\n+/).map(x=>x.trim()).filter(Boolean),out=[];let buf="";
-   for(const part of parts){
-     if((buf+" "+part).trim().length<=max){buf=(buf+" "+part).trim();continue;}
-     if(buf)out.push(buf);
-     let rest=part;
-     while(rest.length>max){
-       let cut=Math.max(rest.lastIndexOf("။",max),rest.lastIndexOf(" ",max));
-       if(cut<40)cut=max;
-       out.push(rest.slice(0,cut+1).trim());
-       rest=rest.slice(cut+1).trim();
-     }
-     buf=rest;
+ const id="voice-"+Date.now()+"-"+Math.random().toString(36).slice(2,8),dir=path.join("work",id+"-parts"),out=path.join("work",id+".wav");
+ function splitTtsText(input,max=180){
+   const clean=input.replace(/\r/g,"").replace(/\n+/g," ").trim(),outParts=[];let rest=clean;
+   while(rest.length>max){
+     let cut=Math.max(rest.lastIndexOf("။",max),rest.lastIndexOf("၊",max),rest.lastIndexOf(" ",max));
+     if(cut<40)cut=max;
+     outParts.push(rest.slice(0,cut+1).trim());rest=rest.slice(cut+1).trim();
    }
-   if(buf)out.push(buf);
-   return out;
+   if(rest)outParts.push(rest);
+   return outParts;
  }
  async function googleTts(chunk){
-   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
+   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
    try{
      const u="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=my&dt=t&q="+encodeURIComponent(chunk);
      const r=await fetch(u,{signal:controller.signal,headers:{"User-Agent":"Mozilla/5.0"}});
-     if(!r.ok)throw new Error("Google TTS failed "+r.status);
+     if(!r.ok)throw new Error("Google Burmese TTS request failed "+r.status);
      const audio=Buffer.from(await r.arrayBuffer());
-     if(audio.length<100)throw new Error("Google TTS audio empty ဖြစ်နေပါတယ်။");
-     const tmp=path.join("work","gtts-"+Date.now()+"-"+Math.random().toString(36).slice(2,7)+".mp3");
-     const wav=tmp.replace(/\.mp3$/,".wav");
-     fs.writeFileSync(tmp,audio);
-     try{await execFileAsync("ffmpeg",["-y","-i",tmp,"-ac","1","-ar","22050","-c:a","pcm_s16le",wav],{maxBuffer:5*1024*1024});return fs.readFileSync(wav);}finally{fs.unlink(tmp,()=>{});fs.unlink(wav,()=>{});}
-   }finally{clearTimeout(timer);}
- }
- async function hfTts(chunk){
-   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
-   try{
-     const r=await fetch(SPACE_URL+"/gradio_api/call/generate_speech",{
-       method:"POST",
-       headers:{"Content-Type":"application/json"},
-       body:JSON.stringify({data:[chunk,12,3]}),
-       signal:controller.signal
-     });
-     const t=await r.text();let d={};try{d=JSON.parse(t)}catch{}
-     if(!r.ok)throw new Error(d?.error||t||("MyanmarTTS request failed "+r.status));
-     const eventId=d.event_id;
-     if(!eventId)throw new Error("MyanmarTTS event_id မရပါ။");
-     const rr=await fetch(SPACE_URL+"/gradio_api/call/generate_speech/"+encodeURIComponent(eventId),{signal:controller.signal});
-     const stream=await rr.text();
-     if(!rr.ok)throw new Error("MyanmarTTS result error "+rr.status);
-     const lines=stream.split(/\r?\n/);
-     let payload=null;
-     for(let i=0;i<lines.length;i++){
-       if(lines[i].trim()==="event: complete" && lines[i+1]?.startsWith("data: ")){
-         payload=JSON.parse(lines[i+1].slice(6));break;
-       }
-       if(lines[i].trim()==="event: error" && lines[i+1]?.startsWith("data: ")){
-         const rawErr=lines[i+1].slice(6); let msgErr=rawErr; try{const parsedErr=JSON.parse(rawErr); msgErr=parsedErr?.message||parsedErr?.error||parsedErr?.detail||JSON.stringify(parsedErr);}catch{} throw new Error(String(msgErr));
-       }
-     }
-     if(!payload){throw new Error("MyanmarTTS API က complete event မပြန်လာပါ။");}
-     const result=Array.isArray(payload)?payload[0]:payload;
-     const fileObj=Array.isArray(result)?result[0]:result; const candidate=fileObj?.url||fileObj?.path||fileObj?.name||fileObj?.file?.url||fileObj?.file?.path; const audioUrl=typeof result==="string"?(result.startsWith("http")?result:SPACE_URL+"/gradio_api/file="+encodeURIComponent(result)):candidate?(String(candidate).startsWith("http")?String(candidate):SPACE_URL+"/gradio_api/file="+String(candidate).replace(/^\//,"")):null;
-     if(!audioUrl){const detail=typeof result==="object"?JSON.stringify(result):String(result);throw new Error("MyanmarTTS audio URL မရပါ။ "+detail);}
-     const ar=await fetch(audioUrl,{signal:controller.signal});
-     if(!ar.ok)throw new Error("MyanmarTTS audio download failed "+ar.status);
-     const audio=Buffer.from(await ar.arrayBuffer());
-     if(audio.length<100)throw new Error("MyanmarTTS audio empty ဖြစ်နေပါတယ်။");
+     if(audio.length<100)throw new Error("Google Burmese TTS audio empty ဖြစ်နေပါတယ်။");
      return audio;
-   }catch(e){
-     try{return await googleTts(chunk);}catch(fallbackErr){throw new Error("MyanmarTTS failed: "+String(e?.message||e)+" | Free fallback failed: "+String(fallbackErr?.message||fallbackErr));}
    }finally{clearTimeout(timer);}
  }
- const id="voice-"+Date.now()+"-"+Math.random().toString(36).slice(2,8),dir=path.join("work",id+"-parts"),out=path.join("work",id+".wav");
  try{
    fs.mkdirSync(dir,{recursive:true});
    const chunks=splitTtsText(text),list=[];
    for(let i=0;i<chunks.length;i++){
-     const p=path.join(dir,String(i).padStart(4,"0")+".wav");
-     fs.writeFileSync(p,await hfTts(chunks[i]));list.push(p);
+     const mp3=path.join(dir,String(i).padStart(4,"0")+".mp3"),wav=path.join(dir,String(i).padStart(4,"0")+".wav");
+     fs.writeFileSync(mp3,await googleTts(chunks[i]));
+     await execFileAsync("ffmpeg",["-y","-i",mp3,"-ac","1","-ar","22050","-c:a","pcm_s16le",wav],{maxBuffer:5*1024*1024});
+     list.push(wav);
    }
    if(list.length===1)fs.copyFileSync(list[0],out);
    else{
      const listFile=path.join(dir,"concat.txt");
-     fs.writeFileSync(listFile,list.map(p=>"file '"+path.resolve(p).replace(/'/g,"'\\''")+"'").join("\\n"),"utf8");
-     await execFileAsync("ffmpeg",["-y","-f","concat","-safe","0","-i",listFile,"-c","copy",out],{maxBuffer:10*1024*1024});
+     fs.writeFileSync(listFile,list.map(p=>"file '"+path.resolve(p).replace(/'/g,"'\\''")+"'").join("\n"),"utf8");
+     await execFileAsync("ffmpeg",["-y","-f","concat","-safe","0","-i",listFile,"-c:a","pcm_s16le",out],{maxBuffer:10*1024*1024});
    }
-   res.json({id,url:"/media/"+path.basename(out),chunks:chunks.length,provider:"MyanmarTTS-free"});
- }catch(e){const msg=e instanceof Error?e.message:(typeof e==="object"?JSON.stringify(e):String(e));res.status(500).json({error:msg||"MyanmarTTS TTS failed"});}
- finally{try{fs.rmSync(dir,{recursive:true,force:true});}catch{}}
+   res.json({id,url:"/media/"+path.basename(out),chunks:chunks.length,provider:"Google Burmese TTS (free)"});
+ }catch(e){
+   res.status(500).json({error:e instanceof Error?e.message:String(e)});
+ }finally{try{fs.rmSync(dir,{recursive:true,force:true});}catch{}}
 });
 app.post("/api/recap",async(req,res)=>{
  const key=keyOf(req),transcript=String(req.body?.transcript||"").trim(),style=String(req.body?.style||"cinematic");
