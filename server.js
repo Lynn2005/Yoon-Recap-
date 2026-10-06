@@ -35,9 +35,43 @@ async function extractAudio(videoPath,audioPath){
   if(!fs.existsSync(audioPath) || fs.statSync(audioPath).size<100) throw new Error("ဒီ Video ထဲမှာ Audio track မပါပါ။ အသံပါတဲ့ video ကိုရွေးပါ။");
 }
 function geminiKeyOf(req){return String(req.body?.geminiKey||req.headers["x-gemini-api-key"]||process.env.GEMINI_API_KEY||"").trim();}
-async function geminiGenerate(key,model,prompt){
- const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+encodeURIComponent(model)+":generateContent?key="+encodeURIComponent(key),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{temperature:.2}})});
- const text=await r.text();let data={};try{data=JSON.parse(text)}catch{}if(!r.ok)throw new Error(data?.error?.message||text||("Gemini API error "+r.status));return data;
+const GEMINI_MODELS=["gemini-3.8-flash","gemini-3.7-flash","gemini-3.5-flash-lite"];
+const RETRY_DELAYS=[2000,5000,10000];
+
+function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
+function isRetryableGemini(status,message){
+ const s=String(message||"").toLowerCase();
+ return status===429 || status===500 || status===502 || status===503 || status===504 ||
+   /high demand|service unavailable|temporarily unavailable|overloaded|rate limit|resource exhausted|timeout|deadline/i.test(s);
+}
+
+async function geminiGenerate(key,requestedModel,prompt){
+ const preferred=GEMINI_MODELS.includes(requestedModel)?requestedModel:GEMINI_MODELS[0];
+ const models=[preferred,...GEMINI_MODELS.filter(m=>m!==preferred)];
+ let lastError=null;
+ for(const model of models){
+   for(let attempt=0;attempt<=RETRY_DELAYS.length;attempt++){
+     try{
+       const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+encodeURIComponent(model)+":generateContent?key="+encodeURIComponent(key),{
+         method:"POST",
+         headers:{"Content-Type":"application/json"},
+         body:JSON.stringify({contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{temperature:.2}})
+       });
+       const text=await r.text();let data={};try{data=JSON.parse(text)}catch{}
+       if(r.ok)return data;
+       const msg=data?.error?.message||text||("Gemini API error "+r.status);
+       lastError=new Error(msg);lastError.status=r.status;
+       if(!isRetryableGemini(r.status,msg))throw lastError;
+       if(attempt<RETRY_DELAYS.length)await sleep(RETRY_DELAYS[attempt]);
+       else break;
+     }catch(e){
+       lastError=e;
+       if(!isRetryableGemini(e?.status,String(e?.message||e)))throw e;
+       if(attempt<RETRY_DELAYS.length)await sleep(RETRY_DELAYS[attempt]);
+     }
+   }
+ }
+ throw new Error("Gemini models are temporarily unavailable. 3.8 → 3.7 → 3.5-lite fallback နှင့် retry အားလုံး မအောင်မြင်ပါ။ နောက်မှ ပြန်စမ်းပါ။");
 }
 function srtTime(sec){const ms=Math.max(0,Math.round(Number(sec||0)*1000)),h=Math.floor(ms/3600000),m=Math.floor(ms%3600000/60000),s=Math.floor(ms%60000/1000),z=ms%1000;return String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0")+","+String(z).padStart(3,"0")}
 function makeSrt(segments,text){const a=Array.isArray(segments)&&segments.length?segments:[{start:0,end:Math.max(1,text.length/12),text}];return a.map((x,i)=>(i+1)+"\n"+srtTime(x.start)+" --> "+srtTime(x.end)+"\n"+String(x.text||"").trim()).join("\n\n").trim()+"\n"}
@@ -48,7 +82,7 @@ function cleanJson(s){
   const x=String(s||"").trim().replace(/^\`\`\`json/i,"").replace(/^\`\`\`/,"").replace(/\`\`\`$/,"").trim();
   const m=x.match(/\{[\s\S]*\}/); return JSON.parse(m?m[0]:x);
 }
-app.get("/api/health",(req,res)=>res.json({ok:true,name:"Yoon Recap",version:"4.0.0",provider:"groq+gemini",models:["whisper-large-v3-turbo","gemini-3.8-flash","gemini-3.8-flash-tts"]}));
+app.get("/api/health",(req,res)=>res.json({ok:true,name:"Yoon Recap",version:"4.1.0",provider:"groq+gemini",models:["whisper-large-v3-turbo",...GEMINI_MODELS,"gemini-3.8-flash-tts"],geminiFallback:true,retryDelaysMs:RETRY_DELAYS}));
 
 app.post("/api/transcribe",upload.single("video"),async(req,res)=>{
  const file=req.file,key=keyOf(req);if(!file)return res.status(400).json({error:"Video ရွေးပါ။"});if(!key)return res.status(400).json({error:"Groq API Key ထည့်ပါ။"});
@@ -73,7 +107,20 @@ app.post("/api/tts",async(req,res)=>{
  if(!key)return res.status(400).json({error:"Gemini API Key ထည့်ပါ။"});if(!text)return res.status(400).json({error:"AI Voice အတွက် စာသားမရှိပါ။"});
  const id="voice-"+Date.now()+"-"+Math.random().toString(36).slice(2,8),out=path.join("work",id+".wav");
  try{
-  const r=await fetch("https://generativelanguage.googleapis.com/v1beta/interactions",{method:"POST",headers:{"x-goog-api-key":key,"Content-Type":"application/json"},body:JSON.stringify({model:"gemini-3.8-flash-tts",input:[{type:"user_input",content:[{type:"text",text,annotations:[{type:"speech_metadata",style:"natural, clear, warm Myanmar movie recap narration"}]}]}],response_format:{type:"audio",mime_type:"audio/wav"},generation_config:{speech_config:[{voice}]}})});
+  let r=null,raw="",data={};let lastTtsError=null;
+  const ttsModels=["gemini-3.8-flash-tts","gemini-3.7-flash-tts","gemini-3.5-flash-lite-tts"];
+  for(const model of ttsModels){
+    for(let attempt=0;attempt<=RETRY_DELAYS.length;attempt++){
+      r=await fetch("https://generativelanguage.googleapis.com/v1beta/interactions",{method:"POST",headers:{"x-goog-api-key":key,"Content-Type":"application/json"},body:JSON.stringify({model,input:[{type:"user_input",content:[{type:"text",text,annotations:[{type:"speech_metadata",style:"natural, clear, warm Myanmar movie recap narration"}]}]}],response_format:{type:"audio",mime_type:"audio/wav"},generation_config:{speech_config:[{voice}]}})});
+      raw=await r.text();data={};try{data=JSON.parse(raw)}catch{}
+      if(r.ok){lastTtsError=null;break}
+      lastTtsError=new Error(data?.error?.message||raw||("Gemini TTS error "+r.status));lastTtsError.status=r.status;
+      if(!isRetryableGemini(r.status,lastTtsError.message))throw lastTtsError;
+      if(attempt<RETRY_DELAYS.length)await sleep(RETRY_DELAYS[attempt]);
+    }
+    if(r?.ok)break;
+  }
+  if(!r?.ok)throw lastTtsError||new Error("Gemini TTS unavailable");
   const raw=await r.text();let data={};try{data=JSON.parse(raw)}catch{}if(!r.ok)throw new Error(data?.error?.message||raw||("Gemini TTS error "+r.status));
   let audio=data.output_audio?.data||null;for(const step of(data.steps||[]))for(const part of(step.content||[]))if(part?.type==="audio"&&part.data)audio=part.data;
   if(!audio)throw new Error("Gemini TTS audio data မရပါ။");fs.writeFileSync(out,Buffer.from(audio,"base64"));res.json({id,url:"/media/"+path.basename(out)});
