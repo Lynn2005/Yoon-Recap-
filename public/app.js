@@ -62,9 +62,41 @@ function dragElement(el,type,xId,yId){
     el.addEventListener("pointercancel",end);
   });
 }
+// Text ကို Blur box လို yellow boundary + corner resize နဲ့ တိုက်ရိုက်ပြင်နိုင်စေမယ်
+const textResizeHandle=document.createElement("div");
+textResizeHandle.className="text-resize-handle";
+textResizeHandle.title="Resize text";
+textPreview.appendChild(textResizeHandle);
+
 dragElement(textPreview,"text","textX","textY");
 dragElement(blurLayer,"blur","blurX","blurY");
 dragElement(logoPreview,"logo","logoX","logoY");
+
+textResizeHandle.addEventListener("pointerdown",e=>{
+  if(!showText.checked)return;
+  e.preventDefault();
+  e.stopPropagation();
+  textResizeHandle.setPointerCapture?.(e.pointerId);
+  const box=$("editorPreview").getBoundingClientRect();
+  const startX=e.clientX,startY=e.clientY;
+  const startSize=Number($("fontSize").value);
+  const move=ev=>{
+    const dx=(ev.clientX-startX)/box.width*100;
+    const dy=(ev.clientY-startY)/box.height*100;
+    const next=Math.max(14,Math.min(96,startSize+Math.round((dx+dy)*0.45)));
+    $("fontSize").value=next;
+    update();
+  };
+  const end=ev=>{
+    textResizeHandle.releasePointerCapture?.(ev.pointerId);
+    textResizeHandle.removeEventListener("pointermove",move);
+    textResizeHandle.removeEventListener("pointerup",end);
+    textResizeHandle.removeEventListener("pointercancel",end);
+  };
+  textResizeHandle.addEventListener("pointermove",move);
+  textResizeHandle.addEventListener("pointerup",end);
+  textResizeHandle.addEventListener("pointercancel",end);
+});
 
 $("render").onclick=async()=>{
  const srt=$("burmeseSrt").value.trim();if(!file)return status("fstatus","⚠️ Video ရွေးပါ။");if(!srt)return status("fstatus","⚠️ Burmese SRT အရင်ထုတ်ပါ။");if(!voiceId)return status("fstatus","⚠️ AI Voice အရင်ထုတ်ပါ။");
