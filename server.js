@@ -113,7 +113,7 @@ app.post("/api/tts",async(req,res)=>{
   let data={},lastError=null;
   for(const model of ttsModels){
     const controller=new AbortController();
-    const timer=setTimeout(()=>controller.abort(),20000);
+    const timer=setTimeout(()=>controller.abort(),60000);
     try{
       const r=await fetch("https://generativelanguage.googleapis.com/v1beta/interactions",{
         method:"POST",
@@ -136,7 +136,7 @@ app.post("/api/tts",async(req,res)=>{
       if(!isRetryableGemini(r.status,lastError.message))throw lastError;
     }catch(e){
       lastError=e.name==="AbortError"
-        ? new Error("Gemini AI Voice response အရမ်းကြာနေပါတယ်။ စာသားကို နည်းနည်းတိုအောင်လုပ်ပြီး ပြန်စမ်းပါ။")
+        ? new Error("Gemini AI Voice server response 60 စက္ကန့်ကျော်နေပါတယ်။ Gemini TTS service ကို ပြန်စမ်းပါ။")
         : e;
       if(!isRetryableGemini(lastError?.status,String(lastError?.message||lastError)) && e.name!=="AbortError")throw lastError;
     }finally{
