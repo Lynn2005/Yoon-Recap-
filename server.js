@@ -82,7 +82,7 @@ function cleanJson(s){
   const x=String(s||"").trim().replace(/^\`\`\`json/i,"").replace(/^\`\`\`/,"").replace(/\`\`\`$/,"").trim();
   const m=x.match(/\{[\s\S]*\}/); return JSON.parse(m?m[0]:x);
 }
-app.get("/api/health",(req,res)=>res.json({ok:true,name:"Yoon Recap",version:"4.1.0",provider:"groq+gemini",models:["whisper-large-v3-turbo",...GEMINI_MODELS,"gemini-3.8-flash-tts"],geminiFallback:true,retryDelaysMs:RETRY_DELAYS}));
+app.get("/api/health",(req,res)=>res.json({ok:true,name:"Yoon Recap",version:"4.1.0",provider:"groq+gemini",models:["whisper-large-v3-turbo",...GEMINI_MODELS,"gemini-3.8-flash-lite-tts","gemini-3.8-flash-tts"],geminiFallback:true,retryDelaysMs:RETRY_DELAYS}));
 
 app.post("/api/transcribe",upload.single("video"),async(req,res)=>{
  const file=req.file,key=keyOf(req);if(!file)return res.status(400).json({error:"Video ရွေးပါ။"});if(!key)return res.status(400).json({error:"Groq API Key ထည့်ပါ။"});
@@ -120,7 +120,7 @@ app.post("/api/tts",async(req,res)=>{
    if(buf)out.push(buf); return out;
  }
  async function ttsOne(chunk){
-   const ttsModels=["gemini-3.8-flash-tts","gemini-3.7-flash-tts"];
+   const ttsModels=["gemini-3.8-flash-lite-tts","gemini-3.8-flash-tts"];
    let data={},lastError=null;
    for(const model of ttsModels){
      const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),45000);
