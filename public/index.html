@@ -5,8 +5,9 @@
 
 <section class="card key"><div class="badge">API</div><h2>🔑 API Keys</h2>
 <label>Groq API Key</label><div class="keyrow"><input id="groqKey" type="password" placeholder="gsk_..."><button id="saveGroq">💾 Save</button></div>
-<label>Gemini API Key</label><div class="keyrow"><input id="geminiKey" type="password" placeholder="AIza..."><button id="saveGemini">💾 Save</button></div>
-<small id="keyStatus">Key တွေကို ဒီ browser ထဲမှာသာ သိမ်းထားပါမယ်။</small></section>
+<label>Gemini API Key 1</label><div class="keyrow"><input id="geminiKey" type="password" placeholder="AIza..."><button id="saveGemini">💾 Save</button></div>
+<label>Gemini API Key 2 (Fallback)</label><div class="keyrow"><input id="geminiKey2" type="password" placeholder="AIza..."><button id="saveGemini2">💾 Save</button></div>
+<small id="keyStatus">Gemini Key 1 မရရင် Key 2 ကို အလိုအလျောက် fallback သုံးပါမယ်။ Key တွေကို ဒီ browser ထဲမှာသာ သိမ်းထားပါမယ်။</small></section>
 
 <section class="card"><div class="badge">STEP 01</div><h2>🎬 Upload Video → Audio → Transcript</h2>
 <input id="video" type="file" accept="video/*"><video id="preview" controls playsinline hidden></video>
