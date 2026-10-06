@@ -1,10 +1,10 @@
 const $=id=>document.getElementById(id);
-let file=null,videoUrl=null,voiceUploadFile=null,fontFile=null,customFontUrl=null,voiceId=localStorage.getItem("yoon_voice_id")||null,voiceUrl=localStorage.getItem("yoon_voice_url")||null,logoFile=null;
+let file=null,videoUrl=null,voiceUploadFile=null,fontFile=null,customFontUrl=null,voiceSrt=localStorage.getItem("yoon_voice_srt")||"",voiceId=localStorage.getItem("yoon_voice_id")||null,voiceUrl=localStorage.getItem("yoon_voice_url")||null,logoFile=null;
 if(voiceId&&voiceUrl){$("voicePreview").src=voiceUrl;$("voicePreview").hidden=false;}
 
 const savedGroq=localStorage.getItem("yoon_groq_key"),savedGemini=localStorage.getItem("yoon_gemini_key");
 if(localStorage.getItem("yoon_original_srt"))$("originalSrt").value=localStorage.getItem("yoon_original_srt");
-if(localStorage.getItem("yoon_burmese_srt"))$("burmeseSrt").value=localStorage.getItem("yoon_burmese_srt");
+if(localStorage.getItem("yoon_burmese_srt"))$("burmeseSrt").value=localStorage.getItem("yoon_burmese_srt");if(voiceSrt&&$("voiceSrt"))$("voiceSrt").value=voiceSrt;
 if(savedGroq)$("groqKey").value=savedGroq;if(savedGemini)$("geminiKey").value=savedGemini;
 $("saveGroq").onclick=()=>{localStorage.setItem("yoon_groq_key",$("groqKey").value.trim());$("keyStatus").textContent="✅ Groq Key သိမ်းပြီးပါပြီ။"};
 $("saveGemini").onclick=()=>{localStorage.setItem("yoon_gemini_key",$("geminiKey").value.trim());$("keyStatus").textContent="✅ Gemini Key သိမ်းပြီးပါပြီ။"};
@@ -32,7 +32,7 @@ $("downloadBurmese").onclick=()=>download("burmese.srt",$("burmeseSrt").value,"a
 
 $("voiceSpeed").addEventListener("input",()=>$("voiceSpeedValue").textContent=Number($("voiceSpeed").value).toFixed(1)+"x");
 
-$("makeVoice").onclick=async()=>{const srtInput=$("burmeseSrt").value.trim();if(!srtInput)return status("vstatus","⚠️ Burmese SRT အရင်ထုတ်ပါ။");const text=srtInput.replace(/\d+\s*\n\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}\s*\n/g,"").replace(/\n{2,}/g,"\n").trim();const b=$("makeVoice");b.disabled=true;status("vstatus","⏳ Free Burmese AI Voice ထုတ်နေပါတယ်...");try{const d=await apiJson(await fetch("/api/tts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text,srt:srtInput,voice:$("voice").value,rate:Number($("voiceSpeed").value||1)})}));voiceId=d.id;voiceUrl=d.url;localStorage.setItem("yoon_voice_id",voiceId);localStorage.setItem("yoon_voice_url",voiceUrl);if(d.srt){$("burmeseSrt").value=d.srt;localStorage.setItem("yoon_burmese_srt",d.srt);}$("voicePreview").src=voiceUrl;$("voicePreview").hidden=false;status("vstatus","✅ AI Voice + ၂၀ အက္ခရာ Burmese SRT ပြီးပါပြီ။")}catch(e){status("vstatus","❌ "+e.message)}finally{b.disabled=false}};
+$("makeVoice").onclick=async()=>{const srtInput=$("burmeseSrt").value.trim();if(!srtInput)return status("vstatus","⚠️ Burmese SRT အရင်ထုတ်ပါ။");const text=srtInput.replace(/\d+\s*\n\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}\s*\n/g,"").replace(/\n{2,}/g,"\n").trim();const b=$("makeVoice");b.disabled=true;status("vstatus","⏳ Free Burmese AI Voice ထုတ်နေပါတယ်...");try{const d=await apiJson(await fetch("/api/tts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text,srt:srtInput,voice:$("voice").value,rate:Number($("voiceSpeed").value||1)})}));voiceId=d.id;voiceUrl=d.url;localStorage.setItem("yoon_voice_id",voiceId);localStorage.setItem("yoon_voice_url",voiceUrl);if(d.srt){voiceSrt=d.srt;localStorage.setItem("yoon_voice_srt",voiceSrt);if($("voiceSrt"))$("voiceSrt").value=voiceSrt;}$("voicePreview").src=voiceUrl;$("voicePreview").hidden=false;status("vstatus","✅ AI Voice + ၂၅ အက္ခရာစီ Voice SRT ပြီးပါပြီ။ အပေါ်က Burmese SRT ကို Final မှာ မသုံးပါ။")}catch(e){status("vstatus","❌ "+e.message)}finally{b.disabled=false}};
 
 const showText=$("showText"),showBlur=$("showBlur"),showLogo=$("showLogo"),textControls=$("textControls"),blurControls=$("blurControls"),logoControls=$("logoControls"),textPreview=$("textPreview"),blurLayer=$("blurLayer"),logoPreview=$("logoPreview");
 let active=null;let activeOption=showText;
@@ -134,7 +134,7 @@ $("finishKeep")?.addEventListener("click",()=>{
 });
 
 $("render").onclick=async()=>{
- const srt=$("burmeseSrt").value.trim();if(!file)return status("fstatus","⚠️ Video ရွေးပါ။");if(!srt)return status("fstatus","⚠️ Burmese SRT အရင်ထုတ်ပါ။");if(!voiceId&&!voiceUploadFile)return status("fstatus","⚠️ AI Voice ကို Generate လုပ်ပါ သို့မဟုတ် Upload လုပ်ပါ။");
+ const srt=voiceSrt.trim();if(!file)return status("fstatus","⚠️ Video ရွေးပါ။");if(!srt)return status("fstatus","⚠️ AI Voice ထုတ်ပြီး Voice SRT အရင်ရယူပါ။");if(!voiceId&&!voiceUploadFile)return status("fstatus","⚠️ AI Voice ကို Generate လုပ်ပါ သို့မဟုတ် Upload လုပ်ပါ။");
  const b=$("render");b.disabled=true;let pct=1;
  const makeProgress=()=>{let p=document.getElementById("renderProgress");if(!p){p=document.createElement("div");p.id="renderProgress";p.innerHTML='<div class="render-progress-top"><span id="renderProgressLabel">Final Video Loading...</span><b id="renderProgressPct">1%</b></div><div class="render-progress-track"><div id="renderProgressBar"></div></div>';const target=document.getElementById("fstatus");target.parentNode.insertBefore(p,target);}};
  const setProgress=n=>{pct=Math.max(pct,Math.min(99,Math.round(n)));const bar=document.getElementById("renderProgressBar"),label=document.getElementById("renderProgressLabel"),num=document.getElementById("renderProgressPct");if(bar)bar.style.width=pct+"%";if(num)num.textContent=pct+"%";if(label)label.textContent=pct<99?"Final Video Loading...":"Final Video Finishing...";};
