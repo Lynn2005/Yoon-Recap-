@@ -33,6 +33,39 @@ $("editText").addEventListener("input",update);
 $("logoFile").onchange=e=>{logoFile=e.target.files?.[0]||null;if(logoFile){logoPreview.src=URL.createObjectURL(logoFile);showLogo.checked=true;active=showLogo;update()}};
 update();
 
+function dragElement(el,type,xId,yId){
+  el.addEventListener("pointerdown",e=>{
+    if(!$(type==="blur"?"showBlur":type==="text"?"showText":"showLogo").checked)return;
+    e.preventDefault();
+    e.stopPropagation();
+    el.setPointerCapture?.(e.pointerId);
+    const box=$("editorPreview").getBoundingClientRect();
+    const startX=e.clientX,startY=e.clientY;
+    const ox=Number($(xId).value),oy=Number($(yId).value);
+    const move=ev=>{
+      const dx=(ev.clientX-startX)/box.width*100;
+      const dy=(ev.clientY-startY)/box.height*100;
+      const nx=Math.max(5,Math.min(95,ox+dx));
+      const ny=Math.max(5,Math.min(95,oy+dy));
+      $(xId).value=nx;
+      $(yId).value=ny;
+      update();
+    };
+    const end=ev=>{
+      el.releasePointerCapture?.(ev.pointerId);
+      el.removeEventListener("pointermove",move);
+      el.removeEventListener("pointerup",end);
+      el.removeEventListener("pointercancel",end);
+    };
+    el.addEventListener("pointermove",move);
+    el.addEventListener("pointerup",end);
+    el.addEventListener("pointercancel",end);
+  });
+}
+dragElement(textPreview,"text","textX","textY");
+dragElement(blurLayer,"blur","blurX","blurY");
+dragElement(logoPreview,"logo","logoX","logoY");
+
 $("render").onclick=async()=>{
  const srt=$("burmeseSrt").value.trim();if(!file)return status("fstatus","⚠️ Video ရွေးပါ။");if(!srt)return status("fstatus","⚠️ Burmese SRT အရင်ထုတ်ပါ။");if(!voiceId)return status("fstatus","⚠️ AI Voice အရင်ထုတ်ပါ။");
  const b=$("render");b.disabled=true;status("fstatus","⏳ Subtitles + Voice + Adjustments → Final MP4 render လုပ်နေပါတယ်...");
