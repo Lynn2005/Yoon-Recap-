@@ -175,7 +175,7 @@ const renderJobs=new Map();
 let renderRunning=false;
 
 async function runRenderJob(job){
- const {video,logo,voice,srt,voiceId,body}=job;
+ const {video,logo,font,voice,srt,voiceId,body}=job;
  const base=path.basename(video.path),srtPath=path.join("work",base+"-my.srt"),out=path.join("work",base+"-final.mp4"),textPath=path.join("work",base+"-text.txt");
  try{
   fs.writeFileSync(srtPath,srt,"utf8");fs.writeFileSync(textPath,String(body?.text||"Myanmar Recap"),"utf8");
@@ -183,7 +183,10 @@ async function runRenderJob(job){
   const fsx=Math.max(14,Math.min(100,Number(body?.fontSize||28))),tx=Math.max(5,Math.min(95,Number(body?.textX||50))),ty=Math.max(5,Math.min(95,Number(body?.textY||88)));
   const bx=Math.max(5,Math.min(95,Number(body?.blurX||50))),by=Math.max(5,Math.min(95,Number(body?.blurY||82))),bw=Math.max(10,Math.min(100,Number(body?.blurW||90))),bh=Math.max(5,Math.min(80,Number(body?.blurH||22))),ba=Math.max(0,Math.min(24,Number(body?.blurAmount||8)));
   const ls=Math.max(30,Math.min(500,Number(body?.logoSize||72))),lx=Math.max(5,Math.min(95,Number(body?.logoX||90))),ly=Math.max(5,Math.min(95,Number(body?.logoY||10)));
-  const fontFile=MYANMAR_FONT_FILE;
+  const fontFile=font?.path||MYANMAR_FONT_FILE;
+  const fontColor=String(body?.fontColor||"#ffffff");
+  const borderColor=String(body?.borderColor||"#000000");
+  const borderWidth=Math.max(0,Math.min(12,Number(body?.borderWidth||3)));
   const f=[];let cur="[0:v]";
   // Cap the working video dimension to 1920px to prevent FFmpeg from exhausting Render Free memory on 2K/4K uploads.
   f.push(cur+"scale=w=1280:h=1280:force_original_aspect_ratio=decrease:force_divisible_by=2[v0]");cur="[v0]";
@@ -207,23 +210,23 @@ async function runRenderJob(job){
   job.state="error";job.error=String(msg).slice(-6000);
  }finally{
   renderRunning=false;
-  fs.unlink(video.path,()=>{});if(logo)fs.unlink(logo.path,()=>{});if(job.cleanupVoice&&voice?.path)fs.unlink(voice.path,()=>{});fs.unlink(srtPath,()=>{});fs.unlink(textPath,()=>{});
+  fs.unlink(video.path,()=>{});if(logo)fs.unlink(logo.path,()=>{});if(font)fs.unlink(font.path,()=>{});if(job.cleanupVoice&&voice?.path)fs.unlink(voice.path,()=>{});fs.unlink(srtPath,()=>{});fs.unlink(textPath,()=>{});
   setTimeout(()=>renderJobs.delete(job.id),30*60*1000);
  }
 }
 
-app.post("/api/render",upload.fields([{name:"video",maxCount:1},{name:"logo",maxCount:1},{name:"voice",maxCount:1}]),async(req,res)=>{
- const video=req.files?.video?.[0],logo=req.files?.logo?.[0],voice=req.files?.voice?.[0],srt=String(req.body?.srt||"").trim(),voiceId=String(req.body?.voiceId||"").replace(/[^a-zA-Z0-9_-]/g,"");
+app.post("/api/render",upload.fields([{name:"video",maxCount:1},{name:"logo",maxCount:1},{name:"voice",maxCount:1},{name:"font",maxCount:1}]),async(req,res)=>{
+ const video=req.files?.video?.[0],logo=req.files?.logo?.[0],voice=req.files?.voice?.[0],font=req.files?.font?.[0],srt=String(req.body?.srt||"").trim(),voiceId=String(req.body?.voiceId||"").replace(/[^a-zA-Z0-9_-]/g,"");
  if(!video)return res.status(400).json({error:"Video ရွေးပါ။"});if(!validSrt(srt))return res.status(400).json({error:"Burmese SRT မရှိပါ။"});
  const savedVoicePath=voice?.path||path.join("work",voiceId+".wav");
  if(!voice&&(!voiceId||!fs.existsSync(savedVoicePath)))return res.status(400).json({error:"သိမ်းထားတဲ့ AI Voice file မတွေ့ပါ။ AI Voice ကို ပြန်ထုတ်ပါ။"});
  const renderVoice=voice||{path:savedVoicePath};
  const id="render-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);
  if(renderRunning){
-   fs.unlink(video.path,()=>{});if(logo)fs.unlink(logo.path,()=>{});if(voice)fs.unlink(voice.path,()=>{});
+   fs.unlink(video.path,()=>{});if(logo)fs.unlink(logo.path,()=>{});if(font)fs.unlink(font.path,()=>{});if(voice)fs.unlink(voice.path,()=>{});
    return res.status(429).json({error:"Final Video render တစ်ခု လုပ်နေပြီးသားပါ။ ပြီးသွားမှ ပြန်စမ်းပါ။"});
  }
- const job={id,video,logo,voice:renderVoice,cleanupVoice:!!voice,srt,voiceId,body:req.body,progress:5,state:"processing"};
+ const job={id,video,logo,font,voice:renderVoice,cleanupVoice:!!voice,srt,voiceId,body:req.body,progress:5,state:"processing"};
  renderJobs.set(id,job);renderRunning=true;
  res.status(202).json({jobId:id,status:"processing",progress:5});
  setImmediate(()=>runRenderJob(job));
