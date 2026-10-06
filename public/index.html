@@ -5,9 +5,8 @@
 
 <section class="card key"><div class="badge">API</div><h2>🔑 API Keys</h2>
 <label>Groq API Key <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer">🔗 Get Groq API Key</a></label><div class="keyrow"><input id="groqKey" type="password" placeholder="gsk_..."><button id="saveGroq">💾 Save</button></div>
-<label>Gemini API Key 1 <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">🔗 Get Gemini API Key</a></label><div class="keyrow"><input id="geminiKey" type="password" placeholder="AIza..."><button id="saveGemini">💾 Save</button></div>
-<label>Gemini API Key 2 (Fallback) <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">🔗 Get Gemini API Key</a></label><div class="keyrow"><input id="geminiKey2" type="password" placeholder="AIza..."><button id="saveGemini2">💾 Save</button></div>
-<small id="keyStatus">Gemini Key 1 မရရင် Key 2 ကို အလိုအလျောက် fallback သုံးပါမယ်။ Key တွေကို ဒီ browser ထဲမှာသာ သိမ်းထားပါမယ်။</small></section>
+<label>Gemini API Key <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">🔗 Get Gemini API Key</a></label><div class="keyrow"><input id="geminiKey" type="password" placeholder="AIza..."><button id="saveGemini">💾 Save</button></div>
+<small id="keyStatus">API Key တွေကို ဒီ browser ထဲမှာသာ သိမ်းထားပါမယ်။</small></section>
 
 <section class="card"><div class="badge">STEP 01</div><h2>🎬 Upload Video → Audio → Transcript</h2>
 <input id="video" type="file" accept="video/*"><video id="preview" controls playsinline hidden></video>
@@ -28,6 +27,7 @@
 
 <section class="card"><div class="badge">STEP 04</div><h2>🔊 AI Voice</h2>
 <label>🇲🇲 Free Burmese AI Voice</label><select id="voice"><option value="myanmar-female">👩 Nilar — Female Natural</option><option value="myanmar-male">👨 Thiha — Male Natural</option></select>
+<label>⚡ Voice Speed <output id="voiceSpeedValue">1.0x</output></label><input id="voiceSpeed" type="range" min="0.5" max="1.5" step="0.1" value="1.0"><small>0.5x = နှေး • 1.0x = ပုံမှန် • 1.5x = မြန်</small>
 <button id="makeVoice">🎙 Free AI Voice ထုတ်မယ်</button><audio id="voicePreview" controls hidden></audio><div id="vstatus" class="status"></div>
 </section>
 
@@ -45,11 +45,5 @@
 
 <section class="card"><div class="badge">STEP 06</div><h2>🚀 Final Video</h2><p>Video + Burmese subtitles + Gemini AI Voice + Adjustments ကို FFmpeg နဲ့ တစ်ခုတည်းရောပြီး MP4 ထုတ်မယ်။</p>
 <button id="render">🎬 Final MP4 Render</button><div id="fstatus" class="status"></div><a id="finalLink" class="download-link" hidden target="_blank">📥 Final MP4 Download</a></section>
-<section class="card finish-card">
-  <div class="finish-title">✅ ရပြီ</div>
-  <p>အပေါ်မှာလုပ်ထားတဲ့အတိုင်း အားလုံးပြီးပါပြီ။ ဒီခလုတ်ကိုနှိပ်ပြီးရင် <b>ဘာ setting မှ ထပ်မပြင်တော့ဘဲ</b> လက်ရှိလုပ်ထားတဲ့အတိုင်း Final Video ထုတ်ပါမယ်။</p>
-  <button id="finishKeep" type="button">✅ ရပြီ — ဒီအတိုင်းထားမယ်</button>
-  <div id="finishStatus" class="status"></div>
-</section>
 <footer>Yoon Recap Studio 4.0 • Upload → Audio → Original SRT → Gemini → AI Voice → Adjust → Final</footer>
-</main><script src="/app.js?v=4.3.0"></script></body></html>
+</main><script src="/app.js?v=4.4.0"></script></body></html>
