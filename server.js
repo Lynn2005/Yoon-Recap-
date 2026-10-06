@@ -154,10 +154,12 @@ app.post("/api/recap",async(req,res)=>{
  }catch(e){res.status(500).json({error:e.message||"Recap generation failed"});}
 });
 
-app.post("/api/render",upload.fields([{name:"video",maxCount:1},{name:"logo",maxCount:1}]),async(req,res)=>{
- const video=req.files?.video?.[0],logo=req.files?.logo?.[0],srt=String(req.body?.srt||"").trim(),voiceId=String(req.body?.voiceId||"").replace(/[^a-zA-Z0-9_-]/g,"");
+app.post("/api/render",upload.fields([{name:"video",maxCount:1},{name:"logo",maxCount:1},{name:"voice",maxCount:1}]),async(req,res)=>{
+ const video=req.files?.video?.[0],logo=req.files?.logo?.[0],voice=req.files?.voice?.[0],srt=String(req.body?.srt||"").trim(),voiceId=String(req.body?.voiceId||"").replace(/[^a-zA-Z0-9_-]/g,"");
  if(!video)return res.status(400).json({error:"Video ရွေးပါ။"});if(!validSrt(srt))return res.status(400).json({error:"Burmese SRT မရှိပါ။"});
- const voicePath=path.join("work",voiceId+".wav");if(!voiceId||!fs.existsSync(voicePath))return res.status(400).json({error:"AI Voice file မတွေ့ပါ။"});
+ // Prefer the voice audio sent by the website. This makes Final Video use the saved/generated AI voice even if the server work folder changed.
+ const savedVoicePath=voice?.path||path.join("work",voiceId+".wav");
+ if(!voice&&(!voiceId||!fs.existsSync(savedVoicePath)))return res.status(400).json({error:"သိမ်းထားတဲ့ AI Voice file မတွေ့ပါ။ AI Voice ကို ပြန်ထုတ်ပါ။"});
  const base=path.basename(video.path),srtPath=path.join("work",base+"-my.srt"),out=path.join("work",base+"-final.mp4"),textPath=path.join("work",base+"-text.txt");
  try{
   fs.writeFileSync(srtPath,srt,"utf8");fs.writeFileSync(textPath,String(req.body?.text||"Myanmar Recap"),"utf8");
@@ -170,12 +172,12 @@ app.post("/api/render",upload.fields([{name:"video",maxCount:1},{name:"logo",max
   if(showBlur){f.push(cur+"split=2[base][b0]");f.push("[b0]crop=w=trunc(iw*"+bw+"/100/2)*2:h=trunc(ih*"+bh+"/100/2)*2:x=iw*"+bx+"/100-w/2:y=ih*"+by+"/100-h/2,boxblur=luma_radius="+ba+":luma_power=1[bl]");f.push("[base][bl]overlay=x=iw*"+bx+"/100-overlay_w/2:y=ih*"+by+"/100-overlay_h/2[vb]");cur="[vb]";}
   const sp=srtPath.replace(/\\/g,"/").replace(/:/g,"\\:");f.push(cur+"subtitles='"+sp+"':fontsdir=/usr/share/fonts/noto:force_style='FontName=Noto Sans Myanmar,FontSize=20,Outline=2,Shadow=0,Alignment=2,MarginV=60'[vs]");cur="[vs]";
   if(showText){const tp=textPath.replace(/\\/g,"/");f.push(cur+"drawtext=fontfile="+fontFile+":textfile='"+tp+"':fontsize="+fsx+":fontcolor=white:borderw=3:bordercolor=black:x=w*"+tx+"/100-text_w/2:y=h*"+ty+"/100-text_h/2[vt]");cur="[vt]";}
-  const args=["-y","-i",video.path,"-i",voicePath];
+  const args=["-y","-i",video.path,"-i",savedVoicePath];
   if(showLogo&&logo){f.push("[2:v]scale="+ls+":"+ls+"[lg]");f.push(cur+"[lg]overlay=x=w*"+lx+"/100-overlay_w/2:y=h*"+ly+"/100-overlay_h/2[vout]");cur="[vout]";args.push("-i",logo.path);}
   args.push("-filter_complex",f.join(";"),"-map",cur,"-map","1:a:0","-c:v","libx264","-preset","veryfast","-crf","20","-c:a","aac","-b:a","192k","-movflags","+faststart","-shortest",out);
   args.splice(1,0,"-hide_banner","-loglevel","error");args.splice(args.length-2,0,"-pix_fmt","yuv420p");await execFileAsync("ffmpeg",args,{maxBuffer:50*1024*1024});res.json({url:"/media/"+path.basename(out),filename:path.basename(out)});
  }catch(e){const msg=e?.stderr||e?.message||"Final render failed";res.status(500).json({error:String(msg).slice(-6000)});}
- finally{fs.unlink(video.path,()=>{});if(logo)fs.unlink(logo.path,()=>{});fs.unlink(srtPath,()=>{});fs.unlink(textPath,()=>{});}
+ finally{fs.unlink(video.path,()=>{});if(logo)fs.unlink(logo.path,()=>{});if(voice)fs.unlink(voice.path,()=>{});fs.unlink(srtPath,()=>{});fs.unlink(textPath,()=>{});}
 });
 
 app.use((req,res,next)=>{
