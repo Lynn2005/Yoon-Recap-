@@ -21,7 +21,7 @@ $("makeVoice").onclick=async()=>{const text=$("burmeseSrt").value.replace(/\d+\s
 
 const showText=$("showText"),showBlur=$("showBlur"),showLogo=$("showLogo"),textControls=$("textControls"),blurControls=$("blurControls"),logoControls=$("logoControls"),textPreview=$("textPreview"),blurLayer=$("blurLayer"),logoPreview=$("logoPreview");
 let active=null;
-function update(){textPreview.textContent=$("editText").value||"";textPreview.style.fontSize=$("fontSize").value+"px";textPreview.style.left=$("textX").value+"%";textPreview.style.top=$("textY").value+"%";textPreview.style.opacity=(Number($("textOpacity").value)/100);$("fontValue").textContent=$("fontSize").value;$("textXValue").textContent=$("textX").value;$("textYValue").textContent=$("textY").value;$("textOpacityValue").textContent=$("textOpacity").value;
+function update(){textPreview.textContent=$("editText").value||"";textPreview.style.fontSize=$("fontSize").value+"px";textPreview.style.left=$("textX").value+"%";textPreview.style.top=$("textY").value+"%";textPreview.style.fontWeight=$("textWeight").value;$("fontValue").textContent=$("fontSize").value;$("textWeightValue").textContent=$("textWeight").value;$("textXValue").textContent=$("textX").value;$("textYValue").textContent=$("textY").value;
 blurLayer.style.left=(+$("blurX").value-(+$("blurW").value/2))+"%";blurLayer.style.top=$("blurY").value+"%";blurLayer.style.width=$("blurW").value+"%";blurLayer.style.height=$("blurH").value+"%";blurLayer.style.transform="translateY(-50%)";blurLayer.style.backdropFilter="blur("+$("blurAmount").value+"px)";$("blurValue").textContent=$("blurAmount").value;$("blurXValue").textContent=$("blurX").value;$("blurYValue").textContent=$("blurY").value;$("blurWValue").textContent=$("blurW").value;$("blurHValue").textContent=$("blurH").value;
 logoPreview.style.width=$("logoSize").value+"px";logoPreview.style.height=$("logoSize").value+"px";logoPreview.style.left=$("logoX").value+"%";logoPreview.style.top=$("logoY").value+"%";logoPreview.style.right="auto";logoPreview.style.transform="translate(-50%,-50%)";$("logoValue").textContent=$("logoSize").value;$("logoXValue").textContent=$("logoX").value;$("logoYValue").textContent=$("logoY").value;
 textPreview.style.display=showText.checked?"block":"none";blurLayer.style.display=showBlur.checked?"block":"none";logoPreview.style.display=showLogo.checked&&logoPreview.src?"block":"none";
@@ -103,7 +103,7 @@ $("render").onclick=async()=>{
  const b=$("render");b.disabled=true;status("fstatus","⏳ Subtitles + Voice + Adjustments → Final MP4 render လုပ်နေပါတယ်...");
  try{
   const f=new FormData();f.append("video",file);f.append("srt",srt);f.append("voiceId",voiceId);f.append("text",$("editText").value);f.append("showText",showText.checked?"1":"0");f.append("showBlur",showBlur.checked?"1":"0");f.append("showLogo",showLogo.checked?"1":"0");
-  ["fontSize","textX","textY","textOpacity","blurAmount","blurX","blurY","blurW","blurH","logoSize","logoX","logoY"].forEach(id=>f.append(id,$(id).value));
+  ["fontSize","textWeight","textX","textY","blurAmount","blurX","blurY","blurW","blurH","logoSize","logoX","logoY"].forEach(id=>f.append(id,$(id).value));
   if(logoFile)f.append("logo",logoFile);
   const d=await apiJson(await fetch("/api/render",{method:"POST",body:f}));$("finalLink").href=d.url;$("finalLink").hidden=false;status("fstatus","✅ Final MP4 ပြီးပါပြီ။");
  }catch(e){status("fstatus","❌ "+e.message)}finally{b.disabled=false}
