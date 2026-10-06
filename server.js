@@ -47,7 +47,7 @@ function cleanJson(s){
   const x=String(s||"").trim().replace(/^\`\`\`json/i,"").replace(/^\`\`\`/,"").replace(/\`\`\`$/,"").trim();
   const m=x.match(/\{[\s\S]*\}/); return JSON.parse(m?m[0]:x);
 }
-app.get("/api/health",(req,res)=>res.json({ok:true,name:"Yoon Recap",version:"3.0.0",provider:"groq",models:["whisper-large-v3-turbo","llama-3.3-70b-versatile"]}));
+app.get("/api/health",(req,res)=>res.json({ok:true,name:"Yoon Recap",version:"4.0.0",provider:"groq+gemini",models:["whisper-large-v3-turbo","gemini-3.8-flash","gemini-3.8-flash-tts"]}));
 
 app.post("/api/transcribe",upload.single("video"),async(req,res)=>{
  const file=req.file,key=keyOf(req);if(!file)return res.status(400).json({error:"Video ရွေးပါ။"});if(!key)return res.status(400).json({error:"Groq API Key ထည့်ပါ။"});
