@@ -10,14 +10,19 @@
 <section class="card editor"><div class="badge">STEP 05</div><h2>🎞️ Video Editor</h2><p>ပြင်နေတဲ့ video ကို တစ်နေရာတည်းမှာ live preview ကြည့်နိုင်ပါတယ်။</p>
 <div class="editor-preview" id="editorPreview"><video id="editVideo" controls playsinline></video><div id="blurLayer" class="blur-layer"></div><img id="logoPreview" class="logo-preview" hidden><div id="textPreview" class="text-preview">Myanmar Recap</div></div>
 <div class="controls">
-<label class="toggle"><input id="blurOriginal" type="checkbox" checked><span>မူရင်းစာသား Blur</span></label>
-<label>Blur အား <output id="blurValue">8</output>px<input id="blurAmount" type="range" min="0" max="24" value="8"></label><label>Blur Box ဘယ် ↔ ညာ <output id="blurXValue">50</output>%</label><input id="blurX" type="range" min="5" max="95" value="50"><label>Blur Box အပေါ် ↕ အောက် <output id="blurYValue">82</output>%</label><input id="blurY" type="range" min="5" max="95" value="82"><label>Blur Box Width <output id="blurWValue">90</output>%</label><input id="blurW" type="range" min="10" max="100" value="90"><label>Blur Box Height <output id="blurHValue">22</output>%</label><input id="blurH" type="range" min="5" max="80" value="22">
-<label>စာသား Size <output id="fontValue">28</output>px<input id="fontSize" type="range" min="14" max="64" value="28"></label>
-<label>စာသား</label><input id="editText" value="Myanmar Recap"><label>စာသား ဘယ် ↔ ညာ <output id="textXValue">50</output>%</label><input id="textX" type="range" min="5" max="95" value="50"><label>စာသား အပေါ် ↕ အောက် <output id="textYValue">88</output>%</label><input id="textY" type="range" min="5" max="95" value="88">
-<label>Logo ထည့်ရန်</label><input id="logoFile" type="file" accept="image/png,image/jpeg,image/webp">
-<label>Logo Size <output id="logoValue">72</output>px<input id="logoSize" type="range" min="30" max="180" value="72"></label>
-<label>Logo ဘယ် ↔ ညာ <output id="logoXValue">90</output>%</label><input id="logoX" type="range" min="5" max="95" value="90"><label>Logo အပေါ် ↕ အောက် <output id="logoYValue">10</output>%</label><input id="logoY" type="range" min="5" max="95" value="10"><label>Logo Position Preset</label><select id="logoPos"><option value="free">Free / Manual</option><option value="top-right">ညာအပေါ်</option><option value="top-left">ဘယ်အပေါ်</option><option value="bottom-right">ညာအောက်</option><option value="bottom-left">ဘယ်အောက်</option></select>
+<label class="editor-option"><input id="showText" type="checkbox"><span>📝 စာသား</span></label>
+<div id="textControls" class="option-panel" hidden>
+<label>စာသား</label><input id="editText" value="Myanmar Recap"><label>စာသား Size <output id="fontValue">28</output>px</label><input id="fontSize" type="range" min="14" max="64" value="28"><label>ဘယ် ↔ ညာ <output id="textXValue">50</output>%</label><input id="textX" type="range" min="5" max="95" value="50"><label>အပေါ် ↕ အောက် <output id="textYValue">88</output>%</label><input id="textY" type="range" min="5" max="95" value="88">
 </div>
+<label class="editor-option"><input id="showBlur" type="checkbox"><span>🌫️ Blur</span></label>
+<div id="blurControls" class="option-panel" hidden>
+<label class="toggle"><input id="blurOriginal" type="checkbox" checked><span>မူရင်းစာသား Blur</span></label><label>Blur အား <output id="blurValue">8</output>px</label><input id="blurAmount" type="range" min="0" max="24" value="8"><label>ဘယ် ↔ ညာ <output id="blurXValue">50</output>%</label><input id="blurX" type="range" min="5" max="95" value="50"><label>အပေါ် ↕ အောက် <output id="blurYValue">82</output>%</label><input id="blurY" type="range" min="5" max="95" value="82"><label>Width <output id="blurWValue">90</output>%</label><input id="blurW" type="range" min="10" max="100" value="90"><label>Height <output id="blurHValue">22</output>%</label><input id="blurH" type="range" min="5" max="80" value="22">
+</div>
+<label class="editor-option"><input id="showLogo" type="checkbox"><span>🏷️ Logo</span></label>
+<div id="logoControls" class="option-panel" hidden>
+<label>Logo ထည့်ရန်</label><input id="logoFile" type="file" accept="image/png,image/jpeg,image/webp"><label>Logo Size <output id="logoValue">72</output>px</label><input id="logoSize" type="range" min="30" max="180" value="72"><label>ဘယ် ↔ ညာ <output id="logoXValue">90</output>%</label><input id="logoX" type="range" min="5" max="95" value="90"><label>အပေါ် ↕ အောက် <output id="logoYValue">10</output>%</label><input id="logoY" type="range" min="5" max="95" value="10"><label>Position</label><select id="logoPos"><option value="free">Free / Manual</option><option value="top-right">ညာအပေါ်</option><option value="top-left">ဘယ်အပေါ်</option><option value="bottom-right">ညာအောက်</option><option value="bottom-left">ဘယ်အောက်</option></select>
+</div>
+</div></div>
 <button id="applyEditor">👀 Preview Update</button>
 <div id="editorStatus" class="status"></div>
 </section>
