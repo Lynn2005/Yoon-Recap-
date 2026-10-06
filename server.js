@@ -169,7 +169,7 @@ app.post("/api/render",upload.fields([{name:"video",maxCount:1},{name:"logo",max
   const ls=Math.max(30,Math.min(500,Number(req.body?.logoSize||72))),lx=Math.max(5,Math.min(95,Number(req.body?.logoX||90))),ly=Math.max(5,Math.min(95,Number(req.body?.logoY||10)));
   const fontFile=MYANMAR_FONT_FILE;
   const f=[];let cur="[0:v]";
-  if(showBlur){f.push(cur+"split=2[base][b0]");f.push("[b0]crop=w=trunc(iw*"+bw+"/100/2)*2:h=trunc(ih*"+bh+"/100/2)*2:x=iw*"+bx+"/100-w/2:y=ih*"+by+"/100-h/2,boxblur=luma_radius="+ba+":luma_power=1[bl]");f.push("[base][bl]overlay=x=iw*"+bx+"/100-overlay_w/2:y=ih*"+by+"/100-overlay_h/2[vb]");cur="[vb]";}
+  if(showBlur){f.push(cur+"split=2[base][b0]");f.push("[b0]crop=w=trunc(iw*"+bw+"/100/2)*2:h=trunc(ih*"+bh+"/100/2)*2:x=iw*"+bx+"/100-ow/2:y=ih*"+by+"/100-oh/2,boxblur=luma_radius="+ba+":luma_power=1[bl]");f.push("[base][bl]overlay=x=iw*"+bx+"/100-overlay_w/2:y=ih*"+by+"/100-overlay_h/2[vb]");cur="[vb]";}
   const sp=srtPath.replace(/\\/g,"/").replace(/:/g,"\\:");f.push(cur+"subtitles='"+sp+"':fontsdir=/usr/share/fonts/noto:force_style='FontName=Noto Sans Myanmar,FontSize=20,Outline=2,Shadow=0,Alignment=2,MarginV=60'[vs]");cur="[vs]";
   if(showText){const tp=textPath.replace(/\\/g,"/");f.push(cur+"drawtext=fontfile="+fontFile+":textfile='"+tp+"':fontsize="+fsx+":fontcolor=white:borderw=3:bordercolor=black:x=w*"+tx+"/100-text_w/2:y=h*"+ty+"/100-text_h/2[vt]");cur="[vt]";}
   const args=["-y","-i",video.path,"-i",savedVoicePath];
