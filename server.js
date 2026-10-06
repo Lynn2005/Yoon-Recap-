@@ -127,7 +127,7 @@ app.post("/api/tts",async(req,res)=>{
  async function hfTts(chunk){
    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),90000);
    try{
-     const r=await fetch(SPACE_URL+"/call/generate_speech",{
+     const r=await fetch(SPACE_URL+"/gradio_api/call/generate_speech",{
        method:"POST",
        headers:{"Content-Type":"application/json"},
        body:JSON.stringify({data:[chunk,12,3]}),
@@ -137,7 +137,7 @@ app.post("/api/tts",async(req,res)=>{
      if(!r.ok)throw new Error(d?.error||t||("MyanmarTTS request failed "+r.status));
      const eventId=d.event_id;
      if(!eventId)throw new Error("MyanmarTTS event_id မရပါ။");
-     const rr=await fetch(SPACE_URL+"/call/generate_speech/"+encodeURIComponent(eventId),{signal:controller.signal});
+     const rr=await fetch(SPACE_URL+"/gradio_api/call/generate_speech/"+encodeURIComponent(eventId),{signal:controller.signal});
      const stream=await rr.text();
      if(!rr.ok)throw new Error("MyanmarTTS result error "+rr.status);
      const lines=stream.split(/\\r?\\n/);
@@ -152,7 +152,7 @@ app.post("/api/tts",async(req,res)=>{
      }
      if(!payload)throw new Error("MyanmarTTS audio မပြန်လာပါ။");
      const result=Array.isArray(payload)?payload[0]:payload;
-     const audioUrl=typeof result==="string"?(result.startsWith("http")?result:SPACE_URL+result):result?.url;
+     const fileObj=Array.isArray(result)?result[0]:result; const candidate=fileObj?.url||fileObj?.path||fileObj?.name||fileObj?.file?.url||fileObj?.file?.path; const audioUrl=typeof result==="string"?(result.startsWith("http")?result:SPACE_URL+result):candidate?(String(candidate).startsWith("http")?String(candidate):SPACE_URL+String(candidate)):null;
      if(!audioUrl){const detail=typeof result==="object"?JSON.stringify(result):String(result);throw new Error("MyanmarTTS audio URL မရပါ။ "+detail);}
      const ar=await fetch(audioUrl,{signal:controller.signal});
      if(!ar.ok)throw new Error("MyanmarTTS audio download failed "+ar.status);
