@@ -108,7 +108,7 @@ app.post("/api/tts",async(req,res)=>{
  if(!text)return res.status(400).json({error:"AI Voice အတွက် စာသားမရှိပါ။"});
  const SPACE_URL=String(process.env.MYANMAR_TTS_SPACE_URL||"https://freococo-myanmartts.hf.space").replace(/\/$/,"");
  function splitTtsText(input,max=500){
-   const parts=input.replace(/\\r/g,"").split(/\\n+/).map(x=>x.trim()).filter(Boolean),out=[];let buf="";
+   const parts=input.replace(/\r/g,"").split(/\n+/).map(x=>x.trim()).filter(Boolean),out=[];let buf="";
    for(const part of parts){
      if((buf+" "+part).trim().length<=max){buf=(buf+" "+part).trim();continue;}
      if(buf)out.push(buf);
@@ -124,8 +124,19 @@ app.post("/api/tts",async(req,res)=>{
    if(buf)out.push(buf);
    return out;
  }
+ async function googleTts(chunk){
+   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
+   try{
+     const u="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=my&dt=t&q="+encodeURIComponent(chunk);
+     const r=await fetch(u,{signal:controller.signal,headers:{"User-Agent":"Mozilla/5.0"}});
+     if(!r.ok)throw new Error("Google TTS failed "+r.status);
+     const audio=Buffer.from(await r.arrayBuffer());
+     if(audio.length<100)throw new Error("Google TTS audio empty ဖြစ်နေပါတယ်။");
+     return audio;
+   }finally{clearTimeout(timer);}
+ }
  async function hfTts(chunk){
-   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),90000);
+   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
    try{
      const r=await fetch(SPACE_URL+"/gradio_api/call/generate_speech",{
        method:"POST",
@@ -140,7 +151,7 @@ app.post("/api/tts",async(req,res)=>{
      const rr=await fetch(SPACE_URL+"/gradio_api/call/generate_speech/"+encodeURIComponent(eventId),{signal:controller.signal});
      const stream=await rr.text();
      if(!rr.ok)throw new Error("MyanmarTTS result error "+rr.status);
-     const lines=stream.split(/\\r?\\n/);
+     const lines=stream.split(/\r?\n/);
      let payload=null;
      for(let i=0;i<lines.length;i++){
        if(lines[i].trim()==="event: complete" && lines[i+1]?.startsWith("data: ")){
