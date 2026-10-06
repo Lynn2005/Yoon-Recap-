@@ -186,4 +186,8 @@ app.use((err,req,res,next)=>{
   if(err instanceof multer.MulterError)return res.status(413).json({error:"Video size 500MB ထက် မကျော်ရပါ။"});
   res.status(500).json({error:err.message||"Server error"});
 });
-app.listen(PORT,()=>console.log("Yoon Recap 2.0 running on "+PORT));
+const httpServer=app.listen(PORT,"0.0.0.0",()=>console.log("Yoon Recap 2.0 running on "+PORT));
+httpServer.keepAliveTimeout=120000;
+httpServer.headersTimeout=125000;
+httpServer.requestTimeout=0;
+httpServer.timeout=0;
