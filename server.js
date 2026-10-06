@@ -150,9 +150,9 @@ app.post("/api/tts",async(req,res)=>{
          const rawErr=lines[i+1].slice(6); let msgErr=rawErr; try{const parsedErr=JSON.parse(rawErr); msgErr=parsedErr?.message||parsedErr?.error||parsedErr?.detail||JSON.stringify(parsedErr);}catch{} throw new Error(String(msgErr));
        }
      }
-     if(!payload)throw new Error("MyanmarTTS audio မပြန်လာပါ။");
+     if(!payload){throw new Error("MyanmarTTS API က complete event မပြန်လာပါ။");}
      const result=Array.isArray(payload)?payload[0]:payload;
-     const fileObj=Array.isArray(result)?result[0]:result; const candidate=fileObj?.url||fileObj?.path||fileObj?.name||fileObj?.file?.url||fileObj?.file?.path; const audioUrl=typeof result==="string"?(result.startsWith("http")?result:SPACE_URL+result):candidate?(String(candidate).startsWith("http")?String(candidate):SPACE_URL+String(candidate)):null;
+     const fileObj=Array.isArray(result)?result[0]:result; const candidate=fileObj?.url||fileObj?.path||fileObj?.name||fileObj?.file?.url||fileObj?.file?.path; const audioUrl=typeof result==="string"?(result.startsWith("http")?result:SPACE_URL+"/gradio_api/file="+encodeURIComponent(result)):candidate?(String(candidate).startsWith("http")?String(candidate):SPACE_URL+"/gradio_api/file="+String(candidate).replace(/^\//,"")):null;
      if(!audioUrl){const detail=typeof result==="object"?JSON.stringify(result):String(result);throw new Error("MyanmarTTS audio URL မရပါ။ "+detail);}
      const ar=await fetch(audioUrl,{signal:controller.signal});
      if(!ar.ok)throw new Error("MyanmarTTS audio download failed "+ar.status);
