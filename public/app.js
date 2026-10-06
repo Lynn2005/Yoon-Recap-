@@ -30,12 +30,17 @@ textPreview.style.display=showText.checked?"block":"none";blurLayer.style.displa
 textControls.hidden=!showText.checked;blurControls.hidden=!showBlur.checked;logoControls.hidden=!showLogo.checked;
 }
 function selectEditorOption(selected){
+  // Option တစ်ခုရွေးရင် အဲဒီ option တစ်ခုပဲ active ဖြစ်မယ်။
   [showText,showBlur,showLogo].forEach(x=>{
     if(x!==selected)x.checked=false;
   });
-  textControls.hidden=!showText.checked;
-  blurControls.hidden=!showBlur.checked;
-  logoControls.hidden=!showLogo.checked;
+
+  // ရွေးထားတဲ့ option ရဲ့ effect ပဲ preview မှာပြမယ်။
+  // Adjustment tool က ရွေးထားတဲ့ option အတွက်ပဲ ပေါ်မယ်။
+  textControls.hidden=selected!==showText || !showText.checked;
+  blurControls.hidden=selected!==showBlur || !showBlur.checked;
+  logoControls.hidden=selected!==showLogo || !showLogo.checked;
+
   active=selected.checked?selected:null;
   update();
 }
