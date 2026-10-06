@@ -10,7 +10,15 @@ const execFileAsync=promisify(execFile);
 
 const app=express();
 const PORT=process.env.PORT||3000;
-const MYANMAR_FONT_FILE=process.env.MYANMAR_FONT_FILE||"/usr/share/fonts/truetype/noto/NotoSansMyanmar-Regular.ttf";
+fs.mkdirSync("uploads",{recursive:true});
+fs.mkdirSync("work",{recursive:true});
+const DEFAULT_MYANMAR_FONTS=[
+  "/usr/share/fonts/noto/NotoSansMyanmar-Regular.ttf",
+  "/usr/share/fonts/truetype/noto/NotoSansMyanmarUI-Regular.ttf",
+  "/usr/share/fonts/google-noto/NotoSansMyanmar-Regular.ttf",
+  "/usr/share/fonts/TTF/NotoSansMyanmar-Regular.ttf"
+];
+const MYANMAR_FONT_FILE=process.env.MYANMAR_FONT_FILE||DEFAULT_MYANMAR_FONTS.find(fs.existsSync)||DEFAULT_MYANMAR_FONTS[0];
 const upload=multer({dest:"uploads/",limits:{fileSize:500*1024*1024}});
 app.use(express.json({limit:"2mb"}));
 app.use(express.static("public"));
@@ -92,7 +100,7 @@ function cleanJson(s){
   const x=String(s||"").trim().replace(/^\`\`\`json/i,"").replace(/^\`\`\`/,"").replace(/\`\`\`$/,"").trim();
   const m=x.match(/\{[\s\S]*\}/); return JSON.parse(m?m[0]:x);
 }
-app.get("/api/health",(req,res)=>res.json({ok:true,name:"Yoon Recap",version:"4.2.0",provider:"groq+gemini+MyanmarTTS",models:["whisper-large-v3-turbo",...GEMINI_MODELS],tts:"MyanmarTTS-free",ttsSpace:"freococo/MyanmarTTS",geminiFallback:true,retryDelaysMs:RETRY_DELAYS}));
+app.get("/api/health",(req,res)=>res.json({ok:true,name:"Yoon Recap",version:"4.6.1",provider:"groq+gemini+MyanmarTTS",models:["whisper-large-v3-turbo",...GEMINI_MODELS],tts:"MyanmarTTS-free",ttsSpace:"freococo/MyanmarTTS",geminiFallback:true,retryDelaysMs:RETRY_DELAYS}));
 
 app.post("/api/transcribe",upload.single("video"),async(req,res)=>{
  const file=req.file,key=keyOf(req);if(!file)return res.status(400).json({error:"Video ရွေးပါ။"});if(!key)return res.status(400).json({error:"Groq API Key ထည့်ပါ။"});
