@@ -1,33 +1,48 @@
 <!doctype html>
 <html lang="my"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Yoon Recap Studio</title><link rel="stylesheet" href="/style.css"></head>
 <body><main class="wrap">
-<header><img class="yoon-avatar" src="/yoon-avatar.jpg" alt="Yoon"><div><div class="eyebrow">AI RECAP ASSISTANT</div><h1>Yoon Recap</h1><p>AI Movie Recap Studio</p></div></header>
-<section class="yoon-intro"><div><strong>မင်္ဂလာပါ 👋 Yoon ပါ</strong><span>Video တင်ပြီး Recap လုပ်လိုက်ပါ</span></div><img src="/yoon-avatar.jpg" alt="Yoon"></section>
-<section class="card key"><label>Groq API Key</label><div class="keyrow"><input id="key" type="password" placeholder="gsk_..."><button id="saveKey" type="button">💾 Save Key</button><a href="https://console.groq.com/keys" target="_blank">Get Groq Key</a></div><small id="keyStatus">Key ကို ဒီဖုန်းရဲ့ browser ထဲမှာသာ သိမ်းထားပါမယ်။</small></section>
-<section class="card"><div class="badge">STEP 01</div><h2>🎬 Video Upload</h2><p>Movie / story video ကိုရွေးပါ။</p><input id="video" type="file" accept="video/*"><video id="preview" controls playsinline hidden></video><button id="transcribe">🎙 Auto Transcript</button><div id="tstatus" class="status"></div></section>
-<section class="card"><div class="badge">STEP 02</div><h2>📝 Transcript</h2><textarea id="transcript" placeholder="Transcript will appear here..."></textarea><div class="grid"><button id="copyTranscript">Copy</button><button id="downloadTxt">Download TXT</button></div></section>
-<section class="card"><div class="badge">STEP 03</div><h2>🤖 Myanmar Movie Recap</h2><select id="style"><option value="cinematic">Cinematic</option><option value="casual">Casual Myanmar</option><option value="dramatic">Dramatic</option><option value="funny">Funny</option></select><button id="recap">✨ Generate Myanmar Recap</button><input id="title" placeholder="Recap title"><textarea id="hook" class="short" placeholder="Hook"></textarea><textarea id="summary" class="short" placeholder="Summary"></textarea><textarea id="script" placeholder="Myanmar recap script..."></textarea><div class="grid"><button id="copyScript">Copy Script</button><button id="downloadScript">Download Script</button></div><div id="rstatus" class="status"></div></section>
-<section class="card editor"><div class="badge">STEP 05</div><h2>🎞️ Video Editor</h2><p>ပြင်နေတဲ့ video ကို တစ်နေရာတည်းမှာ live preview ကြည့်နိုင်ပါတယ်။</p>
-<div class="editor-preview" id="editorPreview"><video id="editVideo" controls playsinline></video><div id="blurLayer" class="blur-layer"><span class="resize-handle" data-resize="blur"></span></div><img id="logoPreview" class="logo-preview" hidden><span class="resize-handle logo-handle" data-resize="logo"></span><div id="textPreview" class="text-preview">Myanmar Recap<span class="resize-handle text-handle" data-resize="text"></span></div></div>
-<div class="controls">
+<header><img class="yoon-avatar" src="/yoon-avatar.jpg" alt="Yoon"><div><div class="eyebrow">AI RECAP ASSISTANT</div><h1>Yoon Recap Studio</h1><p>Video → SRT → Gemini → AI Voice → Final Video</p></div></header>
+
+<section class="card key"><div class="badge">API</div><h2>🔑 API Keys</h2>
+<label>Groq API Key</label><div class="keyrow"><input id="groqKey" type="password" placeholder="gsk_..."><button id="saveGroq">💾 Save</button></div>
+<label>Gemini API Key</label><div class="keyrow"><input id="geminiKey" type="password" placeholder="AIza..."><button id="saveGemini">💾 Save</button></div>
+<small id="keyStatus">Key တွေကို ဒီ browser ထဲမှာသာ သိမ်းထားပါမယ်။</small></section>
+
+<section class="card"><div class="badge">STEP 01</div><h2>🎬 Upload Video → Audio → Transcript</h2>
+<input id="video" type="file" accept="video/*"><video id="preview" controls playsinline hidden></video>
+<button id="transcribe">🎧 Audio ထုတ်ပြီး Original SRT ထုတ်မယ်</button><div id="tstatus" class="status"></div>
+</section>
+
+<section class="card"><div class="badge">STEP 02</div><h2>📝 Original Transcript / SRT</h2>
+<textarea id="originalSrt" placeholder="Original SRT"></textarea>
+<div class="grid"><button id="downloadOriginal">📥 Original SRT</button></div>
+</section>
+
+<section class="card"><div class="badge">STEP 03</div><h2>🇲🇲 Gemini ဘာသာပြန်</h2>
+<p>Original SRT ရဲ့ timestamp မပြောင်းဘဲ မြန်မာလို ပြန်ပေးမယ်။</p>
+<button id="translate">✨ Gemini Translate → Burmese SRT</button>
+<textarea id="burmeseSrt" placeholder="Burmese SRT"></textarea>
+<div class="grid"><button id="downloadBurmese">📥 Burmese SRT</button></div><div id="trstatus" class="status"></div>
+</section>
+
+<section class="card"><div class="badge">STEP 04</div><h2>🔊 AI Voice</h2>
+<label>Gemini Voice</label><select id="voice"><option value="Kore">Kore — Natural</option><option value="Puck">Puck — Clear</option><option value="Charon">Charon — Deep</option><option value="Aoede">Aoede — Warm</option></select>
+<button id="makeVoice">🎙 Gemini AI Voice ထုတ်မယ်</button><audio id="voicePreview" controls hidden></audio><div id="vstatus" class="status"></div>
+</section>
+
+<section class="card editor"><div class="badge">STEP 05</div><h2>🎞️ Subtitles + Adjust</h2>
+<p>Final မထုတ်ခင် စာသား / Blur / Logo ကို live preview မှာ ချိန်ပါ။</p>
+<div class="editor-preview" id="editorPreview"><video id="editVideo" controls playsinline></video><div id="blurLayer" class="blur-layer"></div><img id="logoPreview" class="logo-preview" hidden><div id="textPreview" class="text-preview">Myanmar Recap</div></div>
 <div class="editor-options-row">
 <label class="editor-option"><input id="showText" type="checkbox"><span>📝 စာသား</span></label>
 <label class="editor-option"><input id="showBlur" type="checkbox"><span>🌫️ Blur</span></label>
-<label class="editor-option"><input id="showLogo" type="checkbox"><span>🏷️ Logo</span></label>
-</div>
-<div id="textControls" class="option-panel" hidden>
-<label>စာသား</label><input id="editText" value="Myanmar Recap"><label>စာသား Size <output id="fontValue">28</output>px</label><input id="fontSize" type="range" min="14" max="64" value="28"><label>ဘယ် ↔ ညာ <output id="textXValue">50</output>%</label><input id="textX" type="range" min="5" max="95" value="50"><label>အပေါ် ↕ အောက် <output id="textYValue">88</output>%</label><input id="textY" type="range" min="5" max="95" value="88">
-</div>
-<div id="blurControls" class="option-panel" hidden>
-<label class="toggle"><input id="blurOriginal" type="checkbox" checked><span>မူရင်းစာသား Blur</span></label><label>Blur အား <output id="blurValue">8</output>px</label><input id="blurAmount" type="range" min="0" max="24" value="8"><label>ဘယ် ↔ ညာ <output id="blurXValue">50</output>%</label><input id="blurX" type="range" min="5" max="95" value="50"><label>အပေါ် ↕ အောက် <output id="blurYValue">82</output>%</label><input id="blurY" type="range" min="5" max="95" value="82"><label>Width <output id="blurWValue">90</output>%</label><input id="blurW" type="range" min="10" max="100" value="90"><label>Height <output id="blurHValue">22</output>%</label><input id="blurH" type="range" min="5" max="80" value="22">
-</div>
-<div id="logoControls" class="option-panel" hidden>
-<label>Logo ထည့်ရန်</label><input id="logoFile" type="file" accept="image/png,image/jpeg,image/webp"><label>Logo Size <output id="logoValue">72</output>px</label><input id="logoSize" type="range" min="30" max="180" value="72"><label>ဘယ် ↔ ညာ <output id="logoXValue">90</output>%</label><input id="logoX" type="range" min="5" max="95" value="90"><label>အပေါ် ↕ အောက် <output id="logoYValue">10</output>%</label><input id="logoY" type="range" min="5" max="95" value="10"><label>Position</label><select id="logoPos"><option value="free">Free / Manual</option><option value="top-right">ညာအပေါ်</option><option value="top-left">ဘယ်အပေါ်</option><option value="bottom-right">ညာအောက်</option><option value="bottom-left">ဘယ်အောက်</option></select>
-</div>
-</div></div>
-<button id="applyEditor">👀 Preview Update</button>
-<div id="editorStatus" class="status"></div>
+<label class="editor-option"><input id="showLogo" type="checkbox"><span>🏷️ Logo</span></label></div>
+<div id="textControls" class="option-panel" hidden><label>စာသား</label><input id="editText" value="Myanmar Recap"><label>Size <output id="fontValue">28</output>px</label><input id="fontSize" type="range" min="14" max="64" value="28"><label>X <output id="textXValue">50</output>%</label><input id="textX" type="range" min="5" max="95" value="50"><label>Y <output id="textYValue">88</output>%</label><input id="textY" type="range" min="5" max="95" value="88"></div>
+<div id="blurControls" class="option-panel" hidden><label>Blur အား <output id="blurValue">8</output>px</label><input id="blurAmount" type="range" min="0" max="24" value="8"><label>X <output id="blurXValue">50</output>%</label><input id="blurX" type="range" min="5" max="95" value="50"><label>Y <output id="blurYValue">82</output>%</label><input id="blurY" type="range" min="5" max="95" value="82"><label>Width <output id="blurWValue">90</output>%</label><input id="blurW" type="range" min="10" max="100" value="90"><label>Height <output id="blurHValue">22</output>%</label><input id="blurH" type="range" min="5" max="80" value="22"></div>
+<div id="logoControls" class="option-panel" hidden><label>Logo</label><input id="logoFile" type="file" accept="image/png,image/jpeg,image/webp"><label>Size <output id="logoValue">72</output>px</label><input id="logoSize" type="range" min="30" max="180" value="72"><label>X <output id="logoXValue">90</output>%</label><input id="logoX" type="range" min="5" max="95" value="90"><label>Y <output id="logoYValue">10</output>%</label><input id="logoY" type="range" min="5" max="95" value="10"></div>
 </section>
-<section class="card"><div class="badge">STEP 04</div><h2>📱 TikTok Caption</h2><textarea id="caption" placeholder="Caption + hashtags"></textarea><button id="makeCaption">✨ Make Caption</button><button id="copyCaption">Copy Caption</button></section>
-<footer>Yoon Recap 2.0 • Upload → Transcript → Myanmar Recap</footer>
+
+<section class="card"><div class="badge">STEP 06</div><h2>🚀 Final Video</h2><p>Video + Burmese subtitles + Gemini AI Voice + Adjustments ကို FFmpeg နဲ့ တစ်ခုတည်းရောပြီး MP4 ထုတ်မယ်။</p>
+<button id="render">🎬 Final MP4 Render</button><div id="fstatus" class="status"></div><a id="finalLink" class="download-link" hidden target="_blank">📥 Final MP4 Download</a></section>
+<footer>Yoon Recap Studio 4.0 • Upload → Audio → Original SRT → Gemini → AI Voice → Adjust → Final</footer>
 </main><script src="/app.js"></script></body></html>
