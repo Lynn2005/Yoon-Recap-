@@ -28,7 +28,7 @@ $("transcribe").onclick=async()=>{if(!file)return status("tstatus","⚠️ Video
 $("downloadOriginal").onclick=()=>download("original.srt",$("originalSrt").value,"application/x-subrip");
 
 $("translate").onclick=async()=>{const srt=$("originalSrt").value.trim();if(!srt)return status("trstatus","⚠️ Original SRT အရင်ထုတ်ပါ။");if(!gemini())return status("trstatus","⚠️ Gemini API Key ထည့်ပါ။");const b=$("translate");b.disabled=true;status("trstatus","⏳ Gemini နဲ့ မြန်မာဘာသာပြန်နေပါတယ်...");try{const d=await apiJson(await fetch("/api/translate-srt",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({geminiKey:gemini(),srt})}));$("burmeseSrt").value=d.srt;localStorage.setItem("yoon_burmese_srt",$("burmeseSrt").value);status("trstatus","✅ Burmese SRT ပြီးပါပြီ။")}catch(e){status("trstatus","❌ "+e.message)}finally{b.disabled=false}};
-$("downloadBurmese").onclick=()=>download("burmese.srt",$("burmeseSrt").value,"application/x-subrip");
+$("downloadBurmese").onclick=()=>download("burmese.srt",$("burmeseSrt").value,"application/x-subrip");$("downloadVoiceSrt")?.addEventListener("click",()=>download("voice-25chars.srt",voiceSrt||$("voiceSrt")?.value||"","application/x-subrip"));
 
 $("voiceSpeed").addEventListener("input",()=>$("voiceSpeedValue").textContent=Number($("voiceSpeed").value).toFixed(1)+"x");
 
