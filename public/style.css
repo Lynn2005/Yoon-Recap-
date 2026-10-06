@@ -4,3 +4,4 @@
 .text-preview{border:2px solid #ffd400;box-sizing:border-box;padding:4px 8px;border-radius:6px}
 .logo-preview{border:2px solid #ffd400;box-sizing:border-box;border-radius:6px}
 .blur-layer{border:2px solid #ffd400;box-sizing:border-box}
+.editor-options-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.editor-option{min-width:0}.download-link{display:block;margin-top:10px;padding:13px 16px;border-radius:12px;text-align:center;background:#19c37d;color:#06140d;font-weight:900;text-decoration:none}.card textarea{min-height:180px}.editor-preview{touch-action:none}
