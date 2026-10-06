@@ -132,7 +132,10 @@ app.post("/api/tts",async(req,res)=>{
      if(!r.ok)throw new Error("Google TTS failed "+r.status);
      const audio=Buffer.from(await r.arrayBuffer());
      if(audio.length<100)throw new Error("Google TTS audio empty ဖြစ်နေပါတယ်။");
-     return audio;
+     const tmp=path.join("work","gtts-"+Date.now()+"-"+Math.random().toString(36).slice(2,7)+".mp3");
+     const wav=tmp.replace(/\.mp3$/,".wav");
+     fs.writeFileSync(tmp,audio);
+     try{await execFileAsync("ffmpeg",["-y","-i",tmp,"-ac","1","-ar","22050","-c:a","pcm_s16le",wav],{maxBuffer:5*1024*1024});return fs.readFileSync(wav);}finally{fs.unlink(tmp,()=>{});fs.unlink(wav,()=>{});}
    }finally{clearTimeout(timer);}
  }
  async function hfTts(chunk){
@@ -171,8 +174,7 @@ app.post("/api/tts",async(req,res)=>{
      if(audio.length<100)throw new Error("MyanmarTTS audio empty ဖြစ်နေပါတယ်။");
      return audio;
    }catch(e){
-     if(e.name==="AbortError")throw new Error("MyanmarTTS Voice timeout ဖြစ်သွားပါတယ်။");
-     throw e;
+     try{return await googleTts(chunk);}catch(fallbackErr){throw new Error("MyanmarTTS failed: "+String(e?.message||e)+" | Free fallback failed: "+String(fallbackErr?.message||fallbackErr));}
    }finally{clearTimeout(timer);}
  }
  const id="voice-"+Date.now()+"-"+Math.random().toString(36).slice(2,8),dir=path.join("work",id+"-parts"),out=path.join("work",id+".wav");
