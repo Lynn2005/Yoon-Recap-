@@ -131,3 +131,15 @@ footer{text-align:center;color:#98a2b3;font-size:11px;padding:10px 0}
 #oneFinalVideo{display:block;width:100%;max-height:560px;background:#111;margin:10px 0}
 #oneResult .grid button{font-size:12px}
 @media(max-width:520px){.one-click-card>h2{font-size:21px}.primary-action{min-height:56px}.one-step{font-size:11px}}
+
+
+/* STEP 02 and independent API KEY slide option */
+.step2-layout{display:grid;grid-template-columns:minmax(0,1fr) 210px;align-items:start;gap:12px;margin:0 0 16px}
+.step2-layout>.card{margin:0;min-width:0}
+.api-key-option{border:1px solid var(--border,#d0d5dd);border-radius:16px;background:var(--card,#fff);padding:12px;min-width:0;box-shadow:0 4px 14px rgba(16,24,40,.05)}
+.api-key-option>summary{cursor:pointer;list-style:none;font-weight:800;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.api-key-option>summary::-webkit-details-marker{display:none}
+.api-key-option[open]>summary{margin-bottom:10px}
+.api-key-option .card{padding:0;border:0;box-shadow:none;margin:0;background:transparent}
+.api-key-option .card h2{font-size:16px}
+@media(max-width:620px){.step2-layout{grid-template-columns:minmax(0,1fr);gap:8px}.api-key-option{grid-row:1}.step2-layout>.card{grid-row:2}}
