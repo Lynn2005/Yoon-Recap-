@@ -150,6 +150,8 @@ with tabs[3]:
         tx=st.slider("စာသား X Position (%)",0,100,5)
         ty=st.slider("စာသား Y Position (%)",0,100,8)
     logo=st.file_uploader("Logo ပုံ (PNG/JPG, optional)",type=["png","jpg","jpeg"],key="logo")
+    logo_x=st.slider("Logo X Position (%)",0,100,4)
+    logo_y=st.slider("Logo Y Position (%)",0,100,5)
     if logo: st.image(logo,width=140)
     if st.button("🎬 Final MP4 Render",disabled=not st.session_state.video_bytes or not st.session_state.voice_bytes):
         with st.spinner("FFmpeg နဲ့ Render လုပ်နေပါတယ်..."):
@@ -174,7 +176,7 @@ with tabs[3]:
                     if logo:
                         lp=root/("logo"+(Path(logo.name).suffix or ".png")); lp.write_bytes(logo.getvalue())
                         args += ["-i",str(lp)]
-                        graph.append(f"[0:v]{vf}[base];[2:v]scale=iw*0.18:-1[lg];[base][lg]overlay=(W-w)*0.04:(H-h)*0.05[vout]")
+                        graph.append(f"[0:v]{vf}[base];[2:v]scale=iw*0.18:-1[lg];[base][lg]overlay=(W-w)*{logo_x/100:.3f}:(H-h)*{logo_y/100:.3f}[vout]")
                     else: graph.append(f"[0:v]{vf}[vout]")
                     if mix: graph.append(f"[0:a]volume={vol/100:.2f}[bg];[bg][1:a]amix=inputs=2:duration=first:dropout_transition=2[aout]")
                     args += ["-filter_complex",";".join(graph),"-map","[vout]"]
