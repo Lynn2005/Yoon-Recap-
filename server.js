@@ -269,12 +269,15 @@ app.post("/api/tts",async(req,res)=>{
      await execFileAsync("ffmpeg",["-y","-f","concat","-safe","0","-i",listFile,"-vn","-ac","1","-ar","22050","-c:a","pcm_s16le",out],{maxBuffer:20*1024*1024});
    }
    if(!fs.existsSync(out)||fs.statSync(out).size<1000)throw new Error("AI Voice WAV ဖိုင်အလွတ်ဖြစ်နေပါတယ်။");
-   const finalProbe=await execFileAsync("ffprobe",["-v","error","-select_streams","a:0","-show_entries","stream=codec_name,sample_rate,channels","-of","json",out],{maxBuffer:1024*1024});
-   const audioInfo=JSON.parse(finalProbe.stdout||"{}");
+   const finalProbe=await execFileAsync("ffprobe",["-v","error","-show_entries","format=duration","-of","default=noprint_wrappers=1:nokey=1",out],{maxBuffer:1024*1024});
+   const finalDuration=Number(String(finalProbe.stdout||"").trim());
+   const streamProbe=await execFileAsync("ffprobe",["-v","error","-select_streams","a:0","-show_entries","stream=codec_name,sample_rate,channels","-of","json",out],{maxBuffer:1024*1024});
+   const audioInfo=JSON.parse(streamProbe.stdout||"{}");
    if(!audioInfo.streams?.length)throw new Error("ဖန်တီးထားတဲ့ WAV ထဲမှာ audio stream မပါပါ။");
+   if(!Number.isFinite(finalDuration)||finalDuration<0.5)throw new Error("AI Voice အသံဖိုင်ကြာချိန် 00:00 ဖြစ်နေပါတယ်။ အသံဖိုင်ကို ပြန်ဖန်တီးပါ။");
    let cursor=0;
    const voiceSrt=made.map((x,i)=>{const begin=cursor;cursor+=x.duration;return (i+1)+"\n"+srtTime(begin)+" --> "+srtTime(cursor)+"\n"+x.text;}).join("\n\n")+"\n";
-   res.json({id,url:"/media/"+path.basename(out),srt:voiceSrt,voiceSrt,chunks:made.length,duration:cursor,voice:voiceName,rate,maxCharsPerLine:maxChars,provider:"Microsoft Edge AI TTS — Free",audioBytes:fs.statSync(out).size});
+   res.json({id,url:"/media/"+path.basename(out),srt:voiceSrt,voiceSrt,chunks:made.length,duration:finalDuration,voice:voiceName,rate,maxCharsPerLine:maxChars,provider:"Microsoft Edge AI TTS — Free",audioBytes:fs.statSync(out).size});
  }catch(e){
    console.error("[/api/tts] AI Voice generation failed:",e?.stack||e);
    res.status(500).json({error:e instanceof Error?e.message:String(e)});
