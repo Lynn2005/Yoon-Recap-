@@ -275,7 +275,7 @@ with tabs[3]:
                     "left":int(frame.width*sp["x"]/100),"top":int(frame.height*sp["y"]/100),
                     "width":si.width,"height":si.height,"scaleX":sp["scale"],"scaleY":sp["scale"],
                     "src":ssrc,"crossOrigin":"anonymous"})
-            if st.session_state.text_enabled and text.strip():
+            if text.strip():
                 # Render overlay text with the Myanmar font into a transparent PNG for reliable preview.
                 fp=font(); tf=ImageFont.truetype(fp,28) if fp else ImageFont.load_default()
                 tw=max(220,frame.width//2); th=100
