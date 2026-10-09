@@ -98,6 +98,16 @@ def font():
         if Path(p).exists(): return p
     return ""
 
+@st.cache_data(show_spinner=False, max_entries=4)
+def extract_preview_frame(video_bytes, video_name, second):
+    with tempfile.TemporaryDirectory() as td:
+        ext=Path(video_name or "video.mp4").suffix or ".mp4"
+        vp=Path(td)/("preview"+ext); fp=Path(td)/"frame.jpg"
+        vp.write_bytes(video_bytes)
+        cmd(["ffmpeg","-hide_banner","-loglevel","error","-y","-ss",str(second),"-i",str(vp),"-frames:v","1","-vf","scale=720:-2","-q:v","4",str(fp)])
+        if not fp.exists(): raise RuntimeError("Preview frame မထုတ်နိုင်ပါ။ Preview အချိန်ကို ပြောင်းကြည့်ပါ။")
+        return fp.read_bytes()
+
 tabs=st.tabs(["① Video Upload","② Transcript + Translate","③ AI Voice","④ Final Video + Thumbnail"])
 with tabs[0]:
     st.subheader("Video Upload")
@@ -193,14 +203,7 @@ with tabs[3]:
             from PIL import Image, ImageDraw, ImageFont, ImageFilter
             from streamlit_drawable_canvas import st_canvas
             import io, base64
-            with tempfile.TemporaryDirectory() as ptd:
-                pdir=Path(ptd)
-                vext=Path(st.session_state.video_name or "video.mp4").suffix or ".mp4"
-                pvideo=pdir/("preview"+vext)
-                pframe=pdir/"frame.jpg"
-                pvideo.write_bytes(st.session_state.video_bytes)
-                cmd(["ffmpeg","-y","-ss",str(preview_second),"-i",str(pvideo),"-frames:v","1","-vf","scale=720:-2",str(pframe)])
-                frame=Image.open(pframe).convert("RGB")
+            frame=Image.open(io.BytesIO(extract_preview_frame(st.session_state.video_bytes,st.session_state.video_name,preview_second))).convert("RGB")
                 if mirror: frame=frame.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
                 if blur: frame=frame.filter(ImageFilter.GaussianBlur(radius=max(1,blur/2)))
                 # Burn the currently active subtitle into the background frame.
@@ -220,35 +223,51 @@ with tabs[3]:
                         d=ImageDraw.Draw(frame); fp=font()
                         try: sf=ImageFont.truetype(fp,fontsize) if fp else ImageFont.load_default()
                         except Exception: sf=ImageFont.load_default()
-                        bbox=d.textbbox((0,0),active,font=sf,stroke_width=2)
-                        sx=max(4,(frame.width-(bbox[2]-bbox[0]))//2)
-                        sy=frame.height-(bbox[3]-bbox[1])-24 if pos=="အောက်" else 12
-                        d.text((sx,sy),active,font=sf,fill="white",stroke_width=2,stroke_fill="black")
+                        # Wrap long Burmese subtitles to fit the preview width.
+                        words=list(active); wrapped=[]; line=""
+                        for ch in words:
+                            test=line+ch
+                            if d.textbbox((0,0),test,font=sf,stroke_width=2)[2] > frame.width-32 and line:
+                                wrapped.append(line); line=ch
+                            else: line=test
+                        if line: wrapped.append(line)
+                        wrapped=wrapped[:3]
+                        line_heights=[d.textbbox((0,0),ln,font=sf,stroke_width=2)[3] for ln in wrapped]
+                        total_h=sum(line_heights)+4*(len(wrapped)-1)
+                        sy=max(8,frame.height-total_h-24) if pos=="အောက်" else 12
+                        for ln,lh in zip(wrapped,line_heights):
+                            bbox=d.textbbox((0,0),ln,font=sf,stroke_width=2); sx=max(4,(frame.width-(bbox[2]-bbox[0]))//2)
+                            d.text((sx,sy),ln,font=sf,fill="white",stroke_width=2,stroke_fill="black"); sy+=lh+4
 
                 # Build draggable Fabric.js objects over the actual video frame.
                 drawing={"version":"4.4.0","objects":[]}
                 if st.session_state.text_enabled and text.strip():
-                    drawing["objects"].append({
-                        "type":"textbox","version":"4.4.0","left":int(frame.width*tx/100),
-                        "top":int(frame.height*ty/100),"width":max(160,int(frame.width*0.55)),
-                        "height":52,"fill":"white","text":text,"fontSize":28,
-                        "fontFamily":"Arial","fontWeight":"bold","stroke":"black","strokeWidth":1,
-                        "paintFirst":"stroke","editable":True
-                    })
+                    # Render overlay text with the Myanmar font into a transparent PNG for reliable preview.
+                    fp=font(); tf=ImageFont.truetype(fp,28) if fp else ImageFont.load_default()
+                    tw=max(220,frame.width//2); th=100
+                    ti=Image.new("RGBA",(tw,th),(0,0,0,0)); td=ImageDraw.Draw(ti)
+                    td.text((4,4),text,font=tf,fill="white",stroke_width=2,stroke_fill="black")
+                    tb=ti.getbbox(); ti=ti.crop(tb) if tb else ti
+                    buf=io.BytesIO(); ti.save(buf,format="PNG"); tsrc="data:image/png;base64,"+base64.b64encode(buf.getvalue()).decode("ascii")
+                    drawing["objects"].append({"type":"image","version":"4.4.0","name":"overlay_text","left":int(frame.width*tx/100),"top":int(frame.height*ty/100),"width":ti.width,"height":ti.height,"scaleX":1,"scaleY":1,"src":tsrc,"crossOrigin":"anonymous"})
                 if logo:
                     raw=logo.getvalue()
-                    src="data:"+ (logo.type or "image/png")+";base64,"+base64.b64encode(raw).decode("ascii")
                     try:
-                        lim=Image.open(io.BytesIO(raw))
+                        lim=Image.open(io.BytesIO(raw)).convert("RGBA")
+                        lim.thumbnail((max(1,int(frame.width*0.18)),max(1,int(frame.height*0.35))))
                         ratio=lim.height/max(1,lim.width)
-                    except Exception: ratio=1
+                        lbuf=io.BytesIO(); lim.save(lbuf,format="PNG")
+                        src="data:image/png;base64,"+base64.b64encode(lbuf.getvalue()).decode("ascii")
+                    except Exception:
+                        lim=Image.new("RGBA",(120,80),(0,0,0,0)); ratio=1
+                        lbuf=io.BytesIO(); lim.save(lbuf,format="PNG"); src="data:image/png;base64,"+base64.b64encode(lbuf.getvalue()).decode("ascii")
                     drawing["objects"].append({
-                        "type":"image","version":"4.4.0","left":int(frame.width*logo_x/100),
+                        "type":"image","version":"4.4.0","name":"overlay_logo","left":int(frame.width*logo_x/100),
                         "top":int(frame.height*logo_y/100),"width":max(1,int(frame.width*0.18)),
                         "height":max(1,int(frame.width*0.18*ratio)),"scaleX":1,"scaleY":1,
                         "src":src,"crossOrigin":"anonymous"
                     })
-                st.markdown("**👆 Preview ပေါ်က စာသား/Logo ကို လက်နဲ့ဖိဆွဲပြီး ရွှေ့ပါ။**")
+                st.markdown("**👆 လက်နဲ့ရွှေ့ရန် Canvas toolbar ထဲက Edit (မြှား/ရွေးချယ်ရေး) toggle ကို အရင်ဖွင့်ပြီး စာသား/Logo ကိုနှိပ်ကာ ဖိဆွဲပါ။**")
                 canvas_result=st_canvas(
                     fill_color="rgba(255, 255, 255, 0.15)",stroke_width=1,
                     background_image=frame,background_color="#222222",
@@ -259,10 +278,10 @@ with tabs[3]:
                 # Read dragged coordinates and pass them through to the final FFmpeg render.
                 objects=(canvas_result.json_data or {}).get("objects",[]) if canvas_result else []
                 for obj in objects:
-                    if obj.get("type")=="textbox" and st.session_state.text_enabled:
+                    if obj.get("name")=="overlay_text" and st.session_state.text_enabled:
                         tx=max(0,min(100,round(float(obj.get("left",0))/frame.width*100)))
                         ty=max(0,min(100,round(float(obj.get("top",0))/frame.height*100)))
-                    elif obj.get("type")=="image" and logo:
+                    elif obj.get("name")=="overlay_logo" and logo:
                         logo_x=max(0,min(100,round(float(obj.get("left",0))/frame.width*100)))
                         logo_y=max(0,min(100,round(float(obj.get("top",0))/frame.height*100)))
                 st.caption("Canvas ပေါ်မှာ ဖိဆွဲပါ။ Drag ပြီးသွားရင် နေရာအသစ်ကို မှတ်ထားပြီး Final MP4 Render မှာလည်း သုံးပေးမယ်။")
@@ -318,7 +337,7 @@ with tabs[3]:
     if st.session_state.thumbnail_bytes:
         st.subheader("Thumbnail"); st.image(st.session_state.thumbnail_bytes)
         st.download_button("⬇️ Thumbnail Download",st.session_state.thumbnail_bytes,f"{st.session_state.project_name}_thumbnail.jpg","image/jpeg")
-    st.caption("Logo ကို အပေါ်ဘယ်ဘက်မှာ ထည့်ပေးသည်။ Blur သည် ဗီဒီယိုတစ်ခုလုံးကို သက်ရောက်သည်။")
+    st.caption("Preview frame ကို cache လုပ်ထားလို့ ထပ်ပြင်တဲ့အခါ ပိုမြန်သင့်ပါတယ်။ Blur ကို ရွေးထားရင် လက်ရှိ version မှာ ဗီဒီယိုတစ်ခုလုံး ဝါးသွားပါတယ်။")
 
 st.divider()
 st.caption("အရေးကြီး SRT၊ Voice၊ Final MP4 ကို အလုပ်ပြီးတိုင်း Download လုပ်ထားပါ။ Session ပြတ်လျှင် မသိမ်းရသေးသော data ပျောက်နိုင်သည်။")
