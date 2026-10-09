@@ -170,7 +170,7 @@ $("render").onclick=async e=>{e?.preventDefault();
    original=tr.srt||"";transcript=tr.text||"";if(!original)throw Error("Original SRT မရပါ။");done.push("validation","audio","original");progress(30,"Original SRT ready",done);
    progress(40,"Translating to Burmese",done);const tl=await json("/api/translate-srt",{geminiKey:gemini(),srt:original});burmese=tl.srt||"";if(!burmese)throw Error("Burmese translation မရပါ။");done.push("translation");
    if($("originalSrt"))$("originalSrt").value=original;if($("burmeseSrt"))$("burmeseSrt").value=burmese;
-   progress(52,"Writing Burmese recap",done);const rec=await json("/api/recap",{transcript,style:$("oneStyle").value,length:$("oneLength").value});recapText=String(rec.recap||"").trim();if(!recapText)throw Error("Recap script မရပါ။");done.push("recap");
+   progress(52,"Writing Burmese recap",done);const rec=await json("/api/recap",{transcript,groqKey:groq(),style:$("oneStyle").value,length:$("oneLength").value});recapText=String(rec.recap||"").trim();if(!recapText)throw Error("Recap script မရပါ။");done.push("recap");
    progress(62,"Creating recap subtitles",done);const tts=await json("/api/tts",{text:recapText,voice:$("oneVoice").value,rate:Number($("oneSpeed").value||1)});recapSrt=tts.voiceSrt||tts.srt||"";if(!tts.id)throw Error("AI Voice မရပါ။");done.push("subtitle","voice","sync");
    try{const v=await fetch(tts.url);if(v.ok)voiceBlob=await v.blob();}catch{}
    progress(82,"Voice and subtitle timing ready",done);
