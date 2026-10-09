@@ -160,3 +160,12 @@ footer{text-align:center;color:#98a2b3;font-size:11px;padding:10px 0}
 body.api-sidebar-open{overflow:hidden}
 @keyframes apiSlideIn{from{transform:translateX(28px);opacity:.7}to{transform:translateX(0);opacity:1}}
 @media(max-width:520px){.api-sidebar-tab{top:38%;padding:13px 9px;min-height:106px;font-size:12px}.api-sidebar{padding:16px}}
+
+
+/* API KEY opens from a standard three-line hamburger menu */
+.api-sidebar-tab{position:static;writing-mode:horizontal-tb;transform:none;min-height:44px;width:48px;min-width:48px;height:44px;padding:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border-radius:12px;box-shadow:0 3px 12px rgba(0,0,0,.14);cursor:pointer;flex-shrink:0}
+.api-sidebar-tab span{display:block;width:23px;height:2.5px;background:currentColor;border-radius:3px}
+body>main.wrap>header{display:flex;align-items:center;gap:12px}
+body>main.wrap>header>div{flex:1;min-width:0}
+.api-sidebar-tab:hover{filter:brightness(.96)}
+@media(max-width:520px){body>main.wrap>header{gap:8px}.api-sidebar-tab{width:42px;min-width:42px;height:42px;padding:8px}}
