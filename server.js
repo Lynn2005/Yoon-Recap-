@@ -239,10 +239,10 @@ async function runRenderJob(job){
   }
   // Render the AI Voice 25-character SRT with the same font/color/border settings selected in the editor.
   // FFmpeg drawtext supports fontfile, fontcolor, bordercolor and borderw directly.
-  const parseRenderSrt=s=>String(s||"").replace(/\\r/g,"").split(/\\n\\s*\\n/).map(block=>{
-    const lines=block.split("\\n"),m=lines.findIndex(x=>/\\d{2}:\\d{2}:\\d{2},\\d{3}\\s*-->\\s*\\d{2}:\\d{2}:\\d{2},\\d{3}/.test(x));
+  const parseRenderSrt=s=>String(s||"").replace(/\r/g,"").split(/\n\s*\n/).map(block=>{
+    const lines=block.split("\n"),m=lines.findIndex(x=>/\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}/.test(x));
     if(m<0)return null;
-    const tm=lines[m].match(/(\\d{2}:\\d{2}:\\d{2},\\d{3})\\s*-->\\s*(\\d{2}:\\d{2}:\\d{2},\\d{3})/);
+    const tm=lines[m].match(/(\d{2}:\d{2}:\d{2},\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2},\d{3})/);
     const sec=t=>{const [h,mi,rest]=t.split(":");const [se,ms]=rest.split(",");return +h*3600+ +mi*60+ +se+ +ms/1000};
     return {start:sec(tm[1]),end:sec(tm[2]),text:lines.slice(m+1).join(" ").replace(/<[^>]+>/g,"").trim()};
   }).filter(x=>x&&x.text);
