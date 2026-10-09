@@ -390,8 +390,14 @@ $("render").onclick=async e=>{e?.preventDefault();
    progress(40,"Translating to Burmese",done);const tl=await json("/api/translate-srt",{geminiKey:gemini(),srt:original});burmese=tl.srt||"";if(!burmese)throw Error("Burmese translation မရပါ။");done.push("translation");
    if($("originalSrt"))$("originalSrt").value=original;if($("burmeseSrt"))$("burmeseSrt").value=burmese;
    progress(52,"Writing Burmese recap",done);const rec=await json("/api/recap",{transcript,groqKey:groq(),style:$("oneStyle").value,length:$("oneLength").value});recapText=String(rec.recap||"").trim();if(!recapText)throw Error("Recap script မရပါ။");done.push("recap");
-   progress(62,"Creating recap subtitles",done);const tts=await json("/api/tts",{text:recapText,voice:$("oneVoice").value,rate:Number($("oneSpeed").value||1)});recapSrt=tts.voiceSrt||tts.srt||"";if(!tts.id)throw Error("AI Voice မရပါ။");done.push("subtitle","voice","sync");
-   try{const v=await fetch(tts.url);if(v.ok)voiceBlob=await v.blob();}catch{}
+   progress(72,"Generating AI voice",done);const tts=await json("/api/tts",{text:recapText,voice:$("oneVoice").value,rate:Number($("oneSpeed").value||1)});if(!tts.id)throw Error("AI Voice မရပါ။");done.push("voice");
+   if($("oneSubtitles").checked){
+    progress(82,"Generating SRT from AI voice",done);
+    const vs=await json("/api/voice-to-srt",{voiceId:tts.id,groqKey:groq()});
+    recapSrt=String(vs.srt||"").trim();if(!recapSrt)throw Error("AI Voice SRT မရပါ။");
+    done.push("subtitle","sync");
+   }else{recapSrt="";done.push("subtitle","sync");}
+   try{const v=await fetch(tts.url,{cache:"no-store"});if(v.ok)voiceBlob=await v.blob();}catch{}
    progress(82,"Voice and subtitle timing ready",done);
    const rf=new FormData();rf.append("video",movie,movie.name);if($("oneSubtitles").checked)rf.append("srt",recapSrt);rf.append("voiceId",tts.id);rf.append("showText","0");rf.append("showBlur","0");rf.append("showLogo","0");
    progress(90,"Rendering final MP4",done);say("AI Voice + Video ကိုပေါင်းပြီး MP4 ထုတ်နေပါတယ်...");
