@@ -33,18 +33,13 @@
       <div class="pipeline" aria-label="Recap pipeline"><span class="pipeline-item active"><b>01</b> Upload</span><i></i><span class="pipeline-item"><b>02</b> AI recap</span><i></i><span class="pipeline-item"><b>03</b> Export</span></div>
     </section>
 
-    <section class="card quick-card" id="quickStart">
-      <div class="section-heading"><div><span class="step-pill">RECOMMENDED</span><h2>Quick Recap</h2><p class="helper">အောက်က setting တွေကိုရွေးပြီး final video တစ်ခုတည်းနဲ့ထုတ်ပါ။</p></div><span class="time-badge">⚡ အမြန်ဆုံး</span></div>
-      <label class="upload-zone" for="oneVideo"><span class="upload-icon">↑</span><span><strong>Movie Video ရွေးပါ</strong><small id="oneMovieInfo">MP4, MOV, WebM • အများဆုံး 500MB</small></span><input id="oneVideo" type="file" accept="video/*"></label>
-      <div class="field-grid"><div><label for="oneStyle">Recap style</label><select id="oneStyle"><option value="natural storytelling">သဘာဝကျကျ</option><option value="dramatic and suspenseful">စိတ်လှုပ်ရှားဖွယ်</option><option value="funny casual">ဟာသဆန်ဆန်</option><option value="concise summary">အကျဉ်းချုပ်</option></select></div><div><label for="oneLength">အရှည်</label><select id="oneLength"><option value="1-2 minutes">အတို (၁–၂ မိနစ်)</option><option value="3-5 minutes" selected>ပုံမှန် (၃–၅ မိနစ်)</option><option value="5-10 minutes">အရှည် (၅–၁၀ မိနစ်)</option></select></div><div><label for="oneVoice">အသံ</label><select id="oneVoice"><option value="myanmar-female">Nilar — Female</option><option value="myanmar-male">Thiha — Male</option></select></div><div><label for="oneSpeed">အသံအမြန်နှုန်း <output id="oneSpeedValue">1.0x</output></label><input id="oneSpeed" type="range" min="0.5" max="1.5" step="0.1" value="1"></div></div>
-      <label class="switch-row"><input id="oneSubtitles" type="checkbox" checked><span class="switch"></span><span><strong>မြန်မာစာတန်းထိုးထည့်မယ်</strong><small>AI Voice နဲ့ အချိန်ကိုက်ထည့်ပေးပါမယ်</small></span></label>
-      <button id="oneClickRecap" class="primary-action" type="button">✦ Generate Full Recap</button>
-      <div id="oneProgressWrap" hidden><div class="progress-head"><span id="oneStepLabel">Ready</span><b id="oneProgressPct">0%</b></div><div class="progress-track"><div id="oneProgressBar"></div></div><div id="oneSteps" class="one-steps"></div></div>
-      <div id="oneStatus" class="status" aria-live="polite"></div>
-      <div id="oneResult" class="result-panel" hidden><div class="result-head"><div><span class="step-pill success">READY</span><h3>Recap ပြီးပါပြီ</h3></div><a id="oneDownload" class="download-btn" target="_blank">↓ MP4 Download</a></div><video id="oneFinalVideo" controls playsinline></video><div class="download-grid"><button id="oneTranscript" class="outline-btn">Transcript</button><button id="oneOriginalSrt" class="outline-btn">Original SRT</button><button id="oneBurmeseSrt" class="outline-btn">Burmese SRT</button><button id="oneRecapScript" class="outline-btn">Recap TXT</button><button id="oneRecapSrt" class="outline-btn">Voice SRT</button><button id="oneVoiceDownload" class="outline-btn">AI Voice</button></div></div>
+    <section class="card workflow-intro" id="workflowStart">
+      <span class="step-pill">WORKFLOW</span>
+      <h2>Video → Original SRT → Recap Script → SRT → AI Voice → Live Edit → Final MP4</h2>
+      <p class="helper">အဆင့်တစ်ဆင့်ချင်းလုပ်ပါ။ AI Voice to SRT မပါပါ။ STEP 04 မှာ SRT အရှည်ရွေးပြီး STEP 05 မှာ SRT ကနေ AI Voice ထုတ်ပါ။ Live Edit ပြီးမှ Final MP4 Render လုပ်ပါ။</p>
     </section>
 
-    <details class="advanced-tools"><summary><span>Advanced Studio</span><small>Edit အရင်လုပ်ပြီးမှ Final MP4 ထုတ်မယ် / subtitle, blur, logo, render</small></summary>
+    <details class="advanced-tools" open><summary><span>Yoon Recap Studio</span><small>အဆင့်လိုက်လုပ်ရန် — SRT → AI Voice → Edit → Final MP4</small></summary>
       <div class="advanced-inner">
         <section class="card"><div class="section-heading"><div><span class="step-pill">STEP 01</span><h2>Video → Original SRT</h2><p class="helper">မူရင်းအသံ timeline ကို transcript အဖြစ်ထုတ်ပါ။</p></div></div><label for="video" class="compact-label">Video Upload</label><input id="video" type="file" accept="video/*"><video id="preview" controls playsinline hidden></video><button id="transcribe" type="button">🎧 Original SRT ထုတ်မယ်</button><div id="tstatus" class="status" aria-live="polite"></div></section>
         <section class="card"><span class="step-pill">STEP 02</span><h2>Original SRT</h2><p class="helper">လိုအပ်ရင် စာသားကိုစစ်ပြီး download လုပ်နိုင်ပါတယ်။</p><textarea id="originalSrt" placeholder="Original timeline SRT"></textarea><button id="downloadOriginalSrt" class="outline-btn" type="button">↓ Original SRT Download</button></section>
@@ -59,6 +54,6 @@
   <script>
     (()=>{const open=document.getElementById('apiSidebarOpen'),backdrop=document.getElementById('apiSidebarBackdrop'),close=document.getElementById('apiSidebarClose');const show=()=>{backdrop.hidden=false;open.setAttribute('aria-expanded','true');document.body.classList.add('api-sidebar-open');close.focus()};const hide=()=>{backdrop.hidden=true;open.setAttribute('aria-expanded','false');document.body.classList.remove('api-sidebar-open');open.focus()};open.addEventListener('click',show);close.addEventListener('click',hide);backdrop.addEventListener('click',e=>{if(e.target===backdrop)hide()});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!backdrop.hidden)hide()})})();
   </script>
-  <script src="/app.js?v=7.5.0"></script>
+  <script src="/app.js?v=7.6.0"></script>
 </body>
 </html>
