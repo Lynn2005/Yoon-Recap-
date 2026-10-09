@@ -4,7 +4,7 @@ if(voiceId&&voiceUrl){$("voicePreview").src=voiceUrl;$("voicePreview").hidden=fa
 
 const savedGroq=localStorage.getItem("yoon_groq_key"),savedGemini=localStorage.getItem("yoon_gemini_key");
 if(localStorage.getItem("yoon_original_srt"))$("originalSrt").value=localStorage.getItem("yoon_original_srt");
-if(localStorage.getItem("yoon_burmese_srt"))$("burmeseSrt").value=localStorage.getItem("yoon_burmese_srt");if(voiceSrt&&$("voiceSrt"))$("voiceSrt").value=voiceSrt;
+if(localStorage.getItem("yoon_voice_srt_ready")==="1"&&localStorage.getItem("yoon_burmese_srt"))$("burmeseSrt").value=localStorage.getItem("yoon_burmese_srt");else{$("burmeseSrt").value="";localStorage.removeItem("yoon_burmese_srt");localStorage.removeItem("yoon_voice_srt_ready");}if(voiceSrt&&$("voiceSrt"))$("voiceSrt").value=voiceSrt;
 if(savedGroq)$("groqKey").value=savedGroq;if(savedGemini)$("geminiKey").value=savedGemini;
 $("saveGroq").onclick=()=>{localStorage.setItem("yoon_groq_key",$("groqKey").value.trim());$("keyStatus").textContent="✅ Groq Key သိမ်းပြီးပါပြီ။"};
 $("saveGemini").onclick=()=>{localStorage.setItem("yoon_gemini_key",$("geminiKey").value.trim());$("keyStatus").textContent="✅ Gemini Key သိမ်းပြီးပါပြီ။"};
@@ -85,7 +85,7 @@ async function translateSrtAutomatically(srt,auto=false){
    translated.push(part);
   }
   const burmese=translated.join("\n\n")+"\n";
-  $("burmeseSrt").value=burmese;localStorage.setItem("yoon_burmese_srt",burmese);
+  $("burmeseSrt").value="";
   return await prepareVoiceSrtAutomatically(burmese,auto);
  }catch(e){const msg="❌ Auto Translate မအောင်မြင်ပါ — "+e.message;status("trstatus",msg);if(auto)status("tstatus",msg);return false}
  finally{if(b)b.disabled=false}
