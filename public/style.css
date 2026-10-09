@@ -185,3 +185,10 @@ body>main.wrap>header>div{flex:1;min-width:0}
 .api-sidebar-tab span{display:block!important;width:24px!important;height:3px!important;min-height:3px!important;background:#fff!important;border-radius:3px!important;opacity:1!important;visibility:visible!important}
 .api-sidebar-backdrop[hidden]{display:none!important}
 @media(max-width:520px){.api-sidebar-tab{top:10px!important;right:10px!important;width:46px!important;min-width:46px!important;height:46px!important;min-height:46px!important}}
+
+/* Sidebar visibility + click-fallback fix */
+.api-sidebar-backdrop{position:fixed!important;inset:0!important;z-index:1190!important;justify-content:flex-end!important;background:rgba(12,18,28,.55)!important}
+.api-sidebar-backdrop[hidden]{display:none!important}
+.api-sidebar-backdrop:not([hidden]){display:flex!important}
+.api-sidebar{position:relative!important;z-index:1191!important;display:block!important;visibility:visible!important;opacity:1!important}
+.api-sidebar-close{width:42px!important;min-width:42px!important}
