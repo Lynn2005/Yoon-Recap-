@@ -112,20 +112,46 @@ app.post("/api/transcribe",upload.single("video"),async(req,res)=>{
 app.post("/api/translate-srt",async(req,res)=>{
  const keys=geminiKeysOf(req),srt=String(req.body?.srt||"").trim();
  if(!keys.length)return res.status(400).json({error:"Gemini API Key ထည့်ပါ။"});if(!srt)return res.status(400).json({error:"Original SRT မရှိပါ။"});
+ const parseBlocks=input=>String(input||"").replace(/\r/g,"").trim().split(/\n\s*\n/).map(block=>{
+  const lines=block.split("\n"),ti=lines.findIndex(line=>/^\s*\d+\s*$/.test(line));
+  if(ti<0||!/^\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}/.test(lines[ti+1]||""))return null;
+  const tm=lines[ti+1].match(/(\d{2}:\d{2}:\d{2},\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2},\d{3})/);
+  const sec=t=>{const [h,m,r]=t.split(":");const [ss,ms]=r.split(",");return Number(h)*3600+Number(m)*60+Number(ss)+Number(ms)/1000};
+  return {number:lines[ti].trim(),start:sec(tm[1]),end:sec(tm[2]),text:lines.slice(ti+2).join("\n").trim()};
+ }).filter(x=>x&&x.text);
+ const graphemeCount=t=>Array.from(String(t||"").replace(/<[^>]*>/g,"").replace(/\s+/g," ").trim()).length;
  try{
-  const prompt="Translate subtitle dialogue into natural spoken Burmese. Keep every subtitle number and timestamp EXACTLY unchanged, keep the same number of blocks, translate ONLY dialogue text, and return ONLY valid SRT. SOURCE SRT:\n"+srt.slice(0,180000);
-  let lastErr=null,out="";
+  const source=parseBlocks(srt);
+  if(!source.length)return res.status(400).json({error:"Valid SRT မဟုတ်ပါ။"});
+  const prompt="Translate every subtitle into natural, fluent spoken Burmese suitable for a Myanmar movie-recap AI voice. Preserve the complete meaning, story order, character relationships, names, numbers, money amounts, and all details. Use concise natural spoken Burmese; split overly long dialogue only by keeping the SAME number of subtitle blocks (do not split or merge blocks). Do not add explanations or invent events. Keep subtitle numbering and timestamps exactly as supplied for now. Return ONLY valid SRT. SOURCE SRT:\n"+srt.slice(0,180000);
+  let lastErr=null,translated=null;
   for(const key of keys){
-    try{
-      const data=await geminiGenerate(key,"gemini-3.8-flash",prompt);
-      const candidate=cleanSrtText(geminiText(data));
-      if(!validSrt(candidate))throw new Error("Gemini က valid SRT မပြန်ပါ။");
-      out=candidate;break;
-    }catch(e){lastErr=e;}
+   try{
+    const data=await geminiGenerate(key,"gemini-3.8-flash",prompt);
+    const candidate=cleanSrtText(geminiText(data)),parsed=parseBlocks(candidate);
+    if(!validSrt(candidate)||parsed.length!==source.length)throw new Error("ဘာသာပြန် SRT အပိုင်းအရေအတွက် မကိုက်ညီပါ။");
+    if(parsed.some((b,i)=>b.number!==source[i].number||!b.text))throw new Error("SRT နံပါတ် သို့မဟုတ် စာသား မကိုက်ညီပါ။");
+    translated=parsed;break;
+   }catch(e){lastErr=e;}
   }
-  if(!out)throw lastErr||new Error("Gemini translation failed");
-  res.json({srt:out,text:out.replace(/\d+\s*\n\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}\s*\n/g,"").replace(/\n{2,}/g,"\n").trim()});
- }catch(e){res.status(500).json({error:e.message||"Gemini translation failed"});}
+  if(!translated)throw lastErr||new Error("Gemini translation failed");
+  // Repair broken source timing: retain the clip's overall time range, then allocate
+  // each subtitle a natural duration proportional to its spoken-text length.
+  const timelineStart=Math.min(...source.map(b=>b.start));
+  const timelineEnd=Math.max(...source.map(b=>b.end));
+  const span=timelineEnd-timelineStart;
+  if(!Number.isFinite(span)||span<=0)throw new Error("SRT timeline မမှန်ပါ။");
+  const weights=translated.map(b=>Math.max(1,graphemeCount(b.text)));
+  const totalWeight=weights.reduce((a,b)=>a+b,0);
+  let cursor=timelineStart;
+  const result=translated.map((b,i)=>{
+   const start=cursor;
+   const end=i===translated.length-1?timelineEnd:timelineStart+span*weights.slice(0,i+1).reduce((a,v)=>a+v,0)/totalWeight;
+   cursor=end;
+   return b.number+"\n"+srtTime(start)+" --> "+srtTime(Math.max(start+0.1,end))+"\n"+b.text;
+  }).join("\n\n")+"\n";
+  res.json({srt:result,text:translated.map(b=>b.text).join("\n"),timelineAdjusted:true,blocks:translated.length});
+ }catch(e){res.status(422).json({error:e.message||"Gemini translation failed"});}
 });
 
 app.post("/api/prepare-voice-srt",async(req,res)=>{
