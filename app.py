@@ -146,10 +146,10 @@ with tabs[2]:
         st.download_button("⬇️ AI Voice Download",st.session_state.voice_bytes,f"{st.session_state.project_name}_voice.mp3","audio/mpeg")
 
 with tabs[3]:
-    # Render the preview into a placeholder so it appears ABOVE the editing controls.
-    preview_slot = st.empty()
     st.subheader("🎬 Live Edit Preview")
-    st.caption("Preview အပေါ်မှာ အရင်မြင်ရမယ်။ Blur / စာသား / Logo တစ်ခုကိုဖွင့်ထားရင် ကျန်နှစ်ခုကို အလိုအလျောက်ပိတ်ပေးမယ်။ အမှန်ခြစ်ထားတဲ့ effect ကို Preview မှာ ချက်ချင်းပြပေးမယ်။")
+    st.caption("Preview အပေါ်မှာ အရင်မြင်ရမယ်။ Blur / စာသား / Logo တစ်ခုကိုဖွင့်ထားရင် ကျန်နှစ်ခုကို အလိုအလျောက်ပိတ်ပေးမယ်။ အမှန်ခြစ်ထားတဲ့ effect ကို Preview မှာ ပြပေးမယ်။")
+    # Placeholder is filled after controls are read, but remains above them on screen.
+    preview_slot = st.empty()
 
     def select_effect(active):
         if st.session_state.get(active, False):
@@ -220,7 +220,7 @@ with tabs[3]:
                             hh,mm,rest=ts.split(":"); ss,ms=rest.split(",")
                             return int(hh)*3600+int(mm)*60+int(ss)+int(ms)/1000
                         active=""
-                        for subtitle_block in re.split(r"\\n\\s*\\n",st.session_state.burmese_srt.strip()):
+                        for subtitle_block in re.split(r"\n\s*\n",st.session_state.burmese_srt.strip()):
                             lines=subtitle_block.splitlines()
                             if len(lines)>=3 and "-->" in lines[1]:
                                 try:
