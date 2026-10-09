@@ -35,7 +35,21 @@ $("transcribe").onclick=async()=>{if(!file)return status("tstatus","⚠️ Video
 $("downloadOriginal").onclick=()=>download("original.srt",$("originalSrt").value,"application/x-subrip");
 
 $("translate").onclick=()=>translateSrtAutomatically($("originalSrt").value,false);
-$("downloadBurmese").onclick=()=>download("burmese.srt",$("burmeseSrt").value,"application/x-subrip");$("srtUpload")?.addEventListener("change",async e=>{const f=e.target.files?.[0];if(!f)return;try{const s=await f.text();if(!/\\d+\\s*\\n\\d{2}:\\d{2}:\\d{2},\\d{3}\\s*-->\\s*\\d{2}:\\d{2}:\\d{2},\\d{3}/.test(s))throw new Error("Valid SRT ဖိုင်မဟုတ်ပါ။");voiceSrt=s.trim()+"\\n";localStorage.setItem("yoon_voice_srt",voiceSrt);$("voiceSrt").value=voiceSrt;status("vstatus","✅ External SRT Upload ပြီးပါပြီ။ Final Video မှာ ဒီ SRT ကိုသုံးပါမယ်။")}catch(err){status("vstatus","❌ "+err.message)}});$("downloadVoiceSrt")?.addEventListener("click",()=>download("external.srt",voiceSrt||$("voiceSrt")?.value||"","application/x-subrip"));$("voiceUpload")?.addEventListener("change",e=>{voiceUploadFile=e.target.files?.[0]||null;if(voiceUploadFile){voiceId=null;voiceUrl=null;localStorage.removeItem("yoon_voice_id");localStorage.removeItem("yoon_voice_url");$("voicePreview").src=URL.createObjectURL(voiceUploadFile);$("voicePreview").hidden=false;status("vstatus","✅ AI Voice Upload ပြီးပါပြီ။ Final Video မှာ ဒီအသံကိုသုံးပါမယ်။")}});
+$("downloadBurmese").onclick=()=>download("burmese.srt",$("burmeseSrt").value,"application/x-subrip");
+$("prepareVoiceSrt")?.addEventListener("click",async()=>{
+ const srt=$("burmeseSrt").value.trim();
+ if(!srt)return status("trstatus","⚠️ Burmese SRT အရင်ထည့်ပါ။");
+ if(!gemini())return status("trstatus","⚠️ Gemini API Key ထည့်ပြီး Save လုပ်ပါ။");
+ const b=$("prepareVoiceSrt");b.disabled=true;
+ status("trstatus","⏳ AI Voice ဖတ်ရလွယ်အောင် ပြင်နေပြီး မူရင်း Content ကို စစ်ဆေးနေပါတယ်...");
+ try{
+  const d=await apiJson(await fetch("/api/prepare-voice-srt",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({geminiKey:gemini(),srt})}));
+  $("burmeseSrt").value=d.srt;localStorage.setItem("yoon_burmese_srt",d.srt);
+  download("burmese-ai-voice.srt",d.srt,"application/x-subrip");
+  status("trstatus","✅ AI Voice အတွက် SRT ပြင်ပြီးပါပြီ။ Content နဲ့ Timestamp မပျောက်ကြောင်း စစ်ဆေးပြီး ဖိုင်ထုတ်ပေးထားပါတယ်။");
+ }catch(e){status("trstatus","❌ "+e.message+" — မူရင်း SRT ကို မပြောင်းထားပါ။");}
+ finally{b.disabled=false;}
+});$("srtUpload")?.addEventListener("change",async e=>{const f=e.target.files?.[0];if(!f)return;try{const s=await f.text();if(!/\\d+\\s*\\n\\d{2}:\\d{2}:\\d{2},\\d{3}\\s*-->\\s*\\d{2}:\\d{2}:\\d{2},\\d{3}/.test(s))throw new Error("Valid SRT ဖိုင်မဟုတ်ပါ။");voiceSrt=s.trim()+"\\n";localStorage.setItem("yoon_voice_srt",voiceSrt);$("voiceSrt").value=voiceSrt;status("vstatus","✅ External SRT Upload ပြီးပါပြီ။ Final Video မှာ ဒီ SRT ကိုသုံးပါမယ်။")}catch(err){status("vstatus","❌ "+err.message)}});$("downloadVoiceSrt")?.addEventListener("click",()=>download("external.srt",voiceSrt||$("voiceSrt")?.value||"","application/x-subrip"));$("voiceUpload")?.addEventListener("change",e=>{voiceUploadFile=e.target.files?.[0]||null;if(voiceUploadFile){voiceId=null;voiceUrl=null;localStorage.removeItem("yoon_voice_id");localStorage.removeItem("yoon_voice_url");$("voicePreview").src=URL.createObjectURL(voiceUploadFile);$("voicePreview").hidden=false;status("vstatus","✅ AI Voice Upload ပြီးပါပြီ။ Final Video မှာ ဒီအသံကိုသုံးပါမယ်။")}});
 
 $("voiceSpeed").addEventListener("input",()=>$("voiceSpeedValue").textContent=Number($("voiceSpeed").value).toFixed(1)+"x");
 
