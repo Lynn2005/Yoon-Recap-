@@ -32,8 +32,8 @@ RUN node fix-render.mjs && rm -f fix-render.mjs
 RUN sed -i 's/const GEMINI_MODELS=\["gemini-2\.5-flash","gemini-2\.0-flash","gemini-2\.5-flash-lite"\];/const GEMINI_MODELS=["gemini-3.8-flash","gemini-3.7-flash","gemini-3.6-flash","gemini-3.5-flash-lite"];/' server.js \
     && sed -i 's/generationConfig:{temperature:\.2}/generationConfig:{}/' server.js
 
-# Robust button handlers + touch edit + live preview playback.
-RUN sed -i 's#</body>#<script src="/button-fix.js?v=2"></script><script src="/touch-edit.js?v=1"></script><script src="/live-preview-fix.js?v=2"></script></body>#' public/index.html
+# Robust button handlers + touch edit + live preview playback + hide voice speed control.
+RUN sed -i 's#</body>#<script src="/button-fix.js?v=2"></script><script src="/touch-edit.js?v=1"></script><script src="/live-preview-fix.js?v=2"></script><script src="/voice-speed-hide.js?v=1"></script></body>#' public/index.html
 
 RUN mkdir -p uploads work
 EXPOSE 10000
