@@ -67,7 +67,7 @@ const replacement = String.raw`app.post("/api/tts",async(req,res)=>{
    if(!Number.isFinite(sourceDuration)||sourceDuration<=0)throw new Error("AI Voice duration မရပါ။");
    const safeTarget=Math.max(0.08,target);
    const factor=sourceDuration/safeTarget;
-   await execFileAsync("ffmpeg",["-y","-i",input,"-af",tempoFilter(factor),"-t",String(safeTarget),"-ac","1","-ar","22050","-c:a","pcm_s16le",fitted],{maxBuffer:10*1024*1024});
+   await execFileAsync("ffmpeg",["-y","-i",input,"-af",tempoFilter(factor)+",apad","-t",String(safeTarget),"-ac","1","-ar","22050","-c:a","pcm_s16le",fitted],{maxBuffer:10*1024*1024});
    return fitted;
  }
  async function makeBlockAudio(text,target,index){
@@ -112,7 +112,7 @@ const replacement = String.raw`app.post("/api/tts",async(req,res)=>{
      await execFileAsync("ffmpeg",["-y","-f","concat","-safe","0","-i",listFile,"-ac","1","-ar","22050","-c:a","pcm_s16le",out],{maxBuffer:15*1024*1024});
    }
    if(!fs.existsSync(out)||fs.statSync(out).size<100)throw new Error("AI Voice final audio file မဖန်တီးနိုင်ပါ။");
-   const voiceSrt=sourceBlocks.length?sourceBlocks.map((x,i)=>(i+1)+"\n"+srtTime(x.start)+" --> "+srtTime(x.end)+"\n"+x.text).join("\n\n")+"\n":rawText?"1\n00:00:00,000 --> 00:00:00,000\n"+rawText+"\n":"";
+   const voiceSrt=sourceBlocks.length?sourceBlocks.map((x,i)=>(i+1)+"\n"+srtTime(x.start)+" --> "+srtTime(x.end)+"\n"+x.text).join("\n\n")+"\n":rawText?"1\n00:00:00,000 --> 00:00:00,001\n"+rawText+"\n":"";
    res.json({id,url:"/media/"+path.basename(out),srt:voiceSrt,voiceSrt,chunks:blocks.length,voice:voiceName,rate:requestedRate,autoFitTimeline:true,provider:"Microsoft Edge AI TTS — Free"});
  }catch(e){
    res.status(500).json({error:e instanceof Error?e.message:String(e)});
@@ -120,5 +120,20 @@ const replacement = String.raw`app.post("/api/tts",async(req,res)=>{
 });
 `;
 source = source.slice(0,start) + replacement + source.slice(end);
+
+// Final-video fixes: keep the editor's portrait frame, hide burned-in English subtitles,
+// and use a Myanmar-capable font instead of DejaVu Sans for Burmese text.
+source = source.replace(
+  'f.push(cur+"scale=w=1280:h=1280:force_original_aspect_ratio=decrease:force_divisible_by=2[v0]");cur="[v0]";',
+  'f.push(cur+"scale=w=1080:h=1920:force_original_aspect_ratio=decrease:force_divisible_by=2,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:color=black[v0]");cur="[v0]";'
+);
+source = source.replace(
+  'f.push("[blur_base][blur_patch]overlay=x=trunc(main_w*"+bx+"/100-overlay_w/2):y=trunc(main_h*"+by+"/100-overlay_h/2)[vb]");\n   cur="[vb]";',
+  'f.push("[blur_base][blur_patch]overlay=x=trunc(main_w*"+bx+"/100-overlay_w/2):y=trunc(main_h*"+by+"/100-overlay_h/2)[blur_v]");\n   f.push("[blur_v]drawbox=x=main_w*"+bx+"/100-main_w*"+bw+"/200:y=main_h*"+by+"/100-main_h*"+bh+"/200:w=main_w*"+bw+"/100:h=main_h*"+bh+"/100:color=black@0.90:t=fill[vb]");\n   cur="[vb]";'
+);
+source = source.replace(
+  'const fontFile=font?.path||(fontStyle==="sans"?(textWeight>=600&&sansFont?sansFont.replace(/DejaVuSans\\.ttf$/,\"DejaVuSans-Bold.ttf\"):sansFont)||MYANMAR_FONT_FILE:(textWeight>=600&&boldFont?boldFont:MYANMAR_FONT_FILE));',
+  'const padaukFont=["/usr/share/fonts/TTF/Padauk-Regular.ttf","/usr/share/fonts/truetype/padauk/Padauk-Regular.ttf"].find(fs.existsSync);\n  const fontFile=font?.path||padaukFont||MYANMAR_FONT_FILE;'
+);
 fs.writeFileSync(file,source,"utf8");
-console.log("Patched AI Voice to auto-fit every SRT block to its original timeline:",file);
+console.log("Patched AI Voice timeline + final render: 1080x1920, subtitle cover, Padauk Myanmar font:",file);
