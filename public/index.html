@@ -26,23 +26,6 @@
 
 
 
-<section class="card"><div class="badge">STEP 01</div><h2>🎬 Upload Video → Audio → Transcript</h2>
-<label>🎬 Video Upload</label><input id="video" type="file" accept="video/*"><video id="preview" controls playsinline hidden></video>
-<button id="transcribe">🎧 Audio ထုတ်ပြီး Original SRT ထုတ်မယ်</button><div id="tstatus" class="status"></div>
-</section>
-
-<section class="card"><div class="badge">STEP 02</div><h2>📝 Original Transcript / SRT</h2>
-<textarea id="originalSrt" placeholder="Original SRT"></textarea>
-<div class="grid"><button id="downloadOriginal">📥 Original SRT</button></div>
-</section>
-
-<section class="card"><div class="badge">STEP 03</div><h2>🇲🇲 Gemini ဘာသာပြန်</h2>
-<p>Original SRT ရဲ့ timestamp မပြောင်းဘဲ မြန်မာလို ပြန်ပေးမယ်။</p>
-<button id="translate">✨ Gemini Translate → Burmese SRT</button>
-<textarea id="burmeseSrt" placeholder="Burmese SRT"></textarea>
-<div class="grid"><button id="downloadBurmese">📥 Burmese SRT</button></div><div id="trstatus" class="status"></div>
-</section>
-
 <section class="card"><div class="badge">STEP 04</div><h2>🔊 AI Voice</h2>
 <label>🇲🇲 Free Burmese AI Voice</label><select id="voice"><option value="myanmar-female">👩 Nilar — Female Natural</option><option value="myanmar-male">👨 Thiha — Male Natural</option></select>
 <label>⚡ Voice Speed <output id="voiceSpeedValue">1.0x</output></label><input id="voiceSpeed" type="range" min="0.5" max="1.5" step="0.1" value="1.0"><small>0.5x = နှေး • 1.0x = ပုံမှန် • 1.5x = မြန်</small>
@@ -59,6 +42,23 @@
 <div id="textControls" class="option-panel"><label>စာသား</label><input id="editText" value="Myanmar Recap"><label>🔤 Font Style</label><select id="fontStyle"><option value="noto">Noto Sans Myanmar</option><option value="eka">ဧက ၀၃ (Custom)</option><option value="sans">Sans</option></select><label>📁 Custom Font (.ttf/.otf)</label><input id="fontFile" type="file" accept=".ttf,.otf,.woff,.woff2"><label>🎨 Text Colour</label><input id="textColor" type="color" value="#ffffff"><label>🖌️ Border Colour</label><input id="borderColor" type="color" value="#000000"><label>Border Width <output id="borderWidthValue">3</output>px</label><input id="borderWidth" type="range" min="0" max="12" value="3"><label>စာသား Size <output id="fontValue">28</output>px</label><input id="fontSize" type="range" min="10" max="64" value="28"><label>စာသား X <output id="textXValue">50</output>%</label><input id="textX" type="range" min="5" max="95" value="50"><label>စာသား Y <output id="textYValue">88</output>%</label><input id="textY" type="range" min="5" max="95" value="88"><label>အထူ <output id="textWeightValue">800</output></label><input id="textWeight" type="range" min="100" max="900" step="100" value="800"></div>
 <div id="blurControls" class="option-panel" hidden><label>Blur အား <output id="blurValue">8</output>px</label><input id="blurAmount" type="range" min="0" max="24" value="8"><label>X <output id="blurXValue">50</output>%</label><input id="blurX" type="range" min="5" max="95" value="50"><label>Y <output id="blurYValue">82</output>%</label><input id="blurY" type="range" min="5" max="95" value="82"><label>Width <output id="blurWValue">90</output>%</label><input id="blurW" type="range" min="10" max="100" value="90"><label>Height <output id="blurHValue">22</output>%</label><input id="blurH" type="range" min="5" max="80" value="22"></div>
 <div id="logoControls" class="option-panel" hidden><label>Logo</label><input id="logoFile" type="file" accept="image/png,image/jpeg,image/webp"><label>Size <output id="logoValue">72</output>px</label><input id="logoSize" type="range" min="30" max="180" value="72"><label>X <output id="logoXValue">90</output>%</label><input id="logoX" type="range" min="5" max="95" value="90"><label>Y <output id="logoYValue">10</output>%</label><input id="logoY" type="range" min="5" max="95" value="10"></div><button id="previewUpdate" type="button" onclick="update()">🔄 Preview Update</button>
+</section>
+
+<section class="card"><div class="badge">STEP 01</div><h2>🎬 Upload Video → Audio → Transcript</h2>
+<label>🎬 Video Upload</label><input id="video" type="file" accept="video/*"><video id="preview" controls playsinline hidden></video>
+<button id="transcribe">🎧 Audio ထုတ်ပြီး Original SRT ထုတ်မယ်</button><div id="tstatus" class="status"></div>
+</section>
+
+<section class="card"><div class="badge">STEP 02</div><h2>📝 Original Transcript / SRT</h2>
+<textarea id="originalSrt" placeholder="Original SRT"></textarea>
+<div class="grid"><button id="downloadOriginal">📥 Original SRT</button></div>
+</section>
+
+<section class="card"><div class="badge">STEP 03</div><h2>🇲🇲 Gemini ဘာသာပြန်</h2>
+<p>Original SRT ရဲ့ timestamp မပြောင်းဘဲ မြန်မာလို ပြန်ပေးမယ်။</p>
+<button id="translate">✨ Gemini Translate → Burmese SRT</button>
+<textarea id="burmeseSrt" placeholder="Burmese SRT"></textarea>
+<div class="grid"><button id="downloadBurmese">📥 Burmese SRT</button></div><div id="trstatus" class="status"></div>
 </section>
 
 <section class="card"><div class="badge">STEP 06</div><h2>🚀 Final Video</h2><p>Video + AI Voice + (ရှိရင်) External SRT subtitles + Adjustments ကို FFmpeg နဲ့ MP4 ထုတ်မယ်။</p>
