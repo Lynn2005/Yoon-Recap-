@@ -143,3 +143,20 @@ footer{text-align:center;color:#98a2b3;font-size:11px;padding:10px 0}
 .api-key-option .card{padding:0;border:0;box-shadow:none;margin:0;background:transparent}
 .api-key-option .card h2{font-size:16px}
 @media(max-width:620px){.step2-layout{grid-template-columns:minmax(0,1fr);gap:8px}.api-key-option{grid-row:1}.step2-layout>.card{grid-row:2}}
+
+
+/* Slide-in API KEY sidebar */
+.api-sidebar-tab{position:fixed;right:0;top:42%;z-index:1000;writing-mode:vertical-rl;transform:rotate(180deg);border-radius:0 10px 10px 0;padding:15px 11px;min-height:118px;font-weight:800;box-shadow:0 4px 18px rgba(0,0,0,.2);cursor:pointer}
+.api-sidebar-backdrop{position:fixed;inset:0;z-index:1100;background:rgba(12,18,28,.48);display:flex;justify-content:flex-end;opacity:1;visibility:visible;transition:background .2s}
+.api-sidebar-backdrop[hidden]{display:none!important}
+.api-sidebar{width:min(390px,88vw);height:100%;overflow-y:auto;background:var(--card,#fff);color:var(--text,#111827);padding:20px;box-shadow:-12px 0 35px rgba(0,0,0,.2);animation:apiSlideIn .22s ease-out}
+.api-sidebar-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+.api-sidebar-head h2{font-size:21px;margin:0}
+.api-sidebar-close{width:42px;min-width:42px;height:42px;padding:0;font-size:20px;border-radius:12px}
+.api-sidebar .card.key{padding:0;border:0;box-shadow:none;background:transparent;margin:0}
+.api-sidebar .card.key h2{font-size:18px}
+.api-sidebar .keyrow{grid-template-columns:minmax(0,1fr) 82px}
+.api-sidebar input{min-width:0}
+body.api-sidebar-open{overflow:hidden}
+@keyframes apiSlideIn{from{transform:translateX(28px);opacity:.7}to{transform:translateX(0);opacity:1}}
+@media(max-width:520px){.api-sidebar-tab{top:38%;padding:13px 9px;min-height:106px;font-size:12px}.api-sidebar{padding:16px}}
