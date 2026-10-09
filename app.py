@@ -147,9 +147,7 @@ with tabs[2]:
 
 with tabs[3]:
     st.subheader("🎬 Live Edit Preview")
-    st.caption("Preview အပေါ်မှာ အရင်မြင်ရမယ်။ Blur / စာသား / Logo တစ်ခုကိုဖွင့်ထားရင် ကျန်နှစ်ခုကို အလိုအလျောက်ပိတ်ပေးမယ်။ အမှန်ခြစ်ထားတဲ့ effect ကို Preview မှာ ပြပေးမယ်။")
-    # Placeholder is filled after controls are read, but remains above them on screen.
-    preview_slot = st.empty()
+    st.caption("Preview ပေါ်က စာသား/Logo ကို လက်နဲ့ တိုက်ရိုက်ဖိဆွဲပြီး နေရာရွှေ့နိုင်ပါတယ်။ Blur၊ စာသား၊ Logo ထဲက တစ်ခုကိုပဲ တစ်ချိန်တည်းဖွင့်နိုင်ပါတယ်။")
 
     def select_effect(active):
         if st.session_state.get(active, False):
@@ -161,14 +159,13 @@ with tabs[3]:
         if key not in st.session_state:
             st.session_state[key] = default
 
-    st.markdown("**အသုံးပြုမယ့် Effect (တစ်ခုရွေးပါ)**")
     ec1, ec2, ec3 = st.columns(3)
     with ec1:
-        st.checkbox("🌫️ Blur ဖွင့်မယ်", key="blur_enabled", on_change=select_effect, args=("blur_enabled",))
+        st.checkbox("🌫️ Blur", key="blur_enabled", on_change=select_effect, args=("blur_enabled",))
     with ec2:
-        st.checkbox("🔤 စာသားဖွင့်မယ်", key="text_enabled", on_change=select_effect, args=("text_enabled",))
+        st.checkbox("🔤 စာသား", key="text_enabled", on_change=select_effect, args=("text_enabled",))
     with ec3:
-        st.checkbox("🖼️ Logo ဖွင့်မယ်", key="logo_enabled", on_change=select_effect, args=("logo_enabled",))
+        st.checkbox("🖼️ Logo", key="logo_enabled", on_change=select_effect, args=("logo_enabled",))
 
     c1,c2=st.columns(2)
     with c1:
@@ -176,78 +173,104 @@ with tabs[3]:
         pos=st.selectbox("Subtitle Position",["အောက်","အပေါ်"],key="subtitle_position")
         fontsize=st.slider("စာတန်းအရွယ်အစား",14,42,24,key="subtitle_size")
         mirror=st.checkbox("Mirror / ဘယ်ညာပြောင်း",False,key="mirror_enabled")
-        blur_amount=st.slider("Blur Amount (0=မရှိ)",1,20,5,key="blur_amount",disabled=not st.session_state.blur_enabled)
+        blur_amount=st.slider("Blur အား",1,20,5,key="blur_amount",disabled=not st.session_state.blur_enabled)
         blur=blur_amount if st.session_state.blur_enabled else 0
     with c2:
         mix=st.checkbox("မူရင်းအသံကို နောက်ခံအဖြစ်ထားမယ်",False,key="mix_original_audio")
         vol=st.slider("မူရင်းအသံ Volume (%)",0,100,15,key="original_audio_volume")
         text_value=st.text_input("Video ပေါ်စာသား",placeholder="Yoon Recap",key="overlay_text",disabled=not st.session_state.text_enabled)
-        tx=st.slider("စာသား X Position (%)",0,100,5,key="text_x",disabled=not st.session_state.text_enabled)
-        ty=st.slider("စာသား Y Position (%)",0,100,8,key="text_y",disabled=not st.session_state.text_enabled)
+        tx=st.slider("စာသား X (%)",0,100,5,key="text_x",disabled=not st.session_state.text_enabled)
+        ty=st.slider("စာသား Y (%)",0,100,8,key="text_y",disabled=not st.session_state.text_enabled)
     text=text_value if st.session_state.text_enabled else ""
     logo_upload=st.file_uploader("Logo ပုံ (PNG/JPG)",type=["png","jpg","jpeg"],key="logo_upload",disabled=not st.session_state.logo_enabled)
     logo=logo_upload if st.session_state.logo_enabled else None
-    logo_x=st.slider("Logo X Position (%)",0,100,4,key="logo_x",disabled=not st.session_state.logo_enabled)
-    logo_y=st.slider("Logo Y Position (%)",0,100,5,key="logo_y",disabled=not st.session_state.logo_enabled)
-    if logo: st.image(logo,width=140)
+    logo_x=st.slider("Logo X (%)",0,100,4,key="logo_x",disabled=not st.session_state.logo_enabled)
+    logo_y=st.slider("Logo Y (%)",0,100,5,key="logo_y",disabled=not st.session_state.logo_enabled)
 
     preview_second=st.number_input("Preview အချိန် (စက္ကန့်)",min_value=0.0,max_value=36000.0,value=1.0,step=1.0,key="preview_second")
-    with preview_slot.container():
-        if st.session_state.video_bytes:
-            try:
-                from PIL import Image, ImageDraw, ImageFont, ImageFilter
-                import io
-                with tempfile.TemporaryDirectory() as ptd:
-                    pdir=Path(ptd)
-                    vext=Path(st.session_state.video_name or "video.mp4").suffix or ".mp4"
-                    pvideo=pdir/("preview"+vext)
-                    pframe=pdir/"frame.jpg"
-                    pvideo.write_bytes(st.session_state.video_bytes)
-                    cmd(["ffmpeg","-y","-ss",str(preview_second),"-i",str(pvideo),"-frames:v","1","-vf","scale=960:-2",str(pframe)])
-                    im=Image.open(pframe).convert("RGB")
-                    if mirror: im=im.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
-                    if blur: im=im.filter(ImageFilter.GaussianBlur(radius=max(1,blur/2)))
-                    draw=ImageDraw.Draw(im)
-                    fp=font()
-                    try: textfont=ImageFont.truetype(fp,max(14,int(im.width*0.038))) if fp else ImageFont.load_default()
-                    except Exception: textfont=ImageFont.load_default()
-                    if text.strip():
-                        x=int((im.width-textfont.getlength(text))*tx/100)
-                        y=int((im.height-textfont.size)*ty/100)
-                        draw.text((x,y),text,font=textfont,fill="white",stroke_width=2,stroke_fill="black")
-                    if burn and st.session_state.burmese_srt.strip():
-                        def parse_sec(ts):
-                            hh,mm,rest=ts.split(":"); ss,ms=rest.split(",")
-                            return int(hh)*3600+int(mm)*60+int(ss)+int(ms)/1000
-                        active=""
-                        for subtitle_block in re.split(r"\n\s*\n",st.session_state.burmese_srt.strip()):
-                            lines=subtitle_block.splitlines()
-                            if len(lines)>=3 and "-->" in lines[1]:
-                                try:
-                                    aa,bb=[parse_sec(z.strip()) for z in lines[1].split("-->")]
-                                    if aa<=preview_second<=bb: active=" ".join(lines[2:]); break
-                                except Exception: pass
-                        if active:
-                            sf=ImageFont.truetype(fp,fontsize) if fp else ImageFont.load_default()
-                            bbox=draw.textbbox((0,0),active,font=sf,stroke_width=2)
-                            sw=bbox[2]-bbox[0]; sh=bbox[3]-bbox[1]
-                            sx=max(4,(im.width-sw)//2)
-                            sy=im.height-sh-24 if pos=="အောက်" else 12
-                            draw.text((sx,sy),active,font=sf,fill="white",stroke_width=2,stroke_fill="black")
-                    if logo:
-                        lim=Image.open(io.BytesIO(logo.getvalue())).convert("RGBA")
-                        nw=max(1,int(im.width*0.18)); nh=max(1,int(lim.height*nw/lim.width))
-                        lim=lim.resize((nw,nh))
-                        im=im.convert("RGBA")
-                        im.alpha_composite(lim,(int((im.width-nw)*logo_x/100),int((im.height-nh)*logo_y/100)))
-                        im=im.convert("RGB")
-                    st.image(im,caption=f"Live Edit Preview · {preview_second:.1f}s",use_container_width=True)
-                    active_effect = "Blur" if blur else ("စာသား" if text.strip() else ("Logo" if logo else "မရွေးရသေး"))
-                    st.caption(f"လက်ရှိ Preview Effect: {active_effect} · စာတန်းထိုး: {'ON' if burn else 'OFF'} · Mirror: {'ON' if mirror else 'OFF'}")
-            except Exception as e:
-                st.warning(f"Live Preview မပြနိုင်သေးပါ: {e}")
-        else:
-            st.info("Live Preview ကြည့်ရန် Video ကို အရင် Upload လုပ်ပါ။")
+    if st.session_state.video_bytes:
+        try:
+            from PIL import Image, ImageDraw, ImageFont, ImageFilter
+            from streamlit_drawable_canvas import st_canvas
+            import io, base64
+            with tempfile.TemporaryDirectory() as ptd:
+                pdir=Path(ptd)
+                vext=Path(st.session_state.video_name or "video.mp4").suffix or ".mp4"
+                pvideo=pdir/("preview"+vext)
+                pframe=pdir/"frame.jpg"
+                pvideo.write_bytes(st.session_state.video_bytes)
+                cmd(["ffmpeg","-y","-ss",str(preview_second),"-i",str(pvideo),"-frames:v","1","-vf","scale=720:-2",str(pframe)])
+                frame=Image.open(pframe).convert("RGB")
+                if mirror: frame=frame.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+                if blur: frame=frame.filter(ImageFilter.GaussianBlur(radius=max(1,blur/2)))
+                # Burn the currently active subtitle into the background frame.
+                if burn and st.session_state.burmese_srt.strip():
+                    def parse_sec(ts):
+                        hh,mm,rest=ts.split(":"); ss,ms=rest.split(",")
+                        return int(hh)*3600+int(mm)*60+int(ss)+int(ms)/1000
+                    active=""
+                    for subtitle_block in re.split(r"\\n\\s*\\n",st.session_state.burmese_srt.strip()):
+                        lines=subtitle_block.splitlines()
+                        if len(lines)>=3 and "-->" in lines[1]:
+                            try:
+                                aa,bb=[parse_sec(z.strip()) for z in lines[1].split("-->")]
+                                if aa<=preview_second<=bb: active=" ".join(lines[2:]); break
+                            except Exception: pass
+                    if active:
+                        d=ImageDraw.Draw(frame); fp=font()
+                        try: sf=ImageFont.truetype(fp,fontsize) if fp else ImageFont.load_default()
+                        except Exception: sf=ImageFont.load_default()
+                        bbox=d.textbbox((0,0),active,font=sf,stroke_width=2)
+                        sx=max(4,(frame.width-(bbox[2]-bbox[0]))//2)
+                        sy=frame.height-(bbox[3]-bbox[1])-24 if pos=="အောက်" else 12
+                        d.text((sx,sy),active,font=sf,fill="white",stroke_width=2,stroke_fill="black")
+
+                # Build draggable Fabric.js objects over the actual video frame.
+                drawing={"version":"4.4.0","objects":[]}
+                if st.session_state.text_enabled and text.strip():
+                    drawing["objects"].append({
+                        "type":"textbox","version":"4.4.0","left":int(frame.width*tx/100),
+                        "top":int(frame.height*ty/100),"width":max(160,int(frame.width*0.55)),
+                        "height":52,"fill":"white","text":text,"fontSize":28,
+                        "fontFamily":"Arial","fontWeight":"bold","stroke":"black","strokeWidth":1,
+                        "paintFirst":"stroke","editable":True
+                    })
+                if logo:
+                    raw=logo.getvalue()
+                    src="data:"+ (logo.type or "image/png")+";base64,"+base64.b64encode(raw).decode("ascii")
+                    try:
+                        lim=Image.open(io.BytesIO(raw))
+                        ratio=lim.height/max(1,lim.width)
+                    except Exception: ratio=1
+                    drawing["objects"].append({
+                        "type":"image","version":"4.4.0","left":int(frame.width*logo_x/100),
+                        "top":int(frame.height*logo_y/100),"width":max(1,int(frame.width*0.18)),
+                        "height":max(1,int(frame.width*0.18*ratio)),"scaleX":1,"scaleY":1,
+                        "src":src,"crossOrigin":"anonymous"
+                    })
+                st.markdown("**👆 Preview ပေါ်က စာသား/Logo ကို လက်နဲ့ဖိဆွဲပြီး ရွှေ့ပါ။**")
+                canvas_result=st_canvas(
+                    fill_color="rgba(255, 255, 255, 0.15)",stroke_width=1,
+                    background_image=frame,background_color="#222222",
+                    update_streamlit=True,width=frame.width,height=frame.height,
+                    drawing_mode="transform",initial_drawing=drawing,
+                    display_toolbar=False,key="live_edit_drag_canvas"
+                )
+                # Read dragged coordinates and pass them through to the final FFmpeg render.
+                objects=(canvas_result.json_data or {}).get("objects",[]) if canvas_result else []
+                for obj in objects:
+                    if obj.get("type")=="textbox" and st.session_state.text_enabled:
+                        tx=max(0,min(100,round(float(obj.get("left",0))/frame.width*100)))
+                        ty=max(0,min(100,round(float(obj.get("top",0))/frame.height*100)))
+                    elif obj.get("type")=="image" and logo:
+                        logo_x=max(0,min(100,round(float(obj.get("left",0))/frame.width*100)))
+                        logo_y=max(0,min(100,round(float(obj.get("top",0))/frame.height*100)))
+                st.caption("Canvas ပေါ်မှာ ဖိဆွဲပါ။ Drag ပြီးသွားရင် နေရာအသစ်ကို မှတ်ထားပြီး Final MP4 Render မှာလည်း သုံးပေးမယ်။")
+                st.caption(f"လက်ရှိ Effect: {'Blur' if blur else ('စာသား' if text else ('Logo' if logo else 'မရွေးရသေး'))} · Subtitle: {'ON' if burn else 'OFF'} · Mirror: {'ON' if mirror else 'OFF'}")
+        except Exception as e:
+            st.warning(f"Live Edit မဖွင့်နိုင်သေးပါ: {e}")
+    else:
+        st.info("Live Edit လုပ်ရန် Video ကို အရင် Upload လုပ်ပါ။")
 
     if st.button("🎬 Final MP4 Render",disabled=not st.session_state.video_bytes or not st.session_state.voice_bytes):
         with st.spinner("FFmpeg နဲ့ Render လုပ်နေပါတယ်..."):
