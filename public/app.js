@@ -58,7 +58,7 @@ $("makeVoice").onclick=async()=>{const srtInput=$("burmeseSrt").value.trim();if(
 const showText=$("showText"),showBlur=$("showBlur"),showLogo=$("showLogo"),showSubtitles=$("showSubtitles");
 const textControls=$("textControls"),blurControls=$("blurControls"),logoControls=$("logoControls"),subtitleControls=$("subtitleControls");
 const editorPreview=$("editorPreview"),textPreview=$("textPreview"),subtitlePreview=$("subtitlePreview"),blurLayer=$("blurLayer"),logoPreview=$("logoPreview");
-let activeOption=showText;
+let activeOption=showSubtitles;
 let textLabel=textPreview.querySelector(".text-preview-label");
 if(!textLabel){textLabel=document.createElement("span");textLabel.className="text-preview-label";textPreview.replaceChildren(textLabel);}
 const textResizeHandle=document.createElement("div");
@@ -149,23 +149,6 @@ textResizeHandle.addEventListener("pointerdown",e=>{
  editorPreview.addEventListener("pointermove",move);editorPreview.addEventListener("pointerup",end);editorPreview.addEventListener("pointercancel",end);
 });
 update();
-
-update();restoringEdit=false;refreshHistoryButtons();
-}
-historyControls.forEach(el=>{el.addEventListener("input",scheduleEditState);el.addEventListener("change",()=>{clearTimeout(historyTimer);saveEditState();});});
-editUndoStack.push(captureEditState());refreshHistoryButtons();
-undoBtn.addEventListener("click",()=>{
- clearTimeout(historyTimer);saveEditState();
- if(editUndoStack.length<=1)return;
- editRedoStack.push(editUndoStack.pop());restoreEditState(editUndoStack[editUndoStack.length-1]);
-});
-redoBtn.addEventListener("click",()=>{
- clearTimeout(historyTimer);if(!editRedoStack.length)return;
- const next=editRedoStack.pop();editUndoStack.push(next);restoreEditState(next);
-});
-resetBtn.addEventListener("click",()=>{
- clearTimeout(historyTimer);restoreEditState(defaultEditState);saveEditState();
-});
 
 $("render").onclick=async e=>{e?.preventDefault();
  const srt=voiceSrt.trim();if(!file)return status("fstatus","⚠️ Video ရွေးပါ။");
