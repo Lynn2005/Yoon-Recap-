@@ -279,14 +279,16 @@ app.post("/api/tts",async(req,res)=>{
    if(!audioInfo.streams?.length)throw new Error("ဖန်တီးထားတဲ့ WAV ထဲမှာ audio stream မပါပါ။");
    // ffprobe can omit WAV format duration on some container builds. PCM WAV is mono,
    // 22050 Hz, signed 16-bit: derive duration from payload size as a safe fallback.
+   const chunkDuration=made.reduce((sum,item)=>sum+(Number(item.duration)||0),0);
+   const streamDuration=Number(audioInfo.streams[0].duration);
+   const bytes=fs.statSync(out).size;
+   const estimated=Math.max(0,(bytes-44)/(22050*2));
+   // Prefer actual WAV probe, but use validated source-chunk duration if this
+   // FFmpeg/FFprobe build reports zero for a PCM WAV container.
    if(!Number.isFinite(finalDuration)||finalDuration<0.5){
-     const streamDuration=Number(audioInfo.streams[0].duration);
-     const bytes=fs.statSync(out).size;
-     const estimated=Math.max(0,(bytes-44)/(22050*2));
-     const chunkDuration=made.reduce((sum,item)=>sum+item.duration,0);
      finalDuration=Number.isFinite(streamDuration)&&streamDuration>=0.5?streamDuration:(estimated>=0.5?estimated:chunkDuration);
    }
-   if(!Number.isFinite(finalDuration)||finalDuration<0.5)throw new Error("AI Voice ဖိုင်အရှည်ကို မဖတ်နိုင်ပါ။ TTS output size="+fs.statSync(out).size+" bytes; chunks="+made.length+".");
+   if(!Number.isFinite(finalDuration)||finalDuration<0.5)throw new Error("AI Voice duration validation failed; wavBytes="+bytes+", chunkDuration="+chunkDuration.toFixed(3)+", chunks="+made.length+".");
    let cursor=0;
    const voiceSrt=made.map((x,i)=>{const begin=cursor;cursor+=x.duration;return (i+1)+"\n"+srtTime(begin)+" --> "+srtTime(cursor)+"\n"+x.text;}).join("\n\n")+"\n";
    res.json({id,url:"/media/"+path.basename(out),srt:voiceSrt,voiceSrt,chunks:made.length,duration:finalDuration,voice:voiceName,rate,maxCharsPerLine:maxChars,provider:"Microsoft Edge AI TTS — Free",audioBytes:fs.statSync(out).size});
