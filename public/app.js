@@ -196,7 +196,7 @@ if(makeVoiceButton){
    // Use the SRT timed against the generated voice for the final render.
    const alignedSrt=String(data.srt||data.voiceSrt||"").trim();
    if(alignedSrt){
-    voiceSrt=alignedSrt+"\\n";voiceSrtReady=true;
+    voiceSrt=alignedSrt+"\n";voiceSrtReady=true;
     $("burmeseSrt").value=voiceSrt;
     localStorage.setItem("yoon_voice_srt",voiceSrt);localStorage.setItem("yoon_burmese_srt",voiceSrt);localStorage.setItem("yoon_voice_srt_ready","1");
     const srtStatus=$("trstatus");if(srtStatus)srtStatus.textContent="✅ AI Voice နဲ့ အချိန်ကိုက်ထားတဲ့ SRT ကို Final Video အတွက် ပြင်ဆင်ပြီးပါပြီ။";
@@ -353,10 +353,10 @@ $("render").onclick=async e=>{e?.preventDefault();
    let cursor=0;const draft=lines.map((line,i)=>{const start=cursor;cursor+=Math.max(1.2,Array.from(line).length/5);return (i+1)+"\n"+stamp(start)+" --> "+stamp(cursor)+"\n"+line;}).join("\n\n")+"\n";
    recapSrt=draft.trim();if(!recapSrt)throw Error("AI Voice SRT မရပါ။");done.push("subtitle");
    progress(72,"Generating AI voice from prepared SRT",done);
-   const dialogue=recapSrt.replace(/\r/g,"").split(/\n\\s*\n/).map(block=>{const a=block.split("\n"),ti=a.findIndex(x=>/-->/.test(x));return ti>=0?a.slice(ti+1).join(" ").trim():"";}).filter(Boolean).join("\n");
+   const dialogue=recapSrt.replace(/\r/g,"").split(/\n\s*\n/).map(block=>{const a=block.split("\n"),ti=a.findIndex(x=>/-->/.test(x));return ti>=0?a.slice(ti+1).join(" ").trim():"";}).filter(Boolean).join("\n");
    const tts=await json("/api/tts",{text:dialogue,voice:$("oneVoice").value,rate:Number($("oneSpeed").value||1),maxChars});if(!tts.id)throw Error("AI Voice မရပါ။");
    const alignedSrt=String(tts.srt||tts.voiceSrt||"").trim();if(!alignedSrt)throw Error("AI Voice နဲ့အချိန်ကိုက် SRT မရပါ။");
-   recapSrt=alignedSrt;voiceSrt=alignedSrt+"\\n";voiceSrtReady=true;voiceId=tts.id;voiceUrl=tts.url;
+   recapSrt=alignedSrt;voiceSrt=alignedSrt+"\n";voiceSrtReady=true;voiceId=tts.id;voiceUrl=tts.url;
    localStorage.setItem("yoon_voice_id",voiceId);localStorage.setItem("yoon_voice_url",voiceUrl);localStorage.setItem("yoon_voice_srt",voiceSrt);localStorage.setItem("yoon_burmese_srt",voiceSrt);localStorage.setItem("yoon_voice_srt_ready","1");
    $("burmeseSrt").value=voiceSrt;burmese=voiceSrt;done.push("voice","sync");
    try{const v=await fetch(tts.url,{cache:"no-store"});if(v.ok)voiceBlob=await v.blob();}catch{}
