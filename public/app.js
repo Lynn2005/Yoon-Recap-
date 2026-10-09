@@ -137,7 +137,68 @@ $("prepareVoiceSrt")?.addEventListener("click",()=>{
 
 $("voiceSpeed").addEventListener("input",()=>$("voiceSpeedValue").textContent=Number($("voiceSpeed").value).toFixed(1)+"x");
 
-$("makeVoice").onclick=async()=>{const text=$("recapScript")?.value.trim()||"";if(!text)return status("vstatus","⚠️ အရင်ဆုံး Burmese Recap Script ထုတ်ပါ။");const b=$("makeVoice");b.disabled=true;status("vstatus","⏳ Burmese Recap Script ကနေ AI Voice ထုတ်နေပါတယ်...");try{const mode=$("srtLength")?.value||"normal";const maxChars=mode==="short"?20:mode==="long"?50:35;const d=await apiJson(await fetch("/api/tts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text,voice:$("voice").value,rate:Number($("voiceSpeed").value||1),maxChars})}));voiceId=d.id;voiceUrl=d.url;voiceSrt="";voiceSrtReady=false;localStorage.setItem("yoon_voice_id",voiceId);localStorage.setItem("yoon_voice_url",voiceUrl);localStorage.removeItem("yoon_pending_voice_srt");localStorage.removeItem("yoon_voice_srt");localStorage.setItem("yoon_voice_srt_ready","0");$("burmeseSrt").value="";$("generateVoiceSrt").disabled=false;$("voicePreview").src=voiceUrl;$("voicePreview").hidden=false;status("vstatus","✅ AI Voice ပြီးပါပြီ။ အောက်က “AI Voice SRT ထုတ်ရန်” ကိုနှိပ်ပါ။");status("trstatus","AI Voice SRT မထုတ်ရသေးပါ။")}catch(e){status("vstatus","❌ "+e.message)}finally{b.disabled=false}};
+// STEP 2 — AI VOICE (standalone; must not require any SRT)
+const makeVoiceButton = $("makeVoiceNow");
+if (makeVoiceButton) {
+  makeVoiceButton.onclick = async function () {
+    const scriptBox = $("recapScript");
+    const text = String(scriptBox?.value || "").trim();
+    if (!text) {
+      status("vstatus", "⚠️ AI Voice မထုတ်နိုင်သေးပါ။ STEP 03 မှာ Burmese Recap Script အရင်ထုတ်ပါ။");
+      scriptBox?.focus();
+      return;
+    }
+    if (makeVoiceButton.dataset.busy === "1") return;
+    makeVoiceButton.dataset.busy = "1";
+    makeVoiceButton.disabled = true;
+    status("vstatus", "⏳ Burmese Recap Script ကနေ AI Voice ထုတ်နေပါတယ်။ SRT အရင်ထုတ်ရန် မလိုပါ။");
+    try {
+      const speed = Number($("voiceSpeed")?.value || 1);
+      const mode = $("srtLength")?.value || "normal";
+      const maxChars = mode === "short" ? 20 : mode === "long" ? 50 : 35;
+      const response = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text,
+          voice: $("voice")?.value || "myanmar-female",
+          rate: Math.max(0.5, Math.min(1.5, speed)),
+          maxChars
+        })
+      });
+      const data = await apiJson(response);
+      if (!data.id || !data.url) throw new Error("AI Voice ထွက်လာပေမယ့် audio link မရပါ။");
+      voiceId = data.id;
+      voiceUrl = data.url;
+      voiceSrt = "";
+      voiceSrtReady = false;
+      localStorage.setItem("yoon_voice_id", voiceId);
+      localStorage.setItem("yoon_voice_url", voiceUrl);
+      localStorage.removeItem("yoon_pending_voice_srt");
+      localStorage.removeItem("yoon_voice_srt");
+      localStorage.removeItem("yoon_burmese_srt");
+      localStorage.setItem("yoon_voice_srt_ready", "0");
+      const srtBox = $("burmeseSrt");
+      if (srtBox) srtBox.value = "";
+      const srtButton = $("generateVoiceSrt");
+      if (srtButton) srtButton.disabled = false;
+      const player = $("voicePreview");
+      if (player) {
+        player.pause();
+        player.src = data.url;
+        player.hidden = false;
+        player.load();
+      }
+      status("vstatus", "✅ AI Voice ထုတ်ပြီးပါပြီ။ အသံကို အောက်မှာနားထောင်နိုင်ပါတယ်။ နောက်မှ STEP 03 မှာ “AI Voice SRT ထုတ်ရန်” ကိုနှိပ်ပါ။");
+      status("trstatus", "AI Voice အဆင်သင့်ဖြစ်ပါပြီ။ SRT ကို သီးခြားထုတ်နိုင်ပါပြီ။");
+    } catch (error) {
+      status("vstatus", "❌ AI Voice မထုတ်နိုင်ပါ — " + errorText(error));
+    } finally {
+      makeVoiceButton.disabled = false;
+      delete makeVoiceButton.dataset.busy;
+    }
+  };
+}
 
 const showText=$("showText"),showBlur=$("showBlur"),showLogo=$("showLogo"),showSubtitles=$("showSubtitles");
 const textControls=$("textControls"),blurControls=$("blurControls"),logoControls=$("logoControls"),subtitleControls=$("subtitleControls");
