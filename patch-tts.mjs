@@ -129,7 +129,7 @@ source = source.replace(
 );
 source = source.replace(
   'f.push("[blur_base][blur_patch]overlay=x=trunc(main_w*"+bx+"/100-overlay_w/2):y=trunc(main_h*"+by+"/100-overlay_h/2)[vb]");\n   cur="[vb]";',
-  'f.push("[blur_base][blur_patch]overlay=x=trunc(main_w*"+bx+"/100-overlay_w/2):y=trunc(main_h*"+by+"/100-overlay_h/2)[blur_v]");\n   f.push("[blur_v]drawbox=x=main_w*"+bx+"/100-main_w*"+bw+"/200:y=main_h*"+by+"/100-main_h*"+bh+"/200:w=main_w*"+bw+"/100:h=main_h*"+bh+"/100:color=black@0.90:t=fill[vb]");\n   cur="[vb]";'
+  'f.push("[blur_base][blur_patch]overlay=x=trunc(main_w*"+bx+"/100-overlay_w/2):y=trunc(main_h*"+by+"/100-overlay_h/2)[blur_v]");\n   f.push("[blur_v]drawbox=x=iw*"+bx+"/100-iw*"+bw+"/200:y=ih*"+by+"/100-ih*"+bh+"/200:w=iw*"+bw+"/100:h=ih*"+bh+"/100:color=black@0.90:t=fill[vb]");\n   cur="[vb]";'
 );
 source = source.replace(
   'const fontFile=font?.path||(fontStyle==="sans"?(textWeight>=600&&sansFont?sansFont.replace(/DejaVuSans\\.ttf$/,\"DejaVuSans-Bold.ttf\"):sansFont)||MYANMAR_FONT_FILE:(textWeight>=600&&boldFont?boldFont:MYANMAR_FONT_FILE));',
