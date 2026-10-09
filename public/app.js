@@ -55,8 +55,8 @@ $("voiceSpeed").addEventListener("input",()=>$("voiceSpeedValue").textContent=Nu
 
 $("makeVoice").onclick=async()=>{const srtInput=$("burmeseSrt").value.trim();if(!srtInput)return status("vstatus","⚠️ Burmese SRT အရင်ထုတ်ပါ။");const text=srtInput.replace(/\d+\s*\n\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}\s*\n/g,"").replace(/\n{2,}/g,"\n").trim();const b=$("makeVoice");b.disabled=true;status("vstatus","⏳ Free Burmese AI Voice ထုတ်နေပါတယ်...");try{const d=await apiJson(await fetch("/api/tts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text,srt:srtInput,voice:$("voice").value,rate:Number($("voiceSpeed").value||1)})}));voiceId=d.id;voiceUrl=d.url;voiceUploadFile=null;const vu=$("voiceUpload");if(vu)vu.value="";localStorage.setItem("yoon_voice_id",voiceId);localStorage.setItem("yoon_voice_url",voiceUrl);$("voicePreview").src=voiceUrl;$("voicePreview").hidden=false;status("vstatus","✅ AI Voice ပြီးပါပြီ။ External SRT ရှိရင် subtitles ထိုးပါမယ်။")}catch(e){status("vstatus","❌ "+e.message)}finally{b.disabled=false}};
 
-const showText=$("showText"),showBlur=$("showBlur"),showLogo=$("showLogo");
-const textControls=$("textControls"),blurControls=$("blurControls"),logoControls=$("logoControls");
+const showText=$("showText"),showBlur=$("showBlur"),showLogo=$("showLogo"),showSubtitles=$("showSubtitles");
+const textControls=$("textControls"),blurControls=$("blurControls"),logoControls=$("logoControls"),subtitleControls=$("subtitleControls");
 const editorPreview=$("editorPreview"),textPreview=$("textPreview"),subtitlePreview=$("subtitlePreview"),blurLayer=$("blurLayer"),logoPreview=$("logoPreview");
 let activeOption=showText;
 let textLabel=textPreview.querySelector(".text-preview-label");
@@ -85,20 +85,20 @@ function update(){
  $("blurValue").textContent=val("blurAmount");$("blurXValue").textContent=val("blurX");$("blurYValue").textContent=val("blurY");$("blurWValue").textContent=val("blurW");$("blurHValue").textContent=val("blurH");
  logoPreview.style.width=val("logoSize")+"px";logoPreview.style.height=val("logoSize")+"px";logoPreview.style.left=val("logoX")+"%";logoPreview.style.top=val("logoY")+"%";logoPreview.style.right="auto";logoPreview.style.transform="translate(-50%,-50%)";
  $("logoValue").textContent=val("logoSize");$("logoXValue").textContent=val("logoX");$("logoYValue").textContent=val("logoY");
- textPreview.style.display=showText.checked?"block":"none";blurLayer.style.display=showBlur.checked?"block":"none";
+ textPreview.style.display=showText.checked?"block":"none";subtitlePreview.style.display=showSubtitles.checked?"block":"none";blurLayer.style.display=showBlur.checked?"block":"none";
  const hasLogo=!!logoPreview.getAttribute("src");logoPreview.hidden=!(showLogo.checked&&hasLogo);logoPreview.style.display=showLogo.checked&&hasLogo?"block":"none";
- textControls.hidden=!(activeOption===showText&&showText.checked);blurControls.hidden=!(activeOption===showBlur&&showBlur.checked);logoControls.hidden=!(activeOption===showLogo&&showLogo.checked);
+ textControls.hidden=!(activeOption===showText&&showText.checked);blurControls.hidden=!(activeOption===showBlur&&showBlur.checked);logoControls.hidden=!(activeOption===showLogo&&showLogo.checked);subtitleControls.hidden=!(activeOption===showSubtitles&&showSubtitles.checked);
 }
 window.update=update;
 function selectEditorOption(which){
- const selected=typeof which==="string"?$(which==="blur"?"showBlur":which==="logo"?"showLogo":"showText"):which;
+ const selected=typeof which==="string"?$(which==="blur"?"showBlur":which==="logo"?"showLogo":which==="subtitle"?"showSubtitles":"showText"):which;
  if(!selected)return;
  if(selected.checked)activeOption=selected;
- else if(activeOption===selected)activeOption=showText.checked?showText:showBlur.checked?showBlur:showLogo.checked?showLogo:showText;
+ else if(activeOption===selected)activeOption=showSubtitles.checked?showSubtitles:showBlur.checked?showBlur:showLogo.checked?showLogo:showText;
  update();
 }
 window.yoonSelectEditorOption=selectEditorOption;
-[showText,showBlur,showLogo].forEach(option=>{
+[showText,showBlur,showLogo,showSubtitles].forEach(option=>{
  option.addEventListener("change",()=>selectEditorOption(option));
  option.addEventListener("click",()=>requestAnimationFrame(()=>selectEditorOption(option)));
 });
@@ -150,26 +150,7 @@ textResizeHandle.addEventListener("pointerdown",e=>{
 });
 update();
 
-// Undo / Redo history for the Edit controls.
-const historyControls=Array.from(document.querySelectorAll("#subtitleControls input,#blurControls input,#logoControls input,#textControls input,#textControls select,#showText,#showBlur,#showLogo")).filter(el=>el.type!=="file");
-const undoBtn=$("undoEdit"),redoBtn=$("redoEdit"),resetBtn=$("resetEdit");
-const defaultEditState=historyControls.map(el=>({id:el.id,value:el.value,checked:el.type==="checkbox"?el.checked:undefined}));
-const editUndoStack=[],editRedoStack=[];
-let restoringEdit=false,historyTimer=null;
-function captureEditState(){return historyControls.map(el=>({id:el.id,value:el.value,checked:el.type==="checkbox"?el.checked:undefined}));}
-function sameEditState(a,b){return JSON.stringify(a)===JSON.stringify(b);}
-function refreshHistoryButtons(){undoBtn.disabled=editUndoStack.length<=1;redoBtn.disabled=editRedoStack.length===0;}
-function saveEditState(){
- if(restoringEdit)return;
- const state=captureEditState();
- if(editUndoStack.length&&sameEditState(editUndoStack[editUndoStack.length-1],state)){refreshHistoryButtons();return;}
- editUndoStack.push(state);if(editUndoStack.length>80)editUndoStack.shift();editRedoStack.length=0;refreshHistoryButtons();
-}
-function scheduleEditState(){if(restoringEdit)return;clearTimeout(historyTimer);historyTimer=setTimeout(saveEditState,220);}
-function restoreEditState(state){
- if(!state)return;restoringEdit=true;
- state.forEach(item=>{const el=$(item.id);if(!el)return;if(el.type==="checkbox")el.checked=!!item.checked;else el.value=item.value;});
- update();restoringEdit=false;refreshHistoryButtons();
+update();restoringEdit=false;refreshHistoryButtons();
 }
 historyControls.forEach(el=>{el.addEventListener("input",scheduleEditState);el.addEventListener("change",()=>{clearTimeout(historyTimer);saveEditState();});});
 editUndoStack.push(captureEditState());refreshHistoryButtons();
