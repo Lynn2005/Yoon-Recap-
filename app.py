@@ -299,7 +299,7 @@ with tabs[3]:
                 fill_color="rgba(255, 255, 255, 0.15)",stroke_width=1,
                 background_image=frame,background_color="#222222",
                 # Only send canvas state after a drag/draw completes to reduce rerun lag.
-                update_streamlit=False,width=frame.width,height=frame.height,
+                update_streamlit=True,width=frame.width,height=frame.height,
                 drawing_mode="rect",initial_drawing=drawing,
                 key="live_edit_drag_canvas"
             )
