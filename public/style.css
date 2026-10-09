@@ -192,3 +192,16 @@ body>main.wrap>header>div{flex:1;min-width:0}
 .api-sidebar-backdrop:not([hidden]){display:flex!important}
 .api-sidebar{position:relative!important;z-index:1191!important;display:block!important;visibility:visible!important;opacity:1!important}
 .api-sidebar-close{width:42px!important;min-width:42px!important}
+
+
+/* Keep hamburger fixed in the top-right corner while scrolling */
+.api-sidebar-tab{
+  position:fixed!important;
+  top:12px!important;
+  right:12px!important;
+  z-index:1200!important;
+  transform:none!important;
+}
+@media(max-width:520px){
+  .api-sidebar-tab{top:10px!important;right:10px!important}
+}
