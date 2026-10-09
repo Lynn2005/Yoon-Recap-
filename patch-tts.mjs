@@ -137,15 +137,19 @@ source = source.replace(
 );
 source = source.replace(
   'const textWeight=Math.max(100,Math.min(900,Number(body?.textWeight||800)));',
-  'const textWeight=Math.max(100,Math.min(900,Number(body?.textWeight||800)));\n  const subtitleY=Math.max(55,Math.min(92,Number(body?.subtitleY||80)));\n  const subtitleFs=Math.max(24,Math.min(60,Math.round(fsx*1.5)));'
+  'const textWeight=Math.max(100,Math.min(900,Number(body?.textWeight||800)));\n  const titleY=ty;\n  const subtitleY=Math.max(55,Math.min(92,Number(body?.subtitleY||80)));'
+);
+source = source.replace(
+  'const subtitleBlocks=srt?parseRenderSrt(srt):[];',
+  'const subtitleBlocks=srt?parseRenderSrt(srt):[];\n  ty=subtitleY;'
+);
+source = source.replace(
+  'if(showText){',
+  'ty=titleY;\n  if(showText){'
 );
 source = source.replace(
   'fs.writeFileSync(stp,sb.text,"utf8");',
-  'const sg=Array.from(new Intl.Segmenter("my",{granularity:"grapheme"}).segment(sb.text),x=>x.segment);let wrapped=[],line="";for(const g of sg){const next=line+g;if(line&&next.length>30&&/[\\s၊၊။!?]/.test(g)){wrapped.push(line.trim());line="";}line+=g;}if(line.trim())wrapped.push(line.trim());fs.writeFileSync(stp,wrapped.join("\\n"),"utf8");'
-);
-source = source.replace(
-  'f.push(cur+"drawtext=fontfile=\'"+safeFilterValue(fontFile)+"\':textfile=\'"+st+"\':fontsize="+fsx+":fontcolor="+fontColor+":borderw="+borderWidth+":bordercolor="+borderColor+":x=w*"+tx+"/100-text_w/2:y=h*"+ty+"/100-text_h/2:fix_bounds=1:enable=\'"+enable+"\'[sub"+si+"]");',
-  'f.push(cur+"drawtext=fontfile=\'"+safeFilterValue(fontFile)+"\':textfile=\'"+st+"\':fontsize="+subtitleFs+":fontcolor="+fontColor+":borderw="+borderWidth+":bordercolor="+borderColor+":x=w*"+tx+"/100-text_w/2:y=h*"+subtitleY+"/100-text_h/2:fix_bounds=1:enable=\'"+enable+"\'[sub"+si+"]");'
+  'const sg=Array.from(new Intl.Segmenter("my",{granularity:"grapheme"}).segment(sb.text),x=>x.segment);let wrapped=[],line="";for(const g of sg){if(line&&line.length>=30){wrapped.push(line.trim());line="";}line+=g;}if(line.trim())wrapped.push(line.trim());fs.writeFileSync(stp,wrapped.join("\\n"),"utf8");'
 );
 fs.writeFileSync(file,source,"utf8");
 console.log("Patched AI Voice timeline + final render: 1080x1920, wrapped Burmese subtitles, subtitle cover, Padauk Myanmar font:",file);
