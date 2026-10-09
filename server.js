@@ -306,21 +306,6 @@ app.post("/api/tts",async(req,res)=>{
  }finally{try{fs.rmSync(dir,{recursive:true,force:true});}catch{}}
 });
 
-app.post("/api/voice-to-srt",async(req,res)=>{
- const key=keyOf(req),voiceId=String(req.body?.voiceId||"").replace(/[^a-zA-Z0-9_-]/g,"");
- if(!key)return res.status(400).json({error:"Groq API Key ထည့်ပါ။"});
- if(!voiceId||!voiceId.startsWith("voice-"))return res.status(400).json({error:"AI Voice မတွေ့ပါ။ Burmese Recap Script ကနေ AI Voice အရင်ထုတ်ပါ။"});
- const audioPath=path.join("work",voiceId+".wav");
- if(!fs.existsSync(audioPath))return res.status(404).json({error:"AI Voice ဖိုင်မတွေ့ပါ။ AI Voice ကို ပြန်ထုတ်ပါ။"});
- try{
-  const form=new FormData();form.append("file",new Blob([fs.readFileSync(audioPath)],{type:"audio/wav"}), "ai-voice.wav");form.append("model","whisper-large-v3-turbo");form.append("response_format","verbose_json");form.append("temperature","0");
-  const data=await groq("/audio/transcriptions",key,{method:"POST",body:form});
-  const spoken=String(data.text||"").trim();if(!spoken)throw new Error("AI Voice အသံထဲက စာသား မသိရှိနိုင်ပါ။");
-  const probe=await execFileAsync("ffprobe",["-v","error","-show_entries","format=duration","-of","default=noprint_wrappers=1:nokey=1",audioPath],{maxBuffer:1024*1024});const duration=Number(String(probe.stdout||"").trim());const srt=makeSrt(data.segments,spoken,duration);if(!validSrt(srt))throw new Error("AI Voice SRT မမှန်ကန်ပါ။");
-  fs.writeFileSync(path.join("work",voiceId+".srt"),srt,"utf8");
-  res.json({srt,text:spoken,segments:Array.isArray(data.segments)?data.segments.length:0,language:data.language||null});
- }catch(e){res.status(500).json({error:e instanceof Error?e.message:String(e)});}
-});
 app.post("/api/recap",async(req,res)=>{
  const key=keyOf(req),transcript=String(req.body?.transcript||"").trim(),style=String(req.body?.style||"natural storytelling"),length=String(req.body?.length||"auto");
  if(!key)return res.status(400).json({error:"Groq API Key ထည့်ပါ။"});if(!transcript)return res.status(400).json({error:"Transcript မရှိပါ။"});
