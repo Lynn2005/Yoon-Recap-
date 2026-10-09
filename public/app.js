@@ -160,8 +160,7 @@ if (voiceSrtButton) {
    const stamp=n=>{const ms=Math.max(0,Math.round(n*1000)),hh=Math.floor(ms/3600000),mm=Math.floor(ms%3600000/60000),ss=Math.floor(ms%60000/1000),mmm=ms%1000;return String(hh).padStart(2,"0")+":"+String(mm).padStart(2,"0")+":"+String(ss).padStart(2,"0")+","+String(mmm).padStart(3,"0");};
    let cursor=0;
    const draft=lines.map((line,i)=>{const begin=cursor;cursor+=Math.max(1.2,Array.from(line).length/5);return (i+1)+"\n"+stamp(begin)+" --> "+stamp(cursor)+"\n"+line;}).join("\n\n")+"\n";
-   const prepared=await apiJson(await fetch("/api/prepare-voice-srt",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({srt:draft,geminiKey:gemini()})}));
-   const s=String(prepared.srt||"").trim();if(!s)throw Error("AI Voice SRT မရပါ။");
+   const s=String(draft||"").trim();if(!s)throw Error("AI Voice SRT မရပါ။");
    voiceSrt=s+"\n";voiceSrtReady=true;$("burmeseSrt").value=voiceSrt;
    localStorage.setItem("yoon_voice_srt",voiceSrt);localStorage.setItem("yoon_burmese_srt",voiceSrt);localStorage.setItem("yoon_voice_srt_ready","1");
    status("trstatus","✅ AI Voice SRT ပြီးပါပြီ။ အခု STEP 05 မှာ ဒီ SRT အတိုင်း AI Voice ထုတ်ပါ။");
@@ -342,7 +341,7 @@ $("render").onclick=async e=>{e?.preventDefault();
    if(carry)lines.push(carry);
    const stamp=n=>{const ms=Math.max(0,Math.round(n*1000)),hh=Math.floor(ms/3600000),mm=Math.floor(ms%3600000/60000),ss=Math.floor(ms%60000/1000),mmm=ms%1000;return String(hh).padStart(2,"0")+":"+String(mm).padStart(2,"0")+":"+String(ss).padStart(2,"0")+","+String(mmm).padStart(3,"0");};
    let cursor=0;const draft=lines.map((line,i)=>{const start=cursor;cursor+=Math.max(1.2,Array.from(line).length/5);return (i+1)+"\n"+stamp(start)+" --> "+stamp(cursor)+"\n"+line;}).join("\n\n")+"\n";
-   const prepared=await json("/api/prepare-voice-srt",{srt:draft,geminiKey:gemini()});recapSrt=String(prepared.srt||"").trim();if(!recapSrt)throw Error("AI Voice SRT မရပါ။");done.push("subtitle");
+   recapSrt=draft.trim();if(!recapSrt)throw Error("AI Voice SRT မရပါ။");done.push("subtitle");
    progress(72,"Generating AI voice from prepared SRT",done);
    const dialogue=recapSrt.replace(/\r/g,"").split(/\n\\s*\n/).map(block=>{const a=block.split("\n"),ti=a.findIndex(x=>/-->/.test(x));return ti>=0?a.slice(ti+1).join(" ").trim():"";}).filter(Boolean).join("\n");
    const tts=await json("/api/tts",{text:dialogue,voice:$("oneVoice").value,rate:Number($("oneSpeed").value||1),maxChars});if(!tts.id)throw Error("AI Voice မရပါ။");done.push("voice","sync");
