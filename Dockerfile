@@ -12,10 +12,22 @@ COPY package.json ./
 RUN npm install --omit=dev --no-audit --no-fund
 COPY . .
 
-# Gemini 2.5 Flash is no longer available to new users.
-# Patch the existing server at image-build time to use current Gemini 3 Flash models.
-RUN sed -i 's/const GEMINI_MODELS=\["gemini-2\.5-flash","gemini-2\.0-flash","gemini-2\.5-flash-lite"\];/const GEMINI_MODELS=["gemini-3.8-flash","gemini-3.7-flash","gemini-3.6-flash","gemini-3.5-flash-lite"];/' server.js \
-    && sed -i 's/generationConfig:{temperature:\.2}/generationConfig:{}/' server.js
+# Gemini model compatibility patch.
+# Replace the model list in server.js regardless of its previous model version.
+RUN python3 - <<'PY'
+from pathlib import Path
+p=Path('server.js')
+s=p.read_text()
+start=s.find('const GEMINI_MODELS=')
+if start < 0:
+    raise SystemExit('GEMINI_MODELS declaration not found')
+end=s.find(';', start)
+if end < 0:
+    raise SystemExit('GEMINI_MODELS declaration end not found')
+s=s[:start]+'const GEMINI_MODELS=["gemini-3.8-flash","gemini-3.7-flash","gemini-3.6-flash","gemini-3.5-flash-lite"]'+s[end:]
+s=s.replace('generationConfig:{temperature:.2}','generationConfig:{}')
+p.write_text(s)
+PY
 
 RUN mkdir -p uploads work
 EXPOSE 10000
