@@ -231,9 +231,11 @@ async function runRenderJob(job){
   if(srt)fs.writeFileSync(srtPath,srt,"utf8");fs.writeFileSync(textPath,String(body?.text||"Myanmar Recap"),"utf8");
   const showText=body?.showText==="1",showBlur=body?.showBlur==="1",showLogo=body?.showLogo==="1";
   const fsx=Math.max(10,Math.min(100,Number(body?.fontSize||28))),tx=Math.max(5,Math.min(95,Number(body?.textX||50))),ty=Math.max(5,Math.min(95,Number(body?.textY||88)));
-  const bx=Math.max(5,Math.min(95,Number(body?.blurX||50))),by=Math.max(5,Math.min(95,Number(body?.blurY||82))),bw=Math.max(10,Math.min(100,Number(body?.blurW||90))),bh=Math.max(5,Math.min(80,Number(body?.blurH||22))),ba=Math.max(0,Math.min(24,Number(body?.blurAmount||8)));
+  const bx=Math.max(5,Math.min(95,Number(body?.blurX||50))),by=Math.max(5,Math.min(95,Number(body?.blurY||82))),bw=Math.max(10,Math.min(100,Number(body?.blurW||90))),bh=Math.max(5,Math.min(80,Number(body?.blurH||22))),ba=Math.max(0,Math.min(24,Number(body?.blurAmount??8)));
   const ls=Math.max(30,Math.min(500,Number(body?.logoSize||72))),lx=Math.max(5,Math.min(95,Number(body?.logoX||90))),ly=Math.max(5,Math.min(95,Number(body?.logoY||10)));
-  const fontFile=font?.path||MYANMAR_FONT_FILE;
+  const fontStyle=String(body?.fontStyle||"noto");
+  const sansFont=["/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf","/usr/share/fonts/dejavu/DejaVuSans.ttf","/usr/share/fonts/TTF/DejaVuSans.ttf"].find(fs.existsSync);
+  const fontFile=font?.path||(fontStyle==="sans"&&sansFont?sansFont:MYANMAR_FONT_FILE);
   const safeFilterValue=v=>String(v||"").trim().replace(/\\/g,"/").replace(/'/g,"\\'");
   const fontColor=/^#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?$/.test(String(body?.fontColor||""))?String(body.fontColor):"#ffffff";
   const borderColor=/^#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?$/.test(String(body?.borderColor||""))?String(body.borderColor):"#000000";
