@@ -1,0 +1,11 @@
+(()=>{'use strict';
+function boot(){const ed=document.getElementById('editorPreview');if(!ed)return;const v=ed.querySelector('#editVideo')||ed.querySelector('video');if(!v)return;
+const s=document.createElement('style');s.textContent=`#editorPreview{position:relative!important;width:min(100%,420px)!important;aspect-ratio:9/16!important;height:auto!important;min-height:0!important;max-height:80vh!important;margin:12px auto!important;overflow:hidden!important;background:#000!important}#editorPreview #editVideo,#editorPreview>video{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;object-fit:contain!important;display:block!important;background:#000!important;pointer-events:auto!important;z-index:1!important}#editorPreview .step3-object{z-index:10!important}#editorPreview .blur-layer{z-index:20!important}#editorPreview .text-preview{z-index:40!important}#editorPreview .logo-preview{z-index:50!important}#editorPreview .step3-handle,#editorPreview .touch-resize-handle{z-index:100!important}`;document.head.appendChild(s);
+v.controls=true;v.playsInline=true;v.setAttribute('playsinline','');v.setAttribute('webkit-playsinline','');
+v.addEventListener('loadedmetadata',()=>{v.style.objectFit='contain'},{passive:true});
+v.addEventListener('error',()=>{if(v.src&&!v.dataset.retry){v.dataset.retry='1';try{v.load()}catch{}}},{passive:true});
+const parent=ed.parentElement;parent?.querySelectorAll('.editor-preview-play,.live-preview-play').forEach(x=>x.remove());
+const b=document.createElement('button');b.type='button';b.className='editor-preview-play';b.textContent='▶ Preview';b.style.cssText='display:block;margin:6px auto 12px;min-height:40px;padding:8px 18px;border-radius:10px;border:1px solid #777;background:#222;color:#fff;font-weight:700;';b.onclick=async()=>{try{if(v.paused)await v.play();else v.pause()}catch{v.controls=true}};ed.insertAdjacentElement('afterend',b);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();[500,1200,2500].forEach(t=>setTimeout(boot,t));
+})();
