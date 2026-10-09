@@ -349,9 +349,11 @@ body>main.wrap>header>div{flex:1;min-width:0}
 /* Live Edit drag layers: keep overlays above video controls and allow reliable touch dragging */
 .editor-preview{position:relative;isolation:isolate;touch-action:pan-y;user-select:none;-webkit-user-select:none}
 .editor-preview video{position:relative;z-index:0;pointer-events:auto}
-.editor-preview .blur-layer{z-index:5}
-.editor-preview .text-preview{z-index:10}
-.editor-preview .logo-preview{z-index:20}
+/* Blur stays behind all text layers so captions remain readable over it */
+.editor-preview .blur-layer{z-index:5;pointer-events:auto}
+.editor-preview .text-preview{z-index:25}
+.editor-preview .subtitle-preview{z-index:26}
+.editor-preview .logo-preview{z-index:27}
 .editor-preview .text-resize-handle{z-index:30;pointer-events:auto}
 .editor-preview .blur-layer,.editor-preview .text-preview,.editor-preview .logo-preview{touch-action:none;-webkit-user-select:none;user-select:none}
 
