@@ -189,86 +189,67 @@ app.post("/api/prepare-voice-srt",async(req,res)=>{
 });
 
 app.post("/api/tts",async(req,res)=>{
- const inputSrt=String(req.body?.srt||"").trim();
  const rawText=String(req.body?.text||"").trim();
- const voice=String(req.body?.voice||"my-MM-NilarNeural");
+ const voice=String(req.body?.voice||"myanmar-female");
  const rate=Math.max(0.5,Math.min(1.5,Number(req.body?.rate||1)));
  const voiceName=voice==="myanmar-male"||voice==="my-MM-ThihaNeural"?"my-MM-ThihaNeural":"my-MM-NilarNeural";
- if(!inputSrt&&!rawText)return res.status(400).json({error:"AI Voice အတွက် စာသားမရှိပါ။"});
- const id="voice-"+Date.now()+"-"+Math.random().toString(36).slice(2,8),dir=path.join("work",id+"-parts"),out=path.join("work",id+".wav");
- function parseSrt(s){
-   return String(s||"").replace(/\r/g,"").split(/\n\s*\n/).map(block=>{
-     const lines=block.split("\n"),m=lines.findIndex(x=>/\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}/.test(x));
-     if(m<0)return null;
-     const tm=lines[m].match(/(\d{2}:\d{2}:\d{2},\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2},\d{3})/);
-     const sec=t=>{const [h,mi,rest]=t.split(":");const [se,ms]=rest.split(",");return +h*3600+ +mi*60+ +se+ +ms/1000};
-     return {start:sec(tm[1]),end:sec(tm[2]),text:lines.slice(m+1).join(" ").replace(/<[^>]+>/g,"").trim()};
-   }).filter(x=>x&&x.text);
- }
- function graphemes(s){return Array.from(new Intl.Segmenter("my",{granularity:"grapheme"}).segment(String(s||"")),x=>x.segment);}
- function split20(s,max=25){
-   const g=graphemes(String(s||"").replace(/\s+/g," ").trim()),out=[];let rest=g;
+ const maxChars=Math.max(15,Math.min(60,Number(req.body?.maxChars)||35));
+ if(!rawText)return res.status(400).json({error:"AI Voice အတွက် Burmese Recap Script စာသားမရှိပါ။"});
+ const id="voice-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);
+ const dir=path.join("work",id+"-parts");
+ const out=path.join("work",id+".wav");
+ function splitText(s,max){
+   const graphemes=Array.from(new Intl.Segmenter("my",{granularity:"grapheme"}).segment(String(s||"").replace(/\\s+/g," ").trim()),x=>x.segment);
+   const chunks=[];let rest=graphemes;
    while(rest.length>max){
      let cut=max;
-     for(let i=max;i>=Math.max(1,max-8);i--)if(/[\s၊၊။!?]/.test(rest[i-1])){cut=i;break;}
-     const part=rest.slice(0,cut).join("").trim();if(part)out.push(part);
-     rest=rest.slice(cut).join("").trim()?graphemes(rest.slice(cut).join("").trim()):[];
+     for(let i=max;i>=Math.max(1,max-8);i--){if(/[\\s၊။!?]/.test(rest[i-1])){cut=i;break;}}
+     const part=rest.slice(0,cut).join("").trim();if(part)chunks.push(part);
+     rest=Array.from(new Intl.Segmenter("my",{granularity:"grapheme"}).segment(rest.slice(cut).join("").trim()),x=>x.segment);
    }
-   if(rest.length)out.push(rest.join("").trim());
-   return out.filter(Boolean);
- }
- async function makeVoiceFile(text,index){
-   const mp3=path.join(dir,String(index).padStart(4,"0")+".mp3");
-   const tts=new MsEdgeTTS();
-   await tts.setMetadata(voiceName,OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3);
-   const edgeResult=await tts.toFile(dir,text,{rate});
-   const edgePath=edgeResult?.audioFilePath||edgeResult?.audioFile||edgeResult;
-   if(!edgePath||!fs.existsSync(edgePath))throw new Error("AI Voice audio file မဖန်တီးနိုင်ပါ။");
-   if(String(edgePath)!==mp3)fs.renameSync(edgePath,mp3);
-   const probe=await execFileAsync("ffprobe",["-v","error","-show_entries","format=duration","-of","default=noprint_wrappers=1:nokey=1",mp3],{maxBuffer:1024*1024});
-   return {path:mp3,duration:Math.max(0.05,Number(probe.stdout)||0)};
+   if(rest.length){const part=rest.join("").trim();if(part)chunks.push(part);}
+   return chunks;
  }
  try{
    fs.mkdirSync(dir,{recursive:true});
-   const sourceBlocks=parseSrt(inputSrt);
-   const blocks=sourceBlocks.length?sourceBlocks:[{start:0,end:0,text:rawText}];
-   // Prepare all subtitle chunks first, then generate up to 3 voice files at once.
-   // This avoids waiting for every single subtitle request sequentially.
-   const jobs=[];
-   for(let bi=0;bi<blocks.length;bi++){
-     const maxChars=Math.max(15,Math.min(60,Number(req.body?.maxChars)||35));
-     const parts=split20(blocks[bi].text,maxChars);
-     for(const part of parts)jobs.push({text:part,index:jobs.length});
-   }
-   if(!jobs.length)throw new Error("AI Voice အတွက် စာသားမရှိပါ။");
-   const made=new Array(jobs.length);
-   let nextJob=0;
-   const worker=async()=>{
-     while(true){
-       const j=nextJob++;
-       if(j>=jobs.length)return;
-       made[j]=await makeVoiceFile(jobs[j].text,jobs[j].index);
-     }
-   };
-   await Promise.all(Array.from({length:Math.min(3,jobs.length)},()=>worker()));
-   const audioParts=made.map(x=>x.path),voiceBlocks=[];
-   let cursor=0;
+   const jobs=splitText(rawText,maxChars);
+   if(!jobs.length)throw new Error("AI Voice အတွက် ဖတ်စရာစာသားမရှိပါ။");
+   const made=[];
+   // Every chunk gets its own folder: the TTS library's default output filename
+   // must never collide between concurrent requests.
    for(let i=0;i<jobs.length;i++){
-     const dur=made[i].duration;
-     voiceBlocks.push({start:cursor,text:jobs[i].text,duration:Math.max(0.05,dur)});
-     cursor+=dur;
+     const chunkDir=path.join(dir,String(i).padStart(4,"0"));
+     fs.mkdirSync(chunkDir,{recursive:true});
+     const tts=new MsEdgeTTS();
+     await tts.setMetadata(voiceName,OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3);
+     const result=await tts.toFile(chunkDir,jobs[i],{rate});
+     let audioPath=typeof result==="string"?result:(result?.audioFilePath||result?.audioFile||result?.path||"");
+     if(!audioPath||!fs.existsSync(audioPath)){
+       const candidates=fs.readdirSync(chunkDir).filter(n=>/\\.(mp3|wav|webm|mp4)$/i.test(n));
+       if(candidates.length===1)audioPath=path.join(chunkDir,candidates[0]);
+     }
+     if(!audioPath||!fs.existsSync(audioPath)||fs.statSync(audioPath).size<100)throw new Error("AI Voice chunk "+(i+1)+" အသံဖိုင်မထွက်လာပါ။");
+     const probe=await execFileAsync("ffprobe",["-v","error","-show_entries","format=duration","-of","default=noprint_wrappers=1:nokey=1",audioPath],{maxBuffer:1024*1024});
+     const duration=Number(String(probe.stdout||"").trim());
+     if(!Number.isFinite(duration)||duration<=0)throw new Error("AI Voice chunk "+(i+1)+" အသံကြာချိန် မရပါ။");
+     made.push({path:audioPath,text:jobs[i],duration});
    }
-   if(audioParts.length===1){
-     await execFileAsync("ffmpeg",["-y","-i",audioParts[0],"-ac","1","-ar","22050","-c:a","pcm_s16le",out],{maxBuffer:5*1024*1024});
+   if(made.length===1){
+     await execFileAsync("ffmpeg",["-y","-i",made[0].path,"-vn","-ac","1","-ar","22050","-c:a","pcm_s16le",out],{maxBuffer:10*1024*1024});
    }else{
      const listFile=path.join(dir,"concat.txt");
-     fs.writeFileSync(listFile,audioParts.map(p=>"file '"+path.resolve(p).replace(/'/g,"'\\''")+"'").join("\n"),"utf8");
-     await execFileAsync("ffmpeg",["-y","-f","concat","-safe","0","-i",listFile,"-ac","1","-ar","22050","-c:a","pcm_s16le",out],{maxBuffer:10*1024*1024});
+     fs.writeFileSync(listFile,made.map(x=>"file '"+path.resolve(x.path).replace(/'/g,"'\\''")+"'").join("\\n"),"utf8");
+     await execFileAsync("ffmpeg",["-y","-f","concat","-safe","0","-i",listFile,"-vn","-ac","1","-ar","22050","-c:a","pcm_s16le",out],{maxBuffer:20*1024*1024});
    }
-   let t=0;
-   const voiceSrt=voiceBlocks.map((x,i)=>{const st=t;t+=x.duration;return (i+1)+"\n"+srtTime(st)+" --> "+srtTime(t)+"\n"+x.text}).join("\n\n")+"\n";
-   res.json({id,url:"/media/"+path.basename(out),srt:voiceSrt,voiceSrt,chunks:voiceBlocks.length,voice:voiceName,rate,maxCharsPerLine:maxChars,provider:"Microsoft Edge AI TTS — Free"});
+   if(!fs.existsSync(out)||fs.statSync(out).size<1000)throw new Error("AI Voice WAV ဖိုင်အလွတ်ဖြစ်နေပါတယ်။");
+   const finalProbe=await execFileAsync("ffprobe",["-v","error","-select_streams","a:0","-show_entries","stream=codec_name,sample_rate,channels","-of","json",out],{maxBuffer:1024*1024});
+   const audioInfo=JSON.parse(finalProbe.stdout||"{}");
+   if(!audioInfo.streams?.length)throw new Error("ဖန်တီးထားတဲ့ WAV ထဲမှာ audio stream မပါပါ။");
+   let cursor=0;
+   const voiceSrt=made.map((x,i)=>{const begin=cursor;cursor+=x.duration;return (i+1)+"\\n"+srtTime(begin)+" --> "+srtTime(cursor)+"\\n"+x.text;}).join("\\n\\n")+"\\n";
+   res.json({id,url:"/media/"+path.basename(out),srt:voiceSrt,voiceSrt,chunks:made.length,duration:cursor,voice:voiceName,rate,maxCharsPerLine:maxChars,provider:"Microsoft Edge AI TTS — Free",audioBytes:fs.statSync(out).size});
  }catch(e){
+   console.error("[/api/tts] AI Voice generation failed:",e?.stack||e);
    res.status(500).json({error:e instanceof Error?e.message:String(e)});
  }finally{try{fs.rmSync(dir,{recursive:true,force:true});}catch{}}
 });
