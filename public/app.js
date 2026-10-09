@@ -41,114 +41,96 @@ $("voiceSpeed").addEventListener("input",()=>$("voiceSpeedValue").textContent=Nu
 
 $("makeVoice").onclick=async()=>{const srtInput=$("burmeseSrt").value.trim();if(!srtInput)return status("vstatus","⚠️ Burmese SRT အရင်ထုတ်ပါ။");const text=srtInput.replace(/\d+\s*\n\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}\s*\n/g,"").replace(/\n{2,}/g,"\n").trim();const b=$("makeVoice");b.disabled=true;status("vstatus","⏳ Free Burmese AI Voice ထုတ်နေပါတယ်...");try{const d=await apiJson(await fetch("/api/tts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text,srt:srtInput,voice:$("voice").value,rate:Number($("voiceSpeed").value||1)})}));voiceId=d.id;voiceUrl=d.url;voiceUploadFile=null;const vu=$("voiceUpload");if(vu)vu.value="";localStorage.setItem("yoon_voice_id",voiceId);localStorage.setItem("yoon_voice_url",voiceUrl);$("voicePreview").src=voiceUrl;$("voicePreview").hidden=false;status("vstatus","✅ AI Voice ပြီးပါပြီ။ External SRT ရှိရင် subtitles ထိုးပါမယ်။")}catch(e){status("vstatus","❌ "+e.message)}finally{b.disabled=false}};
 
-const showText=$("showText"),showBlur=$("showBlur"),showLogo=$("showLogo"),textControls=$("textControls"),blurControls=$("blurControls"),logoControls=$("logoControls"),textPreview=$("textPreview"),blurLayer=$("blurLayer"),logoPreview=$("logoPreview");
-let active=null;let activeOption=showText;
-function update(){textPreview.textContent=$("editText").value||"";const fs=$("fontStyle").value;textPreview.style.fontFamily=fs==="sans"?"sans-serif":fs==="eka"?"Eka03Custom, Noto Sans Myanmar, sans-serif":"Noto Sans Myanmar, sans-serif";textPreview.style.color=$("textColor").value;textPreview.style.webkitTextStroke=Math.max(0,Number($("borderWidth").value||0))+"px "+$("borderColor").value;textPreview.style.textShadow="none";textPreview.style.fontSize=$("fontSize").value+"px";textPreview.style.left=$("textX").value+"%";textPreview.style.top=$("textY").value+"%";textPreview.style.fontWeight=$("textWeight").value;textPreview.style.width="fit-content";textPreview.style.height="fit-content";textPreview.style.maxWidth="92%";$("fontValue").textContent=$("fontSize").value;$("borderWidthValue").textContent=$("borderWidth").value;$("textWeightValue").textContent=$("textWeight").value;$("textXValue").textContent=$("textX").value;$("textYValue").textContent=$("textY").value;
-blurLayer.style.left=(+$("blurX").value-(+$("blurW").value/2))+"%";blurLayer.style.top=$("blurY").value+"%";blurLayer.style.width=$("blurW").value+"%";blurLayer.style.height=$("blurH").value+"%";blurLayer.style.transform="translateY(-50%)";blurLayer.style.backdropFilter="blur("+$("blurAmount").value+"px)";blurLayer.style.webkitBackdropFilter="blur("+$("blurAmount").value+"px)";$("blurValue").textContent=$("blurAmount").value;$("blurXValue").textContent=$("blurX").value;$("blurYValue").textContent=$("blurY").value;$("blurWValue").textContent=$("blurW").value;$("blurHValue").textContent=$("blurH").value;
-logoPreview.style.width=$("logoSize").value+"px";logoPreview.style.height=$("logoSize").value+"px";logoPreview.style.left=$("logoX").value+"%";logoPreview.style.top=$("logoY").value+"%";logoPreview.style.right="auto";logoPreview.style.transform="translate(-50%,-50%)";$("logoValue").textContent=$("logoSize").value;$("logoXValue").textContent=$("logoX").value;$("logoYValue").textContent=$("logoY").value;
-textPreview.style.display=showText.checked?"block":"none";blurLayer.style.display=showBlur.checked?"block":"none";const hasLogo=!!logoPreview.getAttribute("src");logoPreview.hidden=!(showLogo.checked&&hasLogo);logoPreview.style.display=showLogo.checked&&hasLogo?"block":"none";
-textControls.hidden=!(activeOption===showText && showText.checked);blurControls.hidden=!(activeOption===showBlur && showBlur.checked);logoControls.hidden=!(activeOption===showLogo && showLogo.checked);
-}
-function selectEditorOption(selected){
-  // Always switch the visible panel to the option the user just touched.
-  if(typeof selected==="string") selected=$(selected==="blur"?"showBlur":selected==="logo"?"showLogo":"showText");
-  if(!selected)return;
-  if(selected.checked) activeOption=selected;
-  else if(activeOption===selected){
-    activeOption=showText.checked?showText:showBlur.checked?showBlur:showLogo.checked?showLogo:null;
-  }
-  active=selected.checked?selected:null;
-  update();
-}
-// Expose a stable handler for mobile browsers and inline checkbox events.
-window.yoonSelectEditorOption=selectEditorOption;
-[showText,showBlur,showLogo].forEach(option=>{
-  // Mobile browsers sometimes update the label/checkbox without reliably switching
-  // the active panel; handle both click and change after the checked state settles.
-  option.addEventListener("click",()=>{queueMicrotask(()=>selectEditorOption(option));});
-  option.addEventListener("change",()=>selectEditorOption(option));
-});
-
-document.querySelectorAll("#textControls input,#blurControls input,#logoControls input").forEach(x=>{if(x.id==="textY"){x.addEventListener("input",()=>{textPreview.style.top=x.value+"%";$("textYValue").textContent=x.value})}else{x.addEventListener("input",update)}});
-$("editText").addEventListener("input",update);["fontStyle","textColor","borderColor","borderWidth"].forEach(id=>$(id).addEventListener("input",update));
-$("fontFile").onchange=e=>{fontFile=e.target.files?.[0]||null;if(fontFile){customFontUrl=URL.createObjectURL(fontFile);let st=document.getElementById("customFontStyle");if(!st){st=document.createElement("style");st.id="customFontStyle";document.head.appendChild(st)}st.textContent="@font-face{font-family:Eka03Custom;src:url(\""+customFontUrl+"\")}";$("fontStyle").value="eka";update()}};
-$("logoFile").onchange=e=>{logoFile=e.target.files?.[0]||null;if(logoFile){const previous=logoPreview.dataset.objectUrl;if(previous)URL.revokeObjectURL(previous);const objectUrl=URL.createObjectURL(logoFile);logoPreview.dataset.objectUrl=objectUrl;logoPreview.src=objectUrl;logoPreview.hidden=false;showLogo.checked=true;activeOption=showLogo;active=showLogo;selectEditorOption(showLogo)}else{const previous=logoPreview.dataset.objectUrl;if(previous)URL.revokeObjectURL(previous);delete logoPreview.dataset.objectUrl;logoPreview.removeAttribute("src");logoPreview.hidden=true;update()}};
-update();
-
-function dragElement(el,type,xId,yId){
-  el.style.touchAction="none";
-  el.addEventListener("pointerdown",e=>{
-    const enabled=$(type==="blur"?"showBlur":type==="text"?"showText":"showLogo").checked;
-    if(!enabled)return;
-    if(type==="text" && e.target===textResizeHandle)return;
-    e.preventDefault();
-    e.stopPropagation();
-    const box=$("editorPreview").getBoundingClientRect();
-    const startX=e.clientX,startY=e.clientY;
-    const ox=Number($(xId).value),oy=Number($(yId).value);
-    try{el.setPointerCapture(e.pointerId)}catch{}
-    const move=ev=>{
-      const dx=(ev.clientX-startX)/Math.max(1,box.width)*100;
-      const dy=(ev.clientY-startY)/Math.max(1,box.height)*100;
-      $(xId).value=Math.max(0,Math.min(100,ox+dx));
-      $(yId).value=Math.max(0,Math.min(100,oy+dy));
-      update();
-    };
-    const end=()=>{
-      el.removeEventListener("pointermove",move);
-      el.removeEventListener("pointerup",end);
-      el.removeEventListener("pointercancel",end);
-      try{el.releasePointerCapture(e.pointerId)}catch{}
-    };
-    el.addEventListener("pointermove",move);
-    el.addEventListener("pointerup",end);
-    el.addEventListener("pointercancel",end);
-  });
-}
-// Text ကို Blur box လို yellow boundary + corner resize နဲ့ တိုက်ရိုက်ပြင်နိုင်စေမယ်
+const showText=$("showText"),showBlur=$("showBlur"),showLogo=$("showLogo");
+const textControls=$("textControls"),blurControls=$("blurControls"),logoControls=$("logoControls");
+const editorPreview=$("editorPreview"),textPreview=$("textPreview"),blurLayer=$("blurLayer"),logoPreview=$("logoPreview");
+let activeOption=showText,fontFile=null,customFontUrl=null,logoFile=null,voiceUploadFile=null;
+let textLabel=textPreview.querySelector(".text-preview-label");
+if(!textLabel){textLabel=document.createElement("span");textLabel.className="text-preview-label";textPreview.replaceChildren(textLabel);}
 const textResizeHandle=document.createElement("div");
-textResizeHandle.className="text-resize-handle";
-textResizeHandle.title="Resize text";
+textResizeHandle.className="text-resize-handle";textResizeHandle.title="Resize text";textResizeHandle.setAttribute("aria-label","Resize text");
 textPreview.appendChild(textResizeHandle);
 
-dragElement(textPreview,"text","textX","textY");
-dragElement(blurLayer,"blur","blurX","blurY");
-dragElement(logoPreview,"logo","logoX","logoY");
-
-textResizeHandle.addEventListener("pointerdown",e=>{
-  if(!showText.checked)return;
-  e.preventDefault();
-  e.stopPropagation();
-  textResizeHandle.setPointerCapture?.(e.pointerId);
-  const box=$("editorPreview").getBoundingClientRect();
-  const startX=e.clientX,startY=e.clientY;
-  const startSize=Number($("fontSize").value);
+function update(){
+ const val=id=>$(id)?.value??"";
+ textLabel.textContent=val("editText");
+ const fs=val("fontStyle");
+ textPreview.style.fontFamily=fs==="sans"?"sans-serif":fs==="eka"?"Eka03Custom, 'Noto Sans Myanmar', sans-serif":"'Noto Sans Myanmar', sans-serif";
+ textPreview.style.color=val("textColor");
+ textPreview.style.webkitTextStroke=Math.max(0,Number(val("borderWidth")||0))+"px "+val("borderColor");
+ textPreview.style.textShadow="none";textPreview.style.fontSize=val("fontSize")+"px";
+ textPreview.style.left=val("textX")+"%";textPreview.style.top=val("textY")+"%";
+ textPreview.style.fontWeight=val("textWeight");textPreview.style.width="max-content";textPreview.style.height="auto";textPreview.style.maxWidth="92%";
+ $("fontValue").textContent=val("fontSize");$("borderWidthValue").textContent=val("borderWidth");$("textWeightValue").textContent=val("textWeight");$("textXValue").textContent=val("textX");$("textYValue").textContent=val("textY");
+ const bw=Number(val("blurW")||90),bh=Number(val("blurH")||22);
+ blurLayer.style.left=(Number(val("blurX")||50)-bw/2)+"%";blurLayer.style.top=val("blurY")+"%";
+ blurLayer.style.width=bw+"%";blurLayer.style.height=bh+"%";blurLayer.style.transform="translateY(-50%)";
+ blurLayer.style.backdropFilter="blur("+val("blurAmount")+"px)";blurLayer.style.webkitBackdropFilter="blur("+val("blurAmount")+"px)";
+ $("blurValue").textContent=val("blurAmount");$("blurXValue").textContent=val("blurX");$("blurYValue").textContent=val("blurY");$("blurWValue").textContent=val("blurW");$("blurHValue").textContent=val("blurH");
+ logoPreview.style.width=val("logoSize")+"px";logoPreview.style.height=val("logoSize")+"px";logoPreview.style.left=val("logoX")+"%";logoPreview.style.top=val("logoY")+"%";logoPreview.style.right="auto";logoPreview.style.transform="translate(-50%,-50%)";
+ $("logoValue").textContent=val("logoSize");$("logoXValue").textContent=val("logoX");$("logoYValue").textContent=val("logoY");
+ textPreview.style.display=showText.checked?"block":"none";blurLayer.style.display=showBlur.checked?"block":"none";
+ const hasLogo=!!logoPreview.getAttribute("src");logoPreview.hidden=!(showLogo.checked&&hasLogo);logoPreview.style.display=showLogo.checked&&hasLogo?"block":"none";
+ textControls.hidden=!(activeOption===showText&&showText.checked);blurControls.hidden=!(activeOption===showBlur&&showBlur.checked);logoControls.hidden=!(activeOption===showLogo&&showLogo.checked);
+}
+window.update=update;
+function selectEditorOption(which){
+ const selected=typeof which==="string"?$(which==="blur"?"showBlur":which==="logo"?"showLogo":"showText"):which;
+ if(!selected)return;
+ if(selected.checked)activeOption=selected;
+ else if(activeOption===selected)activeOption=showText.checked?showText:showBlur.checked?showBlur:showLogo.checked?showLogo:showText;
+ update();
+}
+window.yoonSelectEditorOption=selectEditorOption;
+[showText,showBlur,showLogo].forEach(option=>{
+ option.addEventListener("change",()=>selectEditorOption(option));
+ option.addEventListener("click",()=>requestAnimationFrame(()=>selectEditorOption(option)));
+});
+document.querySelectorAll("#textControls input,#blurControls input,#logoControls input").forEach(el=>{if(el.type!=="file")el.addEventListener("input",update);});
+["editText","fontStyle","textColor","borderColor","borderWidth"].forEach(id=>$(id).addEventListener("input",update));
+$("fontFile").addEventListener("change",e=>{
+ fontFile=e.target.files?.[0]||null;if(!fontFile)return;
+ if(customFontUrl)URL.revokeObjectURL(customFontUrl);customFontUrl=URL.createObjectURL(fontFile);
+ let style=document.getElementById("customFontStyle");if(!style){style=document.createElement("style");style.id="customFontStyle";document.head.appendChild(style);}
+ style.textContent="@font-face{font-family:Eka03Custom;src:url('"+customFontUrl+"')}";$("fontStyle").value="eka";update();
+});
+$("logoFile").addEventListener("change",e=>{
+ const next=e.target.files?.[0]||null;
+ if(!next){if(logoPreview.dataset.objectUrl)URL.revokeObjectURL(logoPreview.dataset.objectUrl);delete logoPreview.dataset.objectUrl;logoPreview.removeAttribute("src");logoFile=null;update();return;}
+ if(logoPreview.dataset.objectUrl)URL.revokeObjectURL(logoPreview.dataset.objectUrl);
+ logoFile=next;const url=URL.createObjectURL(next);logoPreview.dataset.objectUrl=url;logoPreview.src=url;showLogo.checked=true;activeOption=showLogo;update();
+});
+function attachDrag(el,type,xId,yId){
+ el.style.touchAction="none";
+ el.addEventListener("pointerdown",e=>{
+  if(!(type==="text"?showText.checked:type==="blur"?showBlur.checked:showLogo.checked))return;
+  if(type==="text"&&e.target.closest(".text-resize-handle"))return;
+  if(e.button!==undefined&&e.button!==0)return;
+  e.preventDefault();e.stopPropagation();
+  const rect=editorPreview.getBoundingClientRect(),sx=e.clientX,sy=e.clientY,ox=Number($(xId).value),oy=Number($(yId).value);
+  try{el.setPointerCapture(e.pointerId)}catch{}
   const move=ev=>{
-    const dx=(ev.clientX-startX)/box.width*100;
-    const dy=(ev.clientY-startY)/box.height*100;
-    const next=Math.max(14,Math.min(96,startSize+Math.round((dx+dy)*0.45)));
-    $("fontSize").value=next;
-    update();
+   const dx=(ev.clientX-sx)/Math.max(1,rect.width)*100,dy=(ev.clientY-sy)/Math.max(1,rect.height)*100;
+   const minX=type==="blur"?Number($("blurW").value)/2:0,maxX=type==="blur"?100-Number($("blurW").value)/2:100;
+   $(xId).value=Math.max(minX,Math.min(maxX,ox+dx));$(yId).value=Math.max(0,Math.min(100,oy+dy));update();
   };
   const end=ev=>{
-    textResizeHandle.releasePointerCapture?.(ev.pointerId);
-    textResizeHandle.removeEventListener("pointermove",move);
-    textResizeHandle.removeEventListener("pointerup",end);
-    textResizeHandle.removeEventListener("pointercancel",end);
+   el.removeEventListener("pointermove",move);el.removeEventListener("pointerup",end);el.removeEventListener("pointercancel",end);
+   try{if(el.hasPointerCapture?.(ev.pointerId))el.releasePointerCapture(ev.pointerId)}catch{}
   };
-  textResizeHandle.addEventListener("pointermove",move);
-  textResizeHandle.addEventListener("pointerup",end);
-  textResizeHandle.addEventListener("pointercancel",end);
+  el.addEventListener("pointermove",move);el.addEventListener("pointerup",end);el.addEventListener("pointercancel",end);
+ });
+}
+attachDrag(textPreview,"text","textX","textY");attachDrag(blurLayer,"blur","blurX","blurY");attachDrag(logoPreview,"logo","logoX","logoY");
+textResizeHandle.addEventListener("pointerdown",e=>{
+ if(!showText.checked||e.button!==0)return;e.preventDefault();e.stopPropagation();
+ const rect=editorPreview.getBoundingClientRect(),sx=e.clientX,sy=e.clientY,start=Number($("fontSize").value);
+ try{textResizeHandle.setPointerCapture(e.pointerId)}catch{}
+ const move=ev=>{const dx=(ev.clientX-sx)/Math.max(1,rect.width)*100,dy=(ev.clientY-sy)/Math.max(1,rect.height)*100;$("fontSize").value=Math.max(10,Math.min(64,start+Math.round((dx+dy)*.5)));update();};
+ const end=ev=>{textResizeHandle.removeEventListener("pointermove",move);textResizeHandle.removeEventListener("pointerup",end);textResizeHandle.removeEventListener("pointercancel",end);try{if(textResizeHandle.hasPointerCapture?.(ev.pointerId))textResizeHandle.releasePointerCapture(ev.pointerId)}catch{}};
+ textResizeHandle.addEventListener("pointermove",move);textResizeHandle.addEventListener("pointerup",end);textResizeHandle.addEventListener("pointercancel",end);
 });
-
-$("finishKeep")?.addEventListener("click",()=>{
-  const ids=["editText","fontSize","textX","textY","textWeight","blurAmount","blurX","blurY","blurW","blurH","logoFile","logoSize","logoX","logoY","showText","showBlur","showLogo"];
-  ids.forEach(id=>{const el=$(id);if(el)el.disabled=true});
-  $("finishKeep").disabled=true;
-  $("finishStatus").textContent="✅ ရပြီ — လက်ရှိ setting အတိုင်း lock လုပ်ထားပါပြီ။";
-  $("finishStatus").style.color="#16a34a";
-  $("previewUpdate").disabled=true;
-});
+update();
 
 $("render").onclick=async e=>{e?.preventDefault();
  const srt=voiceSrt.trim();if(!file)return status("fstatus","⚠️ Video ရွေးပါ။");
