@@ -42,15 +42,24 @@ async function prepareVoiceSrtAutomatically(srt,auto=false){
 async function translateSrtAutomatically(srt,auto=false){
  srt=(srt||"").trim();if(!srt){status("trstatus","⚠️ Original SRT အရင်ထုတ်ပါ။");return false;}
  if(!gemini()){const msg="⚠️ Options ထဲမှာ Gemini API Key ထည့်ပြီး Save လုပ်ပါ။";status("trstatus",msg);if(auto)status("tstatus",msg);return false;}
- const b=$("translate");if(b)b.disabled=true;const working="⏳ Original SRT ကို မြန်မာဘာသာပြန်နေပါတယ်...";
- status("trstatus",working);if(auto)status("tstatus",working);
+ const b=$("translate");if(b)b.disabled=true;
  try{
-  const d=await apiJson(await fetch("/api/translate-srt",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({geminiKey:gemini(),srt})}));
-  const burmese=(d.srt||"").trim();if(!burmese)throw Error("မြန်မာဘာသာပြန် SRT မရပါ။");
+  const blocks=srt.replace(/\r/g,"").split(/\n\s*\n/).map(x=>x.trim()).filter(Boolean);
+  if(!blocks.length)throw Error("Original SRT မဖတ်နိုင်ပါ။");
+  const batchSize=12,total=Math.ceil(blocks.length/batchSize),translated=[];
   voiceSrtReady=false;localStorage.removeItem("yoon_voice_srt_ready");
+  for(let i=0;i<total;i++){
+   const batch=blocks.slice(i*batchSize,(i+1)*batchSize).join("\n\n");
+   const msg="⏳ မြန်မာဘာသာပြန်နေပါတယ်... ("+(i+1)+"/"+total+")";
+   status("trstatus",msg);if(auto)status("tstatus",msg);
+   const d=await apiJson(await fetch("/api/translate-srt",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({geminiKey:gemini(),srt:batch})}));
+   const part=(d.srt||"").trim();if(!part)throw Error("SRT အပိုင်း "+(i+1)+" ကို ဘာသာမပြန်နိုင်ပါ။");
+   translated.push(part);
+  }
+  const burmese=translated.join("\n\n")+"\n";
   $("burmeseSrt").value=burmese;localStorage.setItem("yoon_burmese_srt",burmese);
   return await prepareVoiceSrtAutomatically(burmese,auto);
- }catch(e){const msg="❌ SRT ပြောင်းမအောင်မြင်ပါ — "+e.message;status("trstatus",msg);if(auto)status("tstatus",msg);return false}
+ }catch(e){const msg="❌ Auto Translate မအောင်မြင်ပါ — "+e.message;status("trstatus",msg);if(auto)status("tstatus",msg);return false}
  finally{if(b)b.disabled=false}
 }
 $("transcribe").onclick=async()=>{if(!file)return status("tstatus","⚠️ Video ရွေးပါ။");if(!groq())return status("tstatus","⚠️ Groq API Key ထည့်ပါ။");const b=$("transcribe");b.disabled=true;status("tstatus","⏳ Audio extract → Whisper → Original SRT ထုတ်နေပါတယ်...");try{const f=new FormData();f.append("video",file);f.append("groqKey",groq());const d=await apiJson(await fetch("/api/transcribe",{method:"POST",body:f}));$("originalSrt").value=d.srt||"";localStorage.setItem("yoon_original_srt",$("originalSrt").value);status("tstatus","✅ Original SRT ပြီးပါပြီ။");await translateSrtAutomatically($("originalSrt").value,true)}catch(e){status("tstatus","❌ "+e.message)}finally{b.disabled=false}};
