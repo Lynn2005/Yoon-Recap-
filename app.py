@@ -353,7 +353,7 @@ with tabs[3]:
                         sp=root/"burmese.srt"; sp.write_text(st.session_state.burmese_srt,encoding="utf-8-sig")
                         align=2 if pos=="အောက်" else 8
                         margin_v=max(0,int((100-subtitle_y if pos=="အောက်" else subtitle_y)*720/100))
-                        filters.append(f"subtitles='{esc(sp)}':charenc=UTF-8:force_style='FontName=Noto Sans Myanmar,FontSize={max(8,int(fontsize*lp["subtitle"]["scale"]))},Outline=2,Shadow=1,Alignment={align},MarginV={margin_v}'")
+                        filters.append(f"subtitles='{esc(sp)}':charenc=UTF-8:force_style='FontName=Noto Sans Myanmar,FontSize={max(8,int(fontsize*st.session_state.live_positions['subtitle']['scale']))},Outline=2,Shadow=1,Alignment={align},MarginV={margin_v}'")
                     fp=font()
                     if text.strip() and fp:
                         safe=text.replace("\\","\\\\").replace(":","\\:").replace("'","\\'").replace("%","\\%")
@@ -369,7 +369,7 @@ with tabs[3]:
                     if logo:
                         lp=root/("logo"+(Path(logo.name).suffix or ".png")); lp.write_bytes(logo.getvalue())
                         args += ["-i",str(lp)]
-                        graph.append(f"[2:v]scale=iw*{0.18*lp['logo']['scale']:.4f}:-1[lg];{video_base}[lg]overlay=W*{logo_x/100:.3f}:H*{logo_y/100:.3f}[vout]")
+                        graph.append(f"[2:v]scale=iw*{0.18*st.session_state.live_positions['logo']['scale']:.4f}:-1[lg];{video_base}[lg]overlay=W*{logo_x/100:.3f}:H*{logo_y/100:.3f}[vout]")
                     else: graph.append(f"{video_base}null[vout]")
                     if mix: graph.append(f"[0:a]volume={vol/100:.2f}[bg];[bg][1:a]amix=inputs=2:duration=first:dropout_transition=2[aout]")
                     args += ["-filter_complex",";".join(graph),"-map","[vout]"]
