@@ -290,9 +290,17 @@ async function runRenderJob(job){
  try{
   if(srt)fs.writeFileSync(srtPath,srt,"utf8");fs.writeFileSync(textPath,String(body?.text||"Myanmar Recap"),"utf8");
   const showText=body?.showText==="1",showBlur=body?.showBlur==="1",showLogo=body?.showLogo==="1";
-  const fsx=Math.max(10,Math.min(100,Number(body?.fontSize||28))),tx=Math.max(5,Math.min(95,Number(body?.textX||50))),ty=Math.max(5,Math.min(95,Number(body?.textY||88)));
-  const bx=Math.max(5,Math.min(95,Number(body?.blurX||50))),by=Math.max(5,Math.min(95,Number(body?.blurY||82))),bw=Math.max(10,Math.min(100,Number(body?.blurW||90))),bh=Math.max(5,Math.min(80,Number(body?.blurH||22))),ba=Math.max(0,Math.min(24,Number(body?.blurAmount??8)));
-  const ls=Math.max(30,Math.min(500,Number(body?.logoSize||72))),lx=Math.max(5,Math.min(95,Number(body?.logoX||90))),ly=Math.max(5,Math.min(95,Number(body?.logoY||10)));
+  // Match CSS-pixel editor controls to the actual FFmpeg output pixel dimensions.
+  const inputProbe=JSON.parse((await execFileAsync("ffprobe",["-v","error","-select_streams","v:0","-show_entries","stream=width,height","-of","json",video.path],{maxBuffer:1024*1024})).stdout);
+  const sourceWidth=Number(inputProbe.streams?.[0]?.width||720),sourceHeight=Number(inputProbe.streams?.[0]?.height||1280);
+  const outputScale=Math.min(1280/sourceWidth,1280/sourceHeight);
+  const outputWidth=Math.max(2,Math.round(sourceWidth*outputScale/2)*2);
+  const previewWidth=Math.max(1,Number(body?.previewWidth||360));
+  const renderScale=outputWidth/previewWidth;
+  const px=n=>Math.max(0,Math.round(Number(n||0)*renderScale));
+  const fsx=Math.max(10,Math.min(300,px(body?.fontSize||28))),tx=Math.max(5,Math.min(95,Number(body?.textX||50))),ty=Math.max(5,Math.min(95,Number(body?.textY||88)));
+  const bx=Math.max(5,Math.min(95,Number(body?.blurX||50))),by=Math.max(5,Math.min(95,Number(body?.blurY||82))),bw=Math.max(10,Math.min(100,Number(body?.blurW||90))),bh=Math.max(5,Math.min(80,Number(body?.blurH||22))),ba=Math.max(0,Math.min(80,px(body?.blurAmount??8)));
+  const ls=Math.max(30,Math.min(600,px(body?.logoSize||72))),lx=Math.max(5,Math.min(95,Number(body?.logoX||90))),ly=Math.max(5,Math.min(95,Number(body?.logoY||10)));
   const fontStyle=String(body?.fontStyle||"noto");
   const textWeight=Math.max(100,Math.min(900,Number(body?.textWeight||800)));
   const sansFont=["/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf","/usr/share/fonts/dejavu/DejaVuSans.ttf","/usr/share/fonts/TTF/DejaVuSans.ttf"].find(fs.existsSync);
@@ -301,7 +309,11 @@ async function runRenderJob(job){
   const safeFilterValue=v=>String(v||"").trim().replace(/\\/g,"/").replace(/'/g,"\\'");
   const fontColor=/^#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?$/.test(String(body?.fontColor||""))?String(body.fontColor):"#ffffff";
   const borderColor=/^#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?$/.test(String(body?.borderColor||""))?String(body.borderColor):"#000000";
-  const borderWidth=Math.max(0,Math.min(12,Number(body?.borderWidth??3)));
+  const borderWidth=Math.max(0,Math.min(30,px(body?.borderWidth??3)));
+  const subtitleFontSize=Math.max(10,Math.min(300,px(body?.subtitleFontSize??28)));
+  const subtitleBorderWidth=Math.max(0,Math.min(30,px(body?.subtitleBorderWidth??3)));
+  const subtitleColor=/^#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?$/.test(String(body?.subtitleColor||""))?String(body.subtitleColor):fontColor;
+  const subtitleBorderColor=/^#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?$/.test(String(body?.subtitleBorderColor||""))?String(body.subtitleBorderColor):borderColor;
   const f=[];let cur="[0:v]";
   // Cap the working video dimension to 1920px to prevent FFmpeg from exhausting Render Free memory on 2K/4K uploads.
   f.push(cur+"scale=w=1280:h=1280:force_original_aspect_ratio=decrease:force_divisible_by=2[v0]");cur="[v0]";
@@ -331,7 +343,7 @@ async function runRenderJob(job){
     fs.writeFileSync(stp,sb.text,"utf8");
     const st=safeFilterValue(stp);
     const enable="between(t,"+sb.start+","+sb.end+")";
-    f.push(cur+"drawtext=fontfile='"+safeFilterValue(fontFile)+"':textfile='"+st+"':fontsize="+fsx+":fontcolor="+fontColor+":borderw="+borderWidth+":bordercolor="+borderColor+":x=w*"+tx+"/100-text_w/2:y=h*"+ty+"/100-text_h/2:fix_bounds=1:enable='"+enable+"'[sub"+si+"]");
+    f.push(cur+"drawtext=fontfile='"+safeFilterValue(fontFile)+"':textfile='"+st+"':fontsize="+subtitleFontSize+":fontcolor="+subtitleColor+":borderw="+subtitleBorderWidth+":bordercolor="+subtitleBorderColor+":x=w*"+tx+"/100-text_w/2:y=h*"+ty+"/100-text_h/2:fix_bounds=1:enable='"+enable+"'[sub"+si+"]");
     cur="[sub"+si+"]";
   }
   if(showText){
