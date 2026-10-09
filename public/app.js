@@ -41,6 +41,7 @@ if (voiceAudioEl) {
 
 let file=null,videoUrl=null,fontFile=null,customFontUrl=null,voiceUploadFile=null,voiceSrt=localStorage.getItem("yoon_voice_srt")||"",voiceSrtReady=localStorage.getItem("yoon_voice_srt_ready")==="1",voiceId=localStorage.getItem("yoon_voice_id")||null,voiceUrl=localStorage.getItem("yoon_voice_url")||null,logoFile=null;
 if(voiceId&&voiceUrl){$("voicePreview").src=voiceUrl;$("voicePreview").hidden=false;}
+const initialVoiceSrtButton=$("generateVoiceSrt");if(initialVoiceSrtButton&&voiceId)initialVoiceSrtButton.disabled=false;
 
 const savedGroq=localStorage.getItem("yoon_groq_key"),savedGemini=localStorage.getItem("yoon_gemini_key");
 if(localStorage.getItem("yoon_original_srt"))$("originalSrt").value=localStorage.getItem("yoon_original_srt");
