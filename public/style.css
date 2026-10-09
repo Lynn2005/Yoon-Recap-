@@ -354,3 +354,9 @@ body>main.wrap>header>div{flex:1;min-width:0}
 .editor-preview .logo-preview{z-index:20}
 .editor-preview .text-resize-handle{z-index:30;pointer-events:auto}
 .editor-preview .blur-layer,.editor-preview .text-preview,.editor-preview .logo-preview{touch-action:none;-webkit-user-select:none;user-select:none}
+
+/* Subtitle styling preview and adjustment panel */
+.subtitle-preview{position:absolute;z-index:15;left:50%;top:80%;transform:translate(-50%,-50%);font-size:28px;color:#fff;-webkit-text-stroke:1px #000;text-align:center;line-height:1.25;white-space:pre-wrap;overflow-wrap:anywhere;width:max-content;max-width:92%;pointer-events:none;text-shadow:0 1px 2px #000}
+.card.editor .subtitle-controls{display:grid;grid-template-columns:1fr;gap:6px;margin-top:10px}
+.card.editor .subtitle-controls h3{margin:0 0 4px;font-size:15px}
+.card.editor .subtitle-controls small{color:var(--muted,#666);font-size:12px;line-height:1.5}
