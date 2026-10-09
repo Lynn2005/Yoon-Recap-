@@ -19,13 +19,13 @@
 
 <section class="card"><div class="badge">STEP 01</div><h2>🎬 Upload Video → Audio → Transcript</h2>
 <label>🎬 Video Upload</label><input id="video" type="file" accept="video/*"><video id="preview" controls playsinline hidden></video>
-<button id="transcribe">🎧 Audio ထုတ်ပြီး Original SRT ထုတ်မယ်</button><div id="tstatus" class="status"></div>
+<button id="transcribe">🎧 Video မှ AI Voice SRT တန်းထုတ်မယ်</button><div id="tstatus" class="status"></div>
 </section>
 
-<section class="card"><div class="badge">STEP 02</div><h2>🇲🇲 Burmese SRT → 🎙 AI Voice SRT</h2>
-<p>Original SRT ကနေ မြန်မာဘာသာပြန်ထားတဲ့ SRT ကို အောက်မှာပြပါမယ်။ “AI Voice အတွက် SRT ထုတ်မယ်” ကိုနှိပ်လိုက်ရင် ဒီနေရာမှာ AI Voice အတွက် ပြင်ဆင်ပြီးသား SRT ကို အစားထိုးပြပါမယ်။ AI Voice ထုတ်တာကလည်း အဲဒီ SRT ကိုပဲ သုံးပါမယ်။</p>
-<textarea id="burmeseSrt" placeholder="မြန်မာဘာသာ SRT ကို ဒီမှာထည့်ပါ"></textarea>
-<div class="grid"><button id="prepareVoiceSrt" type="button">🎙 Burmese SRT ကို AI Voice SRT ပြောင်းမယ်</button></div><div id="trstatus" class="status"></div>
+<section class="card"><div class="badge">STEP 02</div><h2>🇲🇲 Original SRT → 🎙 AI Voice SRT</h2>
+<p>Video ကိုရွေးပြီး အပေါ်ကခလုတ်နှိပ်ပါ။ Original SRT ထုတ်ခြင်း၊ မြန်မာဘာသာပြန်ခြင်းနဲ့ AI Voice SRT ပြင်ဆင်ခြင်းကို အလိုအလျောက် ဆက်တိုက်လုပ်ပေးပါမယ်။ ပြီးရင် အောက်က ခလုတ်တစ်ခုတည်းနဲ့ AI Voice SRT ကို Download လုပ်နိုင်ပါတယ်။</p>
+<textarea id="burmeseSrt" placeholder="ပြင်ဆင်ပြီးသား AI Voice SRT ဒီမှာပေါ်လာပါမယ်" readonly></textarea>
+<div class="grid"><button id="prepareVoiceSrt" type="button">📥 AI Voice SRT Download</button></div><div id="trstatus" class="status"></div>
 </section>
 
 <section class="card"><div class="badge">STEP 02</div><h2>🔊 AI Voice</h2>
@@ -49,7 +49,7 @@
 
 <section class="card" hidden aria-hidden="true"><div class="badge">STEP 04</div><h2>📝 Original Transcript / SRT</h2>
 <textarea id="originalSrt" placeholder="Original SRT"></textarea>
-<div class="grid"><button id="downloadOriginal">📥 Original SRT</button></div>
+
 </section>
 
 <section class="card"><div class="badge">STEP 06</div><h2>🚀 Final Video</h2><p>Video + AI Voice + (ရှိရင်) External SRT subtitles + Adjustments ကို FFmpeg နဲ့ MP4 ထုတ်မယ်။</p>
