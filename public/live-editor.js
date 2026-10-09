@@ -1,92 +1,26 @@
-/* Yoon Recap Step 03 — touch/mouse live editor */
+/* Yoon Recap Step 03 — robust Android touch/mouse live editor */
 (()=>{
   const $=id=>document.getElementById(id);
   const editor=$('editorPreview'), text=$('textPreview'), blur=$('blurLayer'), logo=$('logoPreview');
   if(!editor||!text||!blur||!logo)return;
   const css=document.createElement('style');
-  css.textContent=`
-    #editorPreview{position:relative;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
-    #editorPreview>video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:1}
-    #editorPreview .blur-layer,#editorPreview .text-preview,#editorPreview .logo-preview{z-index:5;touch-action:none;cursor:move;user-select:none;-webkit-user-select:none}
-    #editorPreview .blur-layer{pointer-events:auto}
-    #editorPreview .text-preview{padding:8px 14px;border:2px dashed rgba(255,255,255,.45);border-radius:8px;min-width:70px}
-    #editorPreview .logo-preview{pointer-events:auto;object-fit:contain}
-    .live-editor-hint{margin:8px 0;padding:10px 12px;border-radius:10px;background:rgba(127,127,127,.12);font-size:13px}
-    .live-selected{outline:2px solid #7c5cff!important;outline-offset:2px}
-    .live-handle{position:absolute;right:-8px;bottom:-8px;width:18px;height:18px;border-radius:50%;background:#7c5cff;border:2px solid #fff;z-index:20;cursor:nwse-resize;touch-action:none;box-sizing:border-box}
-    .live-inline-edit{outline:2px solid #00b894!important;outline-offset:2px;cursor:text!important}
-  `;
+  css.textContent=`#editorPreview{position:relative;overflow:hidden;touch-action:none!important;-webkit-user-select:none;user-select:none}#editorPreview>video{position:absolute!important;inset:0;width:100%;height:100%;object-fit:contain;z-index:1}#editorPreview .blur-layer,#editorPreview .text-preview,#editorPreview .logo-preview{z-index:50!important;pointer-events:auto!important;touch-action:none!important;-webkit-user-select:none;user-select:none;cursor:move}#editorPreview .text-preview-label{pointer-events:none!important}.live-handle{pointer-events:auto!important;z-index:100!important}.live-selected{outline:3px solid #7c5cff!important;outline-offset:2px}.live-editor-hint{margin:8px 0;padding:10px 12px;border-radius:10px;background:rgba(127,127,127,.12);font-size:13px}`;
   document.head.appendChild(css);
-
-  const hint=document.createElement('div');
-  hint.className='live-editor-hint';
-  hint.textContent='👆 လက်နဲ့ ဖိပြီး ဆွဲရွှေ့ပါ • 🟣 ထောင့်စက်ဝိုင်းကို ဆွဲပြီး Size ချိန်ပါ • 📝 စာသားကို Preview ပေါ်မှာ နှစ်ချက်နှိပ်ပြီး တိုက်ရိုက်ရေးပါ';
-  editor.parentNode.insertBefore(hint,editor);
-
-  const rangeMap={
-    text:['textX','textY'],blur:['blurX','blurY'],logo:['logoX','logoY']
-  };
-  const checked={text:()=>$('showText')?.checked,blur:()=>$('showBlur')?.checked,logo:()=>$('showLogo')?.checked};
-  const active=()=>window.yoonSelectEditorOption||(()=>{});
-
-  function sync(){ if(window.update)window.update(); }
-  function select(type){ const id=type==='text'?'showText':type==='blur'?'showBlur':'showLogo'; const c=$(id); if(c&&!c.checked){c.checked=true;} active()(type); [text,blur,logo].forEach(x=>x.classList.remove('live-selected')); const el=type==='text'?text:type==='blur'?blur:logo; el.classList.add('live-selected'); }
-
-  function drag(el,type){
-    const [xId,yId]=rangeMap[type];
-    el.addEventListener('pointerdown',e=>{
-      if(e.target.classList.contains('live-handle'))return;
-      if(!checked[type]())return;
-      if(type==='text' && el.classList.contains('live-inline-edit'))return;
-      e.preventDefault();e.stopPropagation();select(type);
-      const r=editor.getBoundingClientRect(),sx=e.clientX,sy=e.clientY,ox=Number($(xId).value),oy=Number($(yId).value),pid=e.pointerId;
-      try{el.setPointerCapture(pid)}catch{}
-      const move=ev=>{
-        if(ev.pointerId!==pid)return;
-        const dx=(ev.clientX-sx)/Math.max(1,r.width)*100,dy=(ev.clientY-sy)/Math.max(1,r.height)*100;
-        const half=type==='blur'?Number($('blurW').value)/2:0;
-        $(xId).value=Math.max(type==='blur'?half:2,Math.min(type==='blur'?100-half:98,ox+dx));
-        $(yId).value=Math.max(2,Math.min(98,oy+dy)); sync();
-      };
-      const end=ev=>{if(ev.pointerId!==pid)return;el.removeEventListener('pointermove',move);el.removeEventListener('pointerup',end);el.removeEventListener('pointercancel',end);try{el.releasePointerCapture(pid)}catch{}};
-      el.addEventListener('pointermove',move);el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);
-    });
-  }
-  drag(text,'text');drag(blur,'blur');drag(logo,'logo');
-
-  function addResize(el,type){
-    const h=document.createElement('span');h.className='live-handle';h.title='Size';el.appendChild(h);
-    h.addEventListener('pointerdown',e=>{
-      if(!checked[type]())return;e.preventDefault();e.stopPropagation();select(type);
-      const pid=e.pointerId,sx=e.clientX,sy=e.clientY,r=editor.getBoundingClientRect();
-      const start=type==='text'?Number($('fontSize').value):type==='logo'?Number($('logoSize').value):{w:Number($('blurW').value),h:Number($('blurH').value)};
-      try{h.setPointerCapture(pid)}catch{}
-      const move=ev=>{
-        if(ev.pointerId!==pid)return;const dx=(ev.clientX-sx)/Math.max(1,r.width)*100,dy=(ev.clientY-sy)/Math.max(1,r.height)*100;
-        if(type==='text')$('fontSize').value=Math.max(10,Math.min(96,start+Math.round((dx+dy)*.5)));
-        else if(type==='logo')$('logoSize').value=Math.max(30,Math.min(500,start+Math.round((dx+dy)*.5)));
-        else {$('blurW').value=Math.max(10,Math.min(100,start.w+Math.round(dx)));$('blurH').value=Math.max(5,Math.min(80,start.h+Math.round(dy)));}
-        sync();
-      };
-      const end=ev=>{if(ev.pointerId!==pid)return;h.removeEventListener('pointermove',move);h.removeEventListener('pointerup',end);h.removeEventListener('pointercancel',end);try{h.releasePointerCapture(pid)}catch{}};
-      h.addEventListener('pointermove',move);h.addEventListener('pointerup',end);h.addEventListener('pointercancel',end);
-    });
-  }
-  addResize(text,'text');addResize(blur,'blur');addResize(logo,'logo');
-
-  text.addEventListener('dblclick',e=>{
-    if(!$('showText')?.checked)return;e.preventDefault();e.stopPropagation();select('text');
-    text.classList.add('live-inline-edit');text.setAttribute('contenteditable','true');text.focus();
-    const range=document.createRange();range.selectNodeContents(text);range.collapse(false);const sel=getSelection();sel.removeAllRanges();sel.addRange(range);
-  });
-  text.addEventListener('input',()=>{const label=text.querySelector('.text-preview-label');const value=(label?label.textContent:text.textContent).replace(/\s+$/,'');if($('editText'))$('editText').value=value;sync();});
-  text.addEventListener('blur',()=>{text.removeAttribute('contenteditable');text.classList.remove('live-inline-edit');sync();});
-
-  [text,blur,logo].forEach((el,i)=>el.addEventListener('click',()=>select(i===0?'text':i===1?'blur':'logo')));
-  document.querySelectorAll('#textControls input,#textControls select,#blurControls input,#logoControls input').forEach(el=>{
-    if(el.type!=='file')el.addEventListener('input',sync);
-    if(el.type!=='file')el.addEventListener('change',sync);
-  });
-  const oldPreview=$('previewUpdate');if(oldPreview)oldPreview.remove();
-  sync();
+  if(!editor.parentNode.querySelector('.live-editor-hint')){const h=document.createElement('div');h.className='live-editor-hint';h.textContent='👆 Preview ပေါ်က စာ/Blur/Logo ကို လက်နဲ့ ဖိပြီး ဆွဲရွှေ့ပါ။ 🟣 ထောင့်စက်ဝိုင်းကို ဆွဲရင် Size ချိန်ပါမယ်။';editor.parentNode.insertBefore(h,editor)}
+  const map={text:['textX','textY'],blur:['blurX','blurY'],logo:['logoX','logoY']},els={text,blur,logo},checks={text:'showText',blur:'showBlur',logo:'showLogo'};let dragging=null;
+  function sync(){if(window.update)window.update()}
+  function select(type){const c=$(checks[type]);if(c&&!c.checked)c.checked=true;if(window.yoonSelectEditorOption)window.yoonSelectEditorOption(type);Object.values(els).forEach(e=>e.classList.remove('live-selected'));els[type].classList.add('live-selected')}
+  function point(e){const p=e.touches&&e.touches[0]?e.touches[0]:e;return {x:p.clientX,y:p.clientY}}
+  function pos(clientX,clientY){const r=editor.getBoundingClientRect();return {x:(clientX-r.left)/Math.max(1,r.width)*100,y:(clientY-r.top)/Math.max(1,r.height)*100}}
+  function start(type,e){if(e.target.closest('.live-handle'))return;const c=$(checks[type]);if(c&&!c.checked)return;if(type==='text'&&text.isContentEditable)return;e.preventDefault();e.stopPropagation();select(type);const p=point(e),s=pos(p.x,p.y),[xi,yi]=map[type];dragging={type,s,ox:Number($(xi).value),oy:Number($(yi).value)};document.addEventListener('touchmove',moveTouch,{passive:false});document.addEventListener('touchend',end,{passive:false});document.addEventListener('touchcancel',end,{passive:false});document.addEventListener('mousemove',moveMouse);document.addEventListener('mouseup',end)}
+  function move(type,x,y){if(!dragging)return;const p=pos(x,y),[xi,yi]=map[type],d=dragging;const half=type==='blur'?Number($('blurW').value||90)/2:0;$(xi).value=Math.max(type==='blur'?half:2,Math.min(type==='blur'?100-half:98,d.ox+p.x-d.s.x));$(yi).value=Math.max(2,Math.min(98,d.oy+p.y-d.s.y));sync()}
+  function moveTouch(e){if(!dragging)return;e.preventDefault();const p=e.touches[0];move(dragging.type,p.clientX,p.clientY)}
+  function moveMouse(e){if(dragging)move(dragging.type,e.clientX,e.clientY)}
+  function end(){if(!dragging)return;dragging=null;document.removeEventListener('touchmove',moveTouch);document.removeEventListener('touchend',end);document.removeEventListener('touchcancel',end);document.removeEventListener('mousemove',moveMouse);document.removeEventListener('mouseup',end);sync()}
+  ['text','blur','logo'].forEach(type=>{const el=els[type];el.addEventListener('touchstart',e=>start(type,e),{passive:false});el.addEventListener('mousedown',e=>{if(e.button===0)start(type,e)});let h=el.querySelector('.live-handle');if(!h){h=document.createElement('span');h.className='live-handle';el.appendChild(h)}h.style.cssText='position:absolute;right:-9px;bottom:-9px;width:22px;height:22px;border-radius:50%;background:#7c5cff;border:3px solid #fff;z-index:100;box-sizing:border-box;touch-action:none';h.addEventListener('touchstart',e=>resizeStart(type,e),{passive:false});h.addEventListener('mousedown',e=>{if(e.button===0)resizeStart(type,e)})})
+  function resizeStart(type,e){e.preventDefault();e.stopPropagation();select(type);const p=point(e),sx=p.x,sy=p.y,r=editor.getBoundingClientRect(),st=type==='text'?Number($('fontSize').value):type==='logo'?Number($('logoSize').value):{w:Number($('blurW').value),h:Number($('blurH').value)};function mv(ev){ev.preventDefault();const q=point(ev),dx=(q.x-sx)/Math.max(1,r.width)*100,dy=(q.y-sy)/Math.max(1,r.height)*100;if(type==='text')$('fontSize').value=Math.max(10,Math.min(96,st+Math.round((dx+dy)/2)));else if(type==='logo')$('logoSize').value=Math.max(30,Math.min(500,st+Math.round((dx+dy)/2)));else{$('blurW').value=Math.max(10,Math.min(100,st.w+Math.round(dx)));$('blurH').value=Math.max(5,Math.min(80,st.h+Math.round(dy)))}sync()}function done(){document.removeEventListener('touchmove',mv);document.removeEventListener('touchend',done);document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',done);sync()}document.addEventListener('touchmove',mv,{passive:false});document.addEventListener('touchend',done,{passive:false});document.addEventListener('mousemove',mv);document.addEventListener('mouseup',done)}
+  text.addEventListener('dblclick',e=>{e.preventDefault();e.stopPropagation();select('text');text.contentEditable='true';text.focus();const r=document.createRange();r.selectNodeContents(text);r.collapse(false);const s=getSelection();s.removeAllRanges();s.addRange(r)});
+  text.addEventListener('input',()=>{const l=text.querySelector('.text-preview-label');$('editText').value=(l?l.textContent:text.textContent).trim();sync()});text.addEventListener('blur',()=>{text.contentEditable='false';sync()});
+  document.querySelectorAll('#textControls input,#textControls select,#blurControls input,#logoControls input').forEach(el=>{if(el.type!=='file'){el.addEventListener('input',sync);el.addEventListener('change',sync)}});
+  const old=$('previewUpdate');if(old)old.remove();sync();
 })();
