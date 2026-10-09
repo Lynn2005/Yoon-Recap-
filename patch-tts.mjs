@@ -136,8 +136,8 @@ source = source.replace(
   'const padaukFont=["/usr/share/fonts/TTF/Padauk-Regular.ttf","/usr/share/fonts/truetype/padauk/Padauk-Regular.ttf"].find(fs.existsSync);\n  const fontFile=font?.path||padaukFont||MYANMAR_FONT_FILE;'
 );
 source = source.replace(
-  'const textWeight=Math.max(100,Math.min(900,Number(body?.textWeight||800)));',
-  'const textWeight=Math.max(100,Math.min(900,Number(body?.textWeight||800)));\n  const subtitleFontSize=Math.max(10,Math.min(100,Number(body?.subtitleFontSize||fsx)));\n  const subtitleX=Math.max(5,Math.min(95,Number(body?.subtitleX||50)));\n  const subtitleY=Math.max(5,Math.min(95,Number(body?.subtitleY||80)));\n  const subtitleColor=/^#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?$/.test(String(body?.subtitleColor||""))?String(body.subtitleColor):fontColor;\n  const subtitleBorderColor=/^#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?$/.test(String(body?.subtitleBorderColor||""))?String(body.subtitleBorderColor):borderColor;\n  const subtitleBorderWidth=Math.max(0,Math.min(12,Number(body?.subtitleBorderWidth??borderWidth)));'
+  'const borderWidth=Math.max(0,Math.min(12,Number(body?.borderWidth??3)));',
+  'const borderWidth=Math.max(0,Math.min(12,Number(body?.borderWidth??3)));\n  const subtitleFontSize=Math.max(10,Math.min(100,Number(body?.subtitleFontSize||fsx)));\n  const subtitleX=Math.max(5,Math.min(95,Number(body?.subtitleX||50)));\n  const subtitleY=Math.max(5,Math.min(95,Number(body?.subtitleY||80)));\n  const subtitleColor=/^#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?$/.test(String(body?.subtitleColor||""))?String(body.subtitleColor):fontColor;\n  const subtitleBorderColor=/^#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?$/.test(String(body?.subtitleBorderColor||""))?String(body.subtitleBorderColor):borderColor;\n  const subtitleBorderWidth=Math.max(0,Math.min(12,Number(body?.subtitleBorderWidth??borderWidth)));'
 );
 source = source.replace(
   `f.push(cur+"drawtext=fontfile='"+safeFilterValue(fontFile)+"':textfile='"+st+"':fontsize="+fsx+":fontcolor="+fontColor+":borderw="+borderWidth+":bordercolor="+borderColor+":x=w*"+tx+"/100-text_w/2:y=h*"+ty+"/100-text_h/2:fix_bounds=1:enable='"+enable+"'[sub"+si+"]");`,
