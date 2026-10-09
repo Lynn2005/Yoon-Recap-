@@ -22,7 +22,15 @@ const MYANMAR_FONT_FILE=process.env.MYANMAR_FONT_FILE||DEFAULT_MYANMAR_FONTS.fin
 const upload=multer({dest:"uploads/",limits:{fileSize:500*1024*1024}});
 app.use(express.json({limit:"2mb"}));
 app.use(express.static("public"));
-app.use("/media",express.static("work"));
+app.use("/media",express.static("work",{
+ setHeaders(res,filePath){
+  if(/\\.wav$/i.test(filePath)){
+   res.setHeader("Content-Type","audio/wav");
+   res.setHeader("Accept-Ranges","bytes");
+   res.setHeader("Cache-Control","no-store, max-age=0");
+  }
+ }
+}));
 
 function keyOf(req){return String(req.body?.groqKey||req.headers["x-groq-api-key"]||process.env.GROQ_API_KEY||"").trim();}
 async function groq(pathname,key,options={}){const r=await fetch("https://api.groq.com/openai/v1"+pathname,{...options,headers:{"Authorization":"Bearer "+key,...(options.headers||{})}});const text=await r.text();let data={};try{data=JSON.parse(text)}catch{}if(!r.ok)throw new Error(data?.error?.message||text||("Groq API error "+r.status));return data;}
