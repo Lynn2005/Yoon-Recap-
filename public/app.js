@@ -65,7 +65,7 @@ showLogo.addEventListener("change",()=>selectEditorOption(showLogo));
 document.querySelectorAll("#textControls input,#blurControls input,#logoControls input").forEach(x=>{if(x.id==="textY"){x.addEventListener("input",()=>{textPreview.style.top=x.value+"%";$("textYValue").textContent=x.value})}else{x.addEventListener("input",update)}});
 $("editText").addEventListener("input",update);["fontStyle","textColor","borderColor","borderWidth"].forEach(id=>$(id).addEventListener("input",update));
 $("fontFile").onchange=e=>{fontFile=e.target.files?.[0]||null;if(fontFile){customFontUrl=URL.createObjectURL(fontFile);let st=document.getElementById("customFontStyle");if(!st){st=document.createElement("style");st.id="customFontStyle";document.head.appendChild(st)}st.textContent="@font-face{font-family:Eka03Custom;src:url(\""+customFontUrl+"\")}";$("fontStyle").value="eka";update()}};
-$("logoFile").onchange=e=>{logoFile=e.target.files?.[0]||null;if(logoFile){logoPreview.src=URL.createObjectURL(logoFile);showLogo.checked=true;active=showLogo;update()}};
+$("logoFile").onchange=e=>{logoFile=e.target.files?.[0]||null;if(logoFile){logoPreview.src=URL.createObjectURL(logoFile);showLogo.checked=true;activeOption=showLogo;active=showLogo;selectEditorOption(showLogo)}else{logoPreview.removeAttribute("src");update()}};
 update();
 
 function dragElement(el,type,xId,yId){
