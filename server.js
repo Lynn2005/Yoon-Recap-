@@ -128,6 +128,40 @@ app.post("/api/translate-srt",async(req,res)=>{
  }catch(e){res.status(500).json({error:e.message||"Gemini translation failed"});}
 });
 
+app.post("/api/prepare-voice-srt",async(req,res)=>{
+ const keys=geminiKeysOf(req),srt=String(req.body?.srt||"").trim();
+ if(!keys.length)return res.status(400).json({error:"Gemini API Key ထည့်ပါ။"});
+ if(!srt)return res.status(400).json({error:"Burmese SRT မရှိပါ။"});
+ const parseBlocks=input=>String(input||"").replace(/\r/g,"").trim().split(/\n\s*\n/).map(block=>{
+  const lines=block.split("\n");
+  const ti=lines.findIndex(line=>/^\s*\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}/.test(line));
+  if(ti<0)return null;
+  return {number:lines.slice(0,ti).join("").trim(),time:lines[ti].trim(),text:lines.slice(ti+1).join("\n").trim()};
+ }).filter(Boolean);
+ const contentOnly=value=>String(value||"").replace(/<[^>]*>/g,"").replace(/[\s\p{P}\p{S}]/gu,"");
+ try{
+  const original=parseBlocks(srt);
+  if(!original.length||original.some(block=>!block.text))return res.status(400).json({error:"Valid SRT မဟုတ်ပါ။"});
+  const prompt="Make this Burmese subtitle SRT easier for Burmese AI voice to read naturally. Preserve the exact dialogue words, meaning, details, word order, subtitle order, subtitle numbers, timestamps, and number of blocks. Do not summarize, omit, add, translate, paraphrase, or replace any dialogue words. Only adjust punctuation and harmless spacing/line breaks for natural pauses. Return ONLY valid SRT, without markdown or explanations.\nSOURCE SRT:\n"+srt.slice(0,180000);
+  let lastErr=null,out="";
+  for(const key of keys){
+   try{
+    const data=await geminiGenerate(key,"gemini-3.8-flash",prompt);
+    const candidate=cleanSrtText(geminiText(data)),prepared=parseBlocks(candidate);
+    if(!validSrt(candidate)||prepared.length!==original.length)throw new Error("SRT block အရေအတွက် မကိုက်ညီပါ။");
+    let safe=true;
+    for(let i=0;i<original.length;i++){
+     if(prepared[i].number!==original[i].number||prepared[i].time!==original[i].time||contentOnly(prepared[i].text)!==contentOnly(original[i].text)){safe=false;break;}
+    }
+    if(!safe)throw new Error("Content၊ စာသားအစီအစဉ် သို့မဟုတ် Timestamp ပြောင်းသွားသောကြောင့် မူရင်းစာသားကို ကာကွယ်ပြီး ပယ်ချလိုက်ပါတယ်။");
+    out=candidate;break;
+   }catch(e){lastErr=e;}
+  }
+  if(!out)throw lastErr||new Error("AI Voice SRT ပြင်ဆင်မှု မအောင်မြင်ပါ။");
+  res.json({srt:out,contentPreserved:true,blocks:original.length});
+ }catch(e){res.status(422).json({error:e.message||"AI Voice SRT preparation failed"});}
+});
+
 app.post("/api/tts",async(req,res)=>{
  const inputSrt=String(req.body?.srt||"").trim();
  const rawText=String(req.body?.text||"").trim();
