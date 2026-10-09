@@ -18,10 +18,21 @@ for k,v in DEFAULTS.items():
 
 with st.sidebar:
     st.header("🔑 API Keys")
-    groq_key=st.text_input("Groq API Key",type="password")
+    # Keys are kept in Streamlit session state for the current active session.
+    if "saved_groq_key" not in st.session_state: st.session_state.saved_groq_key = ""
+    if "saved_gemini_key" not in st.session_state: st.session_state.saved_gemini_key = ""
+    if "groq_key_input" not in st.session_state: st.session_state.groq_key_input = st.session_state.saved_groq_key
+    if "gemini_key_input" not in st.session_state: st.session_state.gemini_key_input = st.session_state.saved_gemini_key
+    st.text_input("Groq API Key",type="password",key="groq_key_input")
     st.markdown("[Groq Key ရယူရန်](https://console.groq.com/keys)")
-    gemini_key=st.text_input("Gemini API Key",type="password")
+    st.text_input("Gemini API Key",type="password",key="gemini_key_input")
     st.markdown("[Gemini Key ရယူရန်](https://aistudio.google.com/app/apikey)")
+    if st.button("💾 API Keys သိမ်းမယ်",use_container_width=True):
+        st.session_state.saved_groq_key = st.session_state.groq_key_input.strip()
+        st.session_state.saved_gemini_key = st.session_state.gemini_key_input.strip()
+        st.success("ဒီ session အတွက် API Keys သိမ်းပြီးပါပြီ။")
+    groq_key = st.session_state.saved_groq_key
+    gemini_key = st.session_state.saved_gemini_key
     st.divider()
     st.session_state.project_name=st.text_input("Output ဖိုင်နာမည်",st.session_state.project_name).strip() or "yoon_recap"
     if st.button("🧹 New Project / အစမှပြန်စမယ်"):
