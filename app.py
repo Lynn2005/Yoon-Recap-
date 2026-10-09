@@ -209,7 +209,7 @@ with tabs[3]:
                         hh,mm,rest=ts.split(":"); ss,ms=rest.split(",")
                         return int(hh)*3600+int(mm)*60+int(ss)+int(ms)/1000
                     active=""
-                    for subtitle_block in re.split(r"\\n\\s*\\n",st.session_state.burmese_srt.strip()):
+                    for subtitle_block in re.split(r"\n\s*\n",st.session_state.burmese_srt.strip()):
                         lines=subtitle_block.splitlines()
                         if len(lines)>=3 and "-->" in lines[1]:
                             try:
