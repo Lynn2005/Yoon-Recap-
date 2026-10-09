@@ -2,6 +2,6 @@ services:
   - type: web
     name: yoon-recap
     runtime: docker
-    branch: fix/one-click-recap-foundation
+    branch: main
     dockerfilePath: ./Dockerfile
     healthCheckPath: /api/health
