@@ -10,13 +10,13 @@
 
 
 
-<section class="card"><div class="badge">STEP 04</div><h2>🔊 AI Voice</h2>
+<section class="card"><div class="badge">STEP 02</div><h2>🔊 AI Voice</h2>
 <label>🇲🇲 Free Burmese AI Voice</label><select id="voice"><option value="myanmar-female">👩 Nilar — Female Natural</option><option value="myanmar-male">👨 Thiha — Male Natural</option></select>
 <label>⚡ Voice Speed <output id="voiceSpeedValue">1.0x</output></label><input id="voiceSpeed" type="range" min="0.5" max="1.5" step="0.1" value="1.0"><small>0.5x = နှေး • 1.0x = ပုံမှန် • 1.5x = မြန်</small>
 <button id="makeVoice">🎙 Free AI Voice ထုတ်မယ်</button><audio id="voicePreview" controls hidden></audio><label>🎙️ AI Voice Upload</label><input id="voiceUpload" type="file" accept="audio/*"><small>ကိုယ်ပိုင် AI Voice / MP3 / WAV အသံဖိုင် Upload လုပ်ပြီး Final Video မှာ သုံးနိုင်ပါတယ်။</small><label>📄 External SRT Upload</label><input id="srtUpload" type="file" accept=".srt,text/srt,text/plain"><small>အပြင်က .srt ဖိုင်ကို Upload လုပ်ပါ။ Final Video မှာ ဒီ SRT ရှိရင် subtitles ထိုးပါမယ်။</small><label>📝 External SRT</label><textarea id="voiceSrt" placeholder="AI Voice ကနေထုတ်ထားတဲ့ ၂၅ အက္ခရာစီ SRT"></textarea><div class="grid"><button id="downloadVoiceSrt">📥 Voice SRT</button></div><div id="vstatus" class="status"></div>
 </section>
 
-<section class="card editor"><div class="badge">STEP 05</div><h2>🎞️ Subtitles + Adjust</h2>
+<section class="card editor"><div class="badge">STEP 03</div><h2>🎞️ Subtitles + Adjust</h2>
 <p>External SRT Upload ထဲမှာ SRT ရှိရင် subtitles ထိုးမယ်။ မရှိရင် subtitle မထိုးဘဲ Final Video ထုတ်မယ်။</p>
 <div class="editor-preview" id="editorPreview"><video id="editVideo" controls playsinline></video><div id="blurLayer" class="blur-layer"></div><img id="logoPreview" class="logo-preview" hidden><div id="textPreview" class="text-preview">Myanmar Recap</div></div>
 <div class="editor-options-row">
@@ -30,7 +30,7 @@
 
 
 <section class="card one-click-card">
-  <div class="badge">ONE-CLICK MODE</div><h2>🎬 AI MOVIE RECAP</h2>
+  <div class="badge">STEP 04 · ONE-CLICK MODE</div><h2>🎬 AI MOVIE RECAP</h2>
   <p>Movie တင်ပါ၊ အောက်က Setting အားလုံးရွေးပါ၊ ပြီးရင် ခလုတ်တစ်ချက်နှိပ်ရုံနဲ့ Final Burmese Recap Video တစ်ခုတည်း ထုတ်ပေးပါမယ်။</p>
   <section class="card key"><div class="badge">API</div><h2>🔑 API Keys</h2>
 <label>Groq API Key <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer">🔗 Get Groq API Key</a></label><div class="keyrow"><input id="groqKey" type="password" placeholder="gsk_..."><button id="saveGroq">💾 Save</button></div>
