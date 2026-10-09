@@ -62,9 +62,12 @@ function selectEditorOption(selected){
 }
 // Expose a stable handler for mobile browsers and inline checkbox events.
 window.yoonSelectEditorOption=selectEditorOption;
-showText.addEventListener("change",()=>selectEditorOption(showText));
-showBlur.addEventListener("change",()=>selectEditorOption(showBlur));
-showLogo.addEventListener("change",()=>selectEditorOption(showLogo));
+[showText,showBlur,showLogo].forEach(option=>{
+  // Mobile browsers sometimes update the label/checkbox without reliably switching
+  // the active panel; handle both click and change after the checked state settles.
+  option.addEventListener("click",()=>{queueMicrotask(()=>selectEditorOption(option));});
+  option.addEventListener("change",()=>selectEditorOption(option));
+});
 
 document.querySelectorAll("#textControls input,#blurControls input,#logoControls input").forEach(x=>{if(x.id==="textY"){x.addEventListener("input",()=>{textPreview.style.top=x.value+"%";$("textYValue").textContent=x.value})}else{x.addEventListener("input",update)}});
 $("editText").addEventListener("input",update);["fontStyle","textColor","borderColor","borderWidth"].forEach(id=>$(id).addEventListener("input",update));
