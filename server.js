@@ -53,7 +53,7 @@ function geminiKeysOf(req){
  return [...new Set(keys)];
 }
 function geminiKeyOf(req){return geminiKeysOf(req)[0]||"";}
-const GEMINI_MODELS=["gemini-3.8-flash","gemini-3.7-flash","gemini-3.5-flash-lite"];
+const GEMINI_MODELS=["gemini-2.5-flash","gemini-2.0-flash","gemini-2.5-flash-lite"];
 const RETRY_DELAYS=[1500,3000];
 
 function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms));}

@@ -4,4 +4,4 @@ services:
     runtime: docker
     branch: main
     dockerfilePath: ./Dockerfile
-    healthCheckPath: /_stcore/health
+    healthCheckPath: /api/health
