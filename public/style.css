@@ -295,3 +295,51 @@ body>main.wrap>header>div{flex:1;min-width:0}
   .api-sidebar-tab{top:6px!important;right:5px!important;width:28px!important;min-width:28px!important;height:28px!important;min-height:28px!important;padding:4px!important;gap:3px!important}
   .api-sidebar-tab span{width:16px!important}
 }
+
+
+/* Compact STEP 03 adjust controls */
+.card.editor .option-panel{
+  padding:8px!important;
+  margin-top:8px!important;
+  border-radius:10px!important;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:5px 10px!important;
+  align-items:center;
+}
+.card.editor .option-panel[hidden]{display:none!important}
+.card.editor .option-panel label{
+  font-size:11px!important;
+  line-height:1.25!important;
+  margin:2px 0 0!important;
+}
+.card.editor .option-panel input:not([type="file"]),
+.card.editor .option-panel select{
+  width:100%!important;
+  min-width:0!important;
+  margin:0!important;
+  height:28px!important;
+  min-height:28px!important;
+  padding:3px 6px!important;
+  font-size:12px!important;
+}
+.card.editor .option-panel input[type="range"]{
+  height:18px!important;
+  min-height:18px!important;
+  padding:0!important;
+}
+.card.editor .option-panel input[type="file"]{
+  width:100%!important;
+  min-width:0!important;
+  font-size:11px!important;
+}
+.card.editor .editor-options-row{gap:6px!important;margin:8px 0!important}
+.card.editor .editor-option{padding:7px 9px!important;font-size:12px!important;border-radius:9px!important}
+.card.editor #previewUpdate{padding:8px 12px!important;font-size:12px!important;margin-top:8px!important}
+@media(max-width:520px){
+  .card.editor .option-panel{gap:4px 7px!important;padding:7px!important}
+  .card.editor .option-panel label{font-size:10px!important}
+  .card.editor .option-panel input:not([type="file"]),
+  .card.editor .option-panel select{height:26px!important;min-height:26px!important;font-size:11px!important}
+  .card.editor .editor-option{padding:6px 7px!important;font-size:11px!important}
+}
