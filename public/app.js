@@ -21,6 +21,21 @@ async function apiJson(r){
  return d;
 }
 function download(name,text,type="text/plain"){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+async function postSrtWithRetry(url,srt,onRetry){
+ let last=null;
+ for(let attempt=0;attempt<3;attempt++){
+  try{
+   return await apiJson(await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({geminiKey:gemini(),srt})}));
+  }catch(e){
+   last=e;
+   const temporary=/Server ခဏမရသေးပါ|Failed to fetch|NetworkError|Load failed/i.test(String(e?.message||e));
+   if(!temporary||attempt===2)throw e;
+   if(onRetry)onRetry(attempt+1);
+   await new Promise(resolve=>setTimeout(resolve,3000*(attempt+1)));
+  }
+ }
+ throw last||new Error("SRT request မအောင်မြင်ပါ။");
+}
 
 $("video").onchange=e=>{file=e.target.files?.[0];if(videoUrl)URL.revokeObjectURL(videoUrl);if(file){videoUrl=URL.createObjectURL(file);$("preview").src=videoUrl;$("preview").hidden=false;$("editVideo").src=videoUrl}};
 async function prepareVoiceSrtAutomatically(srt,auto=false){
@@ -30,9 +45,22 @@ async function prepareVoiceSrtAutomatically(srt,auto=false){
  status("trstatus","⏳ AI Voice SRT အဖြစ် အလိုအလျောက် ပြင်ဆင်နေပါတယ်...");
  if(auto)status("tstatus","⏳ မြန်မာဘာသာပြန်ပြီးပါပြီ။ AI Voice SRT ပြင်ဆင်နေပါတယ်...");
  try{
-  const d=await apiJson(await fetch("/api/prepare-voice-srt",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({geminiKey:gemini(),srt})}));
-  if(!d.srt)throw Error("AI Voice SRT မရပါ။");
-  $("burmeseSrt").value=d.srt;localStorage.setItem("yoon_burmese_srt",d.srt);voiceSrtReady=true;localStorage.setItem("yoon_voice_srt_ready","1");
+  const blocks=srt.replace(/\r/g,"").split(/\n\s*\n/).map(x=>x.trim()).filter(Boolean);
+  if(!blocks.length)throw Error("Burmese SRT မဖတ်နိုင်ပါ။");
+  const batchSize=8,total=Math.ceil(blocks.length/batchSize),prepared=[];
+  for(let i=0;i<total;i++){
+   status("trstatus","⏳ AI Voice SRT ပြင်ဆင်နေပါတယ်... ("+(i+1)+"/"+total+")");
+   if(auto)status("tstatus","⏳ AI Voice SRT ပြင်ဆင်နေပါတယ်... ("+(i+1)+"/"+total+")");
+   const batch=blocks.slice(i*batchSize,(i+1)*batchSize).join("\n\n");
+   const d=await postSrtWithRetry("/api/prepare-voice-srt",batch,n=>{
+    status("trstatus","🔄 Server ခဏမရလို့ "+(i+1)+"/"+total+" အပိုင်းကို ပြန်စမ်းနေပါတယ်...");
+    if(auto)status("tstatus","🔄 Server ခဏမရလို့ "+(i+1)+"/"+total+" အပိုင်းကို ပြန်စမ်းနေပါတယ်...");
+   });
+   if(!d.srt)throw Error("AI Voice SRT အပိုင်း "+(i+1)+" မရပါ။");
+   prepared.push(d.srt.trim());
+  }
+  const finalSrt=prepared.join("\n\n")+"\n";
+  $("burmeseSrt").value=finalSrt;localStorage.setItem("yoon_burmese_srt",finalSrt);voiceSrtReady=true;localStorage.setItem("yoon_voice_srt_ready","1");
   status("trstatus","✅ AI Voice SRT အဆင်သင့်ဖြစ်ပါပြီ။ “AI Voice SRT Download” ကိုနှိပ်ပြီး သိမ်းနိုင်ပါတယ်။");
   if(auto)status("tstatus","✅ Original SRT → မြန်မာဘာသာပြန် → AI Voice SRT အားလုံးပြီးပါပြီ။");
   return true;
@@ -52,7 +80,7 @@ async function translateSrtAutomatically(srt,auto=false){
    const batch=blocks.slice(i*batchSize,(i+1)*batchSize).join("\n\n");
    const msg="⏳ မြန်မာဘာသာပြန်နေပါတယ်... ("+(i+1)+"/"+total+")";
    status("trstatus",msg);if(auto)status("tstatus",msg);
-   const d=await apiJson(await fetch("/api/translate-srt",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({geminiKey:gemini(),srt:batch})}));
+   const d=await postSrtWithRetry("/api/translate-srt",batch,n=>{status("trstatus","🔄 Server ခဏမရလို့ "+(i+1)+"/"+total+" အပိုင်းကို ပြန်စမ်းနေပါတယ်...");if(auto)status("tstatus","🔄 Server ခဏမရလို့ "+(i+1)+"/"+total+" အပိုင်းကို ပြန်စမ်းနေပါတယ်...");});
    const part=(d.srt||"").trim();if(!part)throw Error("SRT အပိုင်း "+(i+1)+" ကို ဘာသာမပြန်နိုင်ပါ။");
    translated.push(part);
   }
