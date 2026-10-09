@@ -236,7 +236,8 @@ app.post("/api/tts",async(req,res)=>{
    // This avoids waiting for every single subtitle request sequentially.
    const jobs=[];
    for(let bi=0;bi<blocks.length;bi++){
-     const parts=split20(blocks[bi].text,60);
+     const maxChars=Math.max(15,Math.min(60,Number(req.body?.maxChars)||35));
+     const parts=split20(blocks[bi].text,maxChars);
      for(const part of parts)jobs.push({text:part,index:jobs.length});
    }
    if(!jobs.length)throw new Error("AI Voice အတွက် စာသားမရှိပါ။");
@@ -266,7 +267,7 @@ app.post("/api/tts",async(req,res)=>{
    }
    let t=0;
    const voiceSrt=voiceBlocks.map((x,i)=>{const st=t;t+=x.duration;return (i+1)+"\n"+srtTime(st)+" --> "+srtTime(t)+"\n"+x.text}).join("\n\n")+"\n";
-   res.json({id,url:"/media/"+path.basename(out),srt:voiceSrt,voiceSrt,chunks:voiceBlocks.length,voice:voiceName,rate,maxCharsPerLine:25,provider:"Microsoft Edge AI TTS — Free"});
+   res.json({id,url:"/media/"+path.basename(out),srt:voiceSrt,voiceSrt,chunks:voiceBlocks.length,voice:voiceName,rate,maxCharsPerLine:maxChars,provider:"Microsoft Edge AI TTS — Free"});
  }catch(e){
    res.status(500).json({error:e instanceof Error?e.message:String(e)});
  }finally{try{fs.rmSync(dir,{recursive:true,force:true});}catch{}}
