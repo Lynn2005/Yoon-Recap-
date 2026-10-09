@@ -232,9 +232,12 @@ async function runRenderJob(job){
   // Cap the working video dimension to 1920px to prevent FFmpeg from exhausting Render Free memory on 2K/4K uploads.
   f.push(cur+"scale=w=1280:h=1280:force_original_aspect_ratio=decrease:force_divisible_by=2[v0]");cur="[v0]";
   if(showBlur){
-   f.push(cur+"split=2[base][b0]");
-   f.push("[b0]crop=w=trunc(iw*"+bw+"/100/2)*2:h=trunc(ih*"+bh+"/100/2)*2:x=iw*"+bx+"/100-ow/2:y=ih*"+by+"/100-oh/2,boxblur=luma_radius="+ba+":luma_power=1[bl]");
-   f.push("[base][bl]overlay=x=main_w*"+bx+"/100-overlay_w/2:y=main_h*"+by+"/100-overlay_h/2[vb]");
+   f.push(cur+"split=2[blur_base][blur_crop_src]");
+   // Crop and blur a region from the scaled video, then place the same region back.
+   const cropX="min(max(0\\,iw*"+bx+"/100-ow/2)\\,iw-ow)";
+   const cropY="min(max(0\\,ih*"+by+"/100-oh/2)\\,ih-oh)";
+   f.push("[blur_crop_src]crop=w=trunc(iw*"+bw+"/100/2)*2:h=trunc(ih*"+bh+"/100/2)*2:x="+cropX+":y="+cropY+",boxblur=luma_radius="+ba+":luma_power=1[blur_patch]");
+   f.push("[blur_base][blur_patch]overlay=x=trunc(main_w*"+bx+"/100-overlay_w/2):y=trunc(main_h*"+by+"/100-overlay_h/2)[vb]");
    cur="[vb]";
   }
   // Render the AI Voice 25-character SRT with the same font/color/border settings selected in the editor.
