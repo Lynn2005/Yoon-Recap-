@@ -262,11 +262,11 @@ app.post("/api/tts",async(req,res)=>{
      made.push({path:audioPath,text:jobs[i],duration});
    }
    if(made.length===1){
-     await execFileAsync("ffmpeg",["-y","-i",made[0].path,"-vn","-ac","1","-ar","22050","-c:a","pcm_s16le",out],{maxBuffer:10*1024*1024});
+     await execFileAsync("ffmpeg",["-y","-i",made[0].path,"-vn","-ac","1","-ar","22050","-c:a","pcm_s16le","-f","wav",out],{maxBuffer:10*1024*1024});
    }else{
      const listFile=path.join(dir,"concat.txt");
      fs.writeFileSync(listFile,made.map(x=>"file '"+path.resolve(x.path).replace(/'/g,"'\''")+"'").join("\n"),"utf8");
-     await execFileAsync("ffmpeg",["-y","-f","concat","-safe","0","-i",listFile,"-vn","-ac","1","-ar","22050","-c:a","pcm_s16le",out],{maxBuffer:20*1024*1024});
+     await execFileAsync("ffmpeg",["-y","-f","concat","-safe","0","-i",listFile,"-vn","-ac","1","-ar","22050","-c:a","pcm_s16le","-f","wav",out],{maxBuffer:20*1024*1024});
    }
    if(!fs.existsSync(out)||fs.statSync(out).size<1000)throw new Error("AI Voice WAV ဖိုင်အလွတ်ဖြစ်နေပါတယ်။");
    let finalDuration=0;
