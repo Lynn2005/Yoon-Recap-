@@ -143,10 +143,7 @@ source = source.replace(
   `f.push(cur+"drawtext=fontfile='"+safeFilterValue(fontFile)+"':textfile='"+st+"':fontsize="+fsx+":fontcolor="+fontColor+":borderw="+borderWidth+":bordercolor="+borderColor+":x=w*"+tx+"/100-text_w/2:y=h*"+ty+"/100-text_h/2:fix_bounds=1:enable='"+enable+"'[sub"+si+"]");`,
   `f.push(cur+"drawtext=fontfile='"+safeFilterValue(fontFile)+"':textfile='"+st+"':fontsize="+subtitleFontSize+":fontcolor="+subtitleColor+":borderw="+subtitleBorderWidth+":bordercolor="+subtitleBorderColor+":x=w*"+subtitleX+"/100-text_w/2:y=h*"+subtitleY+"/100-text_h/2:fix_bounds=1:enable='"+enable+"'[sub"+si+"]");`
 );
-source = source.replace(
-  'if(showText){',
-  'ty=titleY;\n  if(showText){'
-);
+// Title overlay keeps its own textX/textY values; subtitles use their independent settings.
 source = source.replace(
   'fs.writeFileSync(stp,sb.text,"utf8");',
   'const sg=Array.from(new Intl.Segmenter("my",{granularity:"grapheme"}).segment(sb.text),x=>x.segment);let wrapped=[],line="";for(const g of sg){if(line&&line.length>=30){wrapped.push(line.trim());line="";}line+=g;}if(line.trim())wrapped.push(line.trim());fs.writeFileSync(stp,wrapped.join("\\n"),"utf8");'
