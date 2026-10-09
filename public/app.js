@@ -146,14 +146,6 @@ if (voiceSrtButton) {
   voiceSrtButton.addEventListener("click", async () => {
     const b = voiceSrtButton;
     if (b.dataset.busy === "1") return;
-    if (voiceSrt && voiceSrt.trim()) {
-      voiceSrtReady = true;
-      $("burmeseSrt").value = voiceSrt.trim() + "\n";
-      localStorage.setItem("yoon_voice_srt", $("burmeseSrt").value);
-      localStorage.setItem("yoon_burmese_srt", $("burmeseSrt").value);
-      localStorage.setItem("yoon_voice_srt_ready", "1");
-      return status("trstatus", "✅ AI Voice နဲ့ အချိန်ကိုက် SRT အသင့်ဖြစ်ပါပြီ။ Final Video မှာ ဒီ SRT ကို သုံးပါမယ်။");
-    }
     if (!voiceId) return status("trstatus", "⚠️ အရင် STEP 03 မှာ Recap Script ရေးပြီး AI Voice ထုတ်ပါ။");
     if (!groq()) return status("trstatus", "⚠️ Whisper နဲ့ အသံပြန်စစ်ဖို့ Groq API Key ထည့်ပါ။ AI Voice ကိုတော့ အရင်ထုတ်နိုင်ပါတယ်။");
     b.dataset.busy = "1"; b.disabled = true;
@@ -227,11 +219,11 @@ if (makeVoiceButton) {
       localStorage.setItem("yoon_voice_srt_ready", "0");
       const srtBox = $("burmeseSrt");
       if (srtBox) srtBox.value = "";
-      voiceSrt = String(data.voiceSrt || data.srt || "").trim();
-      voiceSrtReady = Boolean(voiceSrt);
+      voiceSrt = "";
+      voiceSrtReady = false;
       const srtButton = $("generateVoiceSrt");
       if (srtButton) srtButton.disabled = false;
-      if (voiceSrt && $("burmeseSrt")) $("burmeseSrt").value = voiceSrt + "\n";
+
       const player = $("voicePreview");
       if (player) {
         player.pause();
