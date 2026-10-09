@@ -50,14 +50,18 @@ textPreview.style.display=showText.checked?"block":"none";blurLayer.style.displa
 textControls.hidden=!(activeOption===showText && showText.checked);blurControls.hidden=!(activeOption===showBlur && showBlur.checked);logoControls.hidden=!(activeOption===showLogo && showLogo.checked);
 }
 function selectEditorOption(selected){
-  // Each checkbox keeps its own effect; only the latest selected option shows its Adjust panel.
+  // Always switch the visible panel to the option the user just touched.
+  if(typeof selected==="string") selected=$(selected==="blur"?"showBlur":selected==="logo"?"showLogo":"showText");
+  if(!selected)return;
   if(selected.checked) activeOption=selected;
   else if(activeOption===selected){
-    activeOption=showLogo.checked?showLogo:showBlur.checked?showBlur:showText.checked?showText:null;
+    activeOption=showText.checked?showText:showBlur.checked?showBlur:showLogo.checked?showLogo:null;
   }
-  active=selected?.checked?selected:null;
+  active=selected.checked?selected:null;
   update();
 }
+// Expose a stable handler for mobile browsers and inline checkbox events.
+window.yoonSelectEditorOption=selectEditorOption;
 showText.addEventListener("change",()=>selectEditorOption(showText));
 showBlur.addEventListener("change",()=>selectEditorOption(showBlur));
 showLogo.addEventListener("change",()=>selectEditorOption(showLogo));
