@@ -221,3 +221,30 @@ body>main.wrap>header>div{flex:1;min-width:0}
 @media(max-width:520px){
   .api-sidebar-tab{top:10px!important;right:10px!important}
 }
+
+
+/* Smaller hamburger, pinned at the upper-right */
+.api-sidebar-tab{
+  position:fixed!important;
+  top:10px!important;
+  right:8px!important;
+  left:auto!important;
+  bottom:auto!important;
+  width:38px!important;
+  min-width:38px!important;
+  height:38px!important;
+  min-height:38px!important;
+  padding:7px!important;
+  gap:4px!important;
+  border-radius:9px!important;
+  z-index:9999!important;
+}
+.api-sidebar-tab span{
+  width:20px!important;
+  height:2px!important;
+  min-height:2px!important;
+}
+@media(max-width:520px){
+  .api-sidebar-tab{top:8px!important;right:6px!important;width:34px!important;min-width:34px!important;height:34px!important;min-height:34px!important;padding:6px!important;gap:3px!important}
+  .api-sidebar-tab span{width:18px!important}
+}
