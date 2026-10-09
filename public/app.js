@@ -28,6 +28,17 @@ window.yoonCleanProject = function(){
 };
 
 const $=id=>document.getElementById(id);
+const voiceAudioEl = $("voicePreview");
+if (voiceAudioEl) {
+  voiceAudioEl.addEventListener("error", () => {
+    const mediaError = voiceAudioEl.error;
+    const code = mediaError ? mediaError.code : "unknown";
+    const hints = {1:"အသံဖွင့်ခြင်းကို ရပ်တန့်လိုက်ပါတယ်။",2:"အသံဖိုင်ကို server ကနေ မရပါ။ AI Voice ကို ပြန်ထုတ်ပါ။",3:"အသံဖိုင်ဖတ်မရပါ။",4:"အသံဖိုင် format ကို browser မထောက်ပံ့ပါ။"};
+    const vstatus = $("vstatus");
+    if (vstatus) vstatus.textContent = "❌ AI Voice အသံဖိုင်ဖွင့်မရပါ (audio error " + code + ") — " + (hints[code] || "အသံဖိုင်ကို ပြန်ထုတ်ကြည့်ပါ။");
+  });
+}
+
 let file=null,videoUrl=null,fontFile=null,customFontUrl=null,voiceUploadFile=null,voiceSrt=localStorage.getItem("yoon_voice_srt")||"",voiceSrtReady=localStorage.getItem("yoon_voice_srt_ready")==="1",voiceId=localStorage.getItem("yoon_voice_id")||null,voiceUrl=localStorage.getItem("yoon_voice_url")||null,logoFile=null;
 if(voiceId&&voiceUrl){$("voicePreview").src=voiceUrl;$("voicePreview").hidden=false;}
 
