@@ -2,5 +2,6 @@ services:
   - type: web
     name: yoon-recap
     runtime: docker
-    branch: main
+    branch: streamlit-port
     dockerfilePath: ./Dockerfile
+    healthCheckPath: /_stcore/health
