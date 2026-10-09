@@ -205,3 +205,19 @@ body>main.wrap>header>div{flex:1;min-width:0}
 @media(max-width:520px){
   .api-sidebar-tab{top:10px!important;right:10px!important}
 }
+
+
+/* Pin hamburger in place: fixed to the viewport, never scrolls with page */
+.api-sidebar-tab{
+  position:fixed!important;
+  top:12px!important;
+  right:12px!important;
+  left:auto!important;
+  bottom:auto!important;
+  z-index:9999!important;
+  transform:none!important;
+  margin:0!important;
+}
+@media(max-width:520px){
+  .api-sidebar-tab{top:10px!important;right:10px!important}
+}
