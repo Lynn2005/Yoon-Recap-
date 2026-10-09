@@ -253,7 +253,7 @@ with tabs[3]:
                     fill_color="rgba(255, 255, 255, 0.15)",stroke_width=1,
                     background_image=frame,background_color="#222222",
                     update_streamlit=True,width=frame.width,height=frame.height,
-                    drawing_mode="transform",initial_drawing=drawing,
+                    drawing_mode="selection",initial_drawing=drawing,
                     key="live_edit_drag_canvas"
                 )
                 # Read dragged coordinates and pass them through to the final FFmpeg render.
