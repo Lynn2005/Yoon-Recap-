@@ -254,7 +254,7 @@ with tabs[3]:
                     background_image=frame,background_color="#222222",
                     update_streamlit=True,width=frame.width,height=frame.height,
                     drawing_mode="transform",initial_drawing=drawing,
-                    display_toolbar=False,key="live_edit_drag_canvas"
+                    key="live_edit_drag_canvas"
                 )
                 # Read dragged coordinates and pass them through to the final FFmpeg render.
                 objects=(canvas_result.json_data or {}).get("objects",[]) if canvas_result else []
