@@ -39,13 +39,12 @@ if (voiceAudioEl) {
   });
 }
 
-let file=null,videoUrl=null,fontFile=null,customFontUrl=null,voiceUploadFile=null,voiceSrt="",voiceSrtReady=false,voiceId=null,voiceUrl=null,logoFile=null;
-localStorage.removeItem("yoon_voice_id");localStorage.removeItem("yoon_voice_url");
+let file=null,videoUrl=null,fontFile=null,customFontUrl=null,voiceUploadFile=null,voiceSrt="",voiceSrtReady=false,voiceId=localStorage.getItem("yoon_voice_id")||null,voiceUrl=localStorage.getItem("yoon_voice_url")||null,logoFile=null;
 
 
 const savedGroq=localStorage.getItem("yoon_groq_key"),savedGemini=localStorage.getItem("yoon_gemini_key");
 if(localStorage.getItem("yoon_original_srt"))$("originalSrt").value=localStorage.getItem("yoon_original_srt");
-if(localStorage.getItem("yoon_voice_srt_ready")==="1"&&localStorage.getItem("yoon_burmese_srt"))$("burmeseSrt").value=localStorage.getItem("yoon_burmese_srt");else{$("burmeseSrt").value="";localStorage.removeItem("yoon_burmese_srt");localStorage.removeItem("yoon_voice_srt_ready");}if(voiceSrt&&$("voiceSrt"))$("voiceSrt").value=voiceSrt;
+if(localStorage.getItem("yoon_voice_srt_ready")==="1"&&localStorage.getItem("yoon_burmese_srt")){voiceSrt=localStorage.getItem("yoon_burmese_srt");voiceSrtReady=!!voiceSrt.trim();$("burmeseSrt").value=voiceSrt;}else{$("burmeseSrt").value="";}if($("voiceSrt"))$("voiceSrt").value=localStorage.getItem("yoon_voice_srt")||"";
 if(savedGroq)$("groqKey").value=savedGroq;if(savedGemini)$("geminiKey").value=savedGemini;
 $("saveGroq").onclick=()=>{localStorage.setItem("yoon_groq_key",$("groqKey").value.trim());$("keyStatus").textContent="✅ Groq Key သိမ်းပြီးပါပြီ။"};
 $("saveGemini").onclick=()=>{localStorage.setItem("yoon_gemini_key",$("geminiKey").value.trim());$("keyStatus").textContent="✅ Gemini Key သိမ်းပြီးပါပြီ။"};
@@ -147,10 +146,9 @@ if (voiceSrtButton) {
   const b=voiceSrtButton, script=String($("recapScript")?.value||"").trim();
   if(b.dataset.busy==="1")return;
   if(!script)return status("trstatus","⚠️ STEP 03 မှာ Burmese Recap Script အရင်ထုတ်ပါ။");
-  if(!gemini())return status("trstatus","⚠️ Options ထဲမှာ Gemini API Key ထည့်ပြီး Save လုပ်ပါ။");
   b.dataset.busy="1";b.disabled=true;
   try{
-   status("trstatus","⏳ Burmese Recap Script ကနေ AI Voice SRT ထုတ်နေပါတယ်...");
+   status("trstatus","⏳ STEP 04 — Recap Script ကို SRT အဖြစ်ပြောင်းနေပါတယ်။ ဒီအဆင့်က Voice-to-SRT မဟုတ်ပါ။");
    const mode=$("srtLength")?.value||"normal",maxChars=mode==="short"?20:mode==="long"?50:35;
    const pieces=script.replace(/\r/g,"").split(/(?<=[။.!?])\s+|\n+/u).map(x=>x.trim()).filter(Boolean);
    const lines=[];let carry="";
@@ -163,7 +161,7 @@ if (voiceSrtButton) {
    const s=String(draft||"").trim();if(!s)throw Error("AI Voice SRT မရပါ။");
    voiceSrt=s+"\n";voiceSrtReady=true;$("burmeseSrt").value=voiceSrt;
    localStorage.setItem("yoon_voice_srt",voiceSrt);localStorage.setItem("yoon_burmese_srt",voiceSrt);localStorage.setItem("yoon_voice_srt_ready","1");
-   status("trstatus","✅ AI Voice SRT ပြီးပါပြီ။ အခု STEP 05 မှာ ဒီ SRT အတိုင်း AI Voice ထုတ်ပါ။");
+   status("trstatus","✅ SRT ပြီးပါပြီ။ အခု STEP 05 မှာ AI Voice ထုတ်မယ်ကိုနှိပ်ပါ။ SRT → Voice အစီအစဉ်ဖြစ်ပါတယ်။");
    const vb=$("makeVoiceNow");if(vb)vb.disabled=false;
   }catch(e){status("trstatus","❌ SRT မထုတ်နိုင်ပါ — "+errorText(e));}
   finally{b.disabled=false;delete b.dataset.busy;}
@@ -182,7 +180,8 @@ const makeVoiceButton=$("makeVoiceNow");
 if(makeVoiceButton){
  makeVoiceButton.onclick=async function(){
   const srt=String($("burmeseSrt")?.value||"").trim();
-  if(!srt||!voiceSrtReady){status("vstatus","⚠️ STEP 04 မှာ AI Voice SRT ကို အရင်ထုတ်ပါ။");$("generateVoiceSrt")?.focus();return;}
+  if(!srt){status("vstatus","⚠️ STEP 04 မှာ SRT ထုတ်ပါ၊ ဒါမှမဟုတ် SRT ဖိုင် Upload လုပ်ပါ။");$("generateVoiceSrt")?.focus();return;}
+  if(!voiceSrtReady){voiceSrt=srt+"\n";voiceSrtReady=true;localStorage.setItem("yoon_voice_srt",voiceSrt);localStorage.setItem("yoon_burmese_srt",voiceSrt);localStorage.setItem("yoon_voice_srt_ready","1");}
   if(makeVoiceButton.dataset.busy==="1")return;
   makeVoiceButton.dataset.busy="1";makeVoiceButton.disabled=true;
   try{
