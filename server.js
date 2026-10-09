@@ -284,6 +284,7 @@ app.post("/api/voice-to-srt",async(req,res)=>{
   const data=await groq("/audio/transcriptions",key,{method:"POST",body:form});
   const spoken=String(data.text||"").trim();if(!spoken)throw new Error("AI Voice အသံထဲက စာသား မသိရှိနိုင်ပါ။");
   const srt=makeSrt(data.segments,spoken);if(!validSrt(srt))throw new Error("AI Voice SRT မမှန်ကန်ပါ။");
+  fs.writeFileSync(path.join("work",voiceId+".srt"),srt,"utf8");
   res.json({srt,text:spoken,segments:Array.isArray(data.segments)?data.segments.length:0,language:data.language||null});
  }catch(e){res.status(500).json({error:e instanceof Error?e.message:String(e)});}
 });
