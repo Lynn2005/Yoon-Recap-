@@ -1,3 +1,32 @@
+
+window.yoonCleanProject = function(){
+  const keep = new Set(['yoon_groq_key','yoon_gemini_key','groqKey','geminiKey']);
+  try {
+    for (let i=localStorage.length-1;i>=0;i--) {
+      const k=localStorage.key(i);
+      if(k && !keep.has(k) && !/api.?key/i.test(k)) localStorage.removeItem(k);
+    }
+    for (let i=sessionStorage.length-1;i>=0;i--) {
+      const k=sessionStorage.key(i);
+      if(k && !/api.?key/i.test(k)) sessionStorage.removeItem(k);
+    }
+  } catch(e) {}
+  document.querySelectorAll('input[type="file"]').forEach(el=>{try{el.value='';}catch(e){}});
+  document.querySelectorAll('textarea').forEach(el=>{el.value='';});
+  document.querySelectorAll('input:not([type="file"]):not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="password"])').forEach(el=>{if(el.id!=='groqKey'&&el.id!=='geminiKey')el.value='';});
+  document.querySelectorAll('input[type="checkbox"]').forEach(el=>el.checked=!!el.defaultChecked);
+  document.querySelectorAll('input[type="range"]').forEach(el=>{if(el.defaultValue!=='')el.value=el.defaultValue;});
+  document.querySelectorAll('select').forEach(el=>el.selectedIndex=0);
+  document.querySelectorAll('.status').forEach(el=>el.textContent='');
+  ['preview','editVideo','voicePreview'].forEach(id=>{const el=document.getElementById(id);if(el){try{el.pause();}catch(e){}el.removeAttribute('src');el.load?.();if(id!=='editVideo')el.hidden=true;}});
+  ['finalLink'].forEach(id=>{const el=document.getElementById(id);if(el){el.hidden=true;el.removeAttribute('href');}});
+  ['blurLayer','logoPreview','textPreview'].forEach(id=>{const el=document.getElementById(id);if(el&&id!=='blurLayer')el.hidden=true;});
+  const sub=document.getElementById('subtitlePreview');if(sub)sub.textContent='မြန်မာစာတန်းထိုး နမူနာ';
+  document.querySelectorAll('.option-panel').forEach(el=>{if(el.id!=='subtitleControls')el.hidden=true;});
+  const ep=document.getElementById('editorPreview');if(ep)ep.scrollTop=0;
+  window.location.reload();
+};
+
 const $=id=>document.getElementById(id);
 let file=null,videoUrl=null,fontFile=null,customFontUrl=null,voiceUploadFile=null,voiceSrt=localStorage.getItem("yoon_voice_srt")||"",voiceSrtReady=localStorage.getItem("yoon_voice_srt_ready")==="1",voiceId=localStorage.getItem("yoon_voice_id")||null,voiceUrl=localStorage.getItem("yoon_voice_url")||null,logoFile=null;
 if(voiceId&&voiceUrl){$("voicePreview").src=voiceUrl;$("voicePreview").hidden=false;}
