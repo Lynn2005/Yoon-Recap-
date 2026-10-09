@@ -269,12 +269,23 @@ app.post("/api/tts",async(req,res)=>{
      await execFileAsync("ffmpeg",["-y","-f","concat","-safe","0","-i",listFile,"-vn","-ac","1","-ar","22050","-c:a","pcm_s16le",out],{maxBuffer:20*1024*1024});
    }
    if(!fs.existsSync(out)||fs.statSync(out).size<1000)throw new Error("AI Voice WAV ဖိုင်အလွတ်ဖြစ်နေပါတယ်။");
-   const finalProbe=await execFileAsync("ffprobe",["-v","error","-show_entries","format=duration","-of","default=noprint_wrappers=1:nokey=1",out],{maxBuffer:1024*1024});
-   const finalDuration=Number(String(finalProbe.stdout||"").trim());
-   const streamProbe=await execFileAsync("ffprobe",["-v","error","-select_streams","a:0","-show_entries","stream=codec_name,sample_rate,channels","-of","json",out],{maxBuffer:1024*1024});
+   let finalDuration=0;
+   try{
+     const finalProbe=await execFileAsync("ffprobe",["-v","error","-show_entries","format=duration","-of","default=noprint_wrappers=1:nokey=1",out],{maxBuffer:1024*1024});
+     finalDuration=Number(String(finalProbe.stdout||"").trim());
+   }catch(e){console.warn("[/api/tts] ffprobe format duration failed:",e.message);}
+   const streamProbe=await execFileAsync("ffprobe",["-v","error","-select_streams","a:0","-show_entries","stream=codec_name,sample_rate,channels,duration","-of","json",out],{maxBuffer:1024*1024});
    const audioInfo=JSON.parse(streamProbe.stdout||"{}");
    if(!audioInfo.streams?.length)throw new Error("ဖန်တီးထားတဲ့ WAV ထဲမှာ audio stream မပါပါ။");
-   if(!Number.isFinite(finalDuration)||finalDuration<0.5)throw new Error("AI Voice အသံဖိုင်ကြာချိန် 00:00 ဖြစ်နေပါတယ်။ အသံဖိုင်ကို ပြန်ဖန်တီးပါ။");
+   // ffprobe can omit WAV format duration on some container builds. PCM WAV is mono,
+   // 22050 Hz, signed 16-bit: derive duration from payload size as a safe fallback.
+   if(!Number.isFinite(finalDuration)||finalDuration<0.5){
+     const streamDuration=Number(audioInfo.streams[0].duration);
+     const bytes=fs.statSync(out).size;
+     const estimated=Math.max(0,(bytes-128)/(22050*2));
+     finalDuration=Number.isFinite(streamDuration)&&streamDuration>=0.5?streamDuration:estimated;
+   }
+   if(!Number.isFinite(finalDuration)||finalDuration<0.5)throw new Error("AI Voice ဖိုင်အရှည်ကို မဖတ်နိုင်ပါ။ TTS output size="+fs.statSync(out).size+" bytes; chunks="+made.length+".");
    let cursor=0;
    const voiceSrt=made.map((x,i)=>{const begin=cursor;cursor+=x.duration;return (i+1)+"\n"+srtTime(begin)+" --> "+srtTime(cursor)+"\n"+x.text;}).join("\n\n")+"\n";
    res.json({id,url:"/media/"+path.basename(out),srt:voiceSrt,voiceSrt,chunks:made.length,duration:finalDuration,voice:voiceName,rate,maxCharsPerLine:maxChars,provider:"Microsoft Edge AI TTS — Free",audioBytes:fs.statSync(out).size});
