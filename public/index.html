@@ -54,4 +54,4 @@
 <footer>Yoon Recap Studio • Burmese Movie Recap</footer>
 </main><script>
 (()=>{const open=document.getElementById("apiSidebarOpen"),backdrop=document.getElementById("apiSidebarBackdrop"),close=document.getElementById("apiSidebarClose");if(!open||!backdrop||!close)return;const show=()=>{backdrop.hidden=false;open.setAttribute("aria-expanded","true");document.body.classList.add("api-sidebar-open");close.focus()};const hide=()=>{backdrop.hidden=true;open.setAttribute("aria-expanded","false");document.body.classList.remove("api-sidebar-open");open.focus()};open.addEventListener("click",show);close.addEventListener("click",hide);backdrop.addEventListener("click",e=>{if(e.target===backdrop)hide()});document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!backdrop.hidden)hide()})})();
-</script><script src="/app.js?v=6.1.31"></script></body></html>
+</script><script src="/app.js?v=6.1.32"></script></body></html>
