@@ -44,7 +44,7 @@ $("makeVoice").onclick=async()=>{const srtInput=$("burmeseSrt").value.trim();if(
 const showText=$("showText"),showBlur=$("showBlur"),showLogo=$("showLogo");
 const textControls=$("textControls"),blurControls=$("blurControls"),logoControls=$("logoControls");
 const editorPreview=$("editorPreview"),textPreview=$("textPreview"),blurLayer=$("blurLayer"),logoPreview=$("logoPreview");
-let activeOption=showText,fontFile=null,customFontUrl=null,logoFile=null,voiceUploadFile=null;
+let activeOption=showText;
 let textLabel=textPreview.querySelector(".text-preview-label");
 if(!textLabel){textLabel=document.createElement("span");textLabel.className="text-preview-label";textPreview.replaceChildren(textLabel);}
 const textResizeHandle=document.createElement("div");
