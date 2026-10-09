@@ -150,6 +150,42 @@ textResizeHandle.addEventListener("pointerdown",e=>{
 });
 update();
 
+// Undo / Redo history for the Edit controls.
+const historyControls=Array.from(document.querySelectorAll("#subtitleControls input,#blurControls input,#logoControls input,#textControls input,#textControls select,#showText,#showBlur,#showLogo")).filter(el=>el.type!=="file");
+const undoBtn=$("undoEdit"),redoBtn=$("redoEdit"),resetBtn=$("resetEdit");
+const defaultEditState=historyControls.map(el=>({id:el.id,value:el.value,checked:el.type==="checkbox"?el.checked:undefined}));
+const editUndoStack=[],editRedoStack=[];
+let restoringEdit=false,historyTimer=null;
+function captureEditState(){return historyControls.map(el=>({id:el.id,value:el.value,checked:el.type==="checkbox"?el.checked:undefined}));}
+function sameEditState(a,b){return JSON.stringify(a)===JSON.stringify(b);}
+function refreshHistoryButtons(){undoBtn.disabled=editUndoStack.length<=1;redoBtn.disabled=editRedoStack.length===0;}
+function saveEditState(){
+ if(restoringEdit)return;
+ const state=captureEditState();
+ if(editUndoStack.length&&sameEditState(editUndoStack[editUndoStack.length-1],state)){refreshHistoryButtons();return;}
+ editUndoStack.push(state);if(editUndoStack.length>80)editUndoStack.shift();editRedoStack.length=0;refreshHistoryButtons();
+}
+function scheduleEditState(){if(restoringEdit)return;clearTimeout(historyTimer);historyTimer=setTimeout(saveEditState,220);}
+function restoreEditState(state){
+ if(!state)return;restoringEdit=true;
+ state.forEach(item=>{const el=$(item.id);if(!el)return;if(el.type==="checkbox")el.checked=!!item.checked;else el.value=item.value;});
+ update();restoringEdit=false;refreshHistoryButtons();
+}
+historyControls.forEach(el=>{el.addEventListener("input",scheduleEditState);el.addEventListener("change",()=>{clearTimeout(historyTimer);saveEditState();});});
+editUndoStack.push(captureEditState());refreshHistoryButtons();
+undoBtn.addEventListener("click",()=>{
+ clearTimeout(historyTimer);saveEditState();
+ if(editUndoStack.length<=1)return;
+ editRedoStack.push(editUndoStack.pop());restoreEditState(editUndoStack[editUndoStack.length-1]);
+});
+redoBtn.addEventListener("click",()=>{
+ clearTimeout(historyTimer);if(!editRedoStack.length)return;
+ const next=editRedoStack.pop();editUndoStack.push(next);restoreEditState(next);
+});
+resetBtn.addEventListener("click",()=>{
+ clearTimeout(historyTimer);restoreEditState(defaultEditState);saveEditState();
+});
+
 $("render").onclick=async e=>{e?.preventDefault();
  const srt=voiceSrt.trim();if(!file)return status("fstatus","⚠️ Video ရွေးပါ။");
  const b=$("render");b.disabled=true;let pct=1;
