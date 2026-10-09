@@ -39,7 +39,7 @@ if (voiceAudioEl) {
   });
 }
 
-let file=null,videoUrl=null,fontFile=null,customFontUrl=null,voiceUploadFile=null,voiceSrt=localStorage.getItem("yoon_voice_srt")||"",voiceSrtReady=localStorage.getItem("yoon_voice_srt_ready")==="1",voiceId=null,voiceUrl=null,logoFile=null;
+let file=null,videoUrl=null,fontFile=null,customFontUrl=null,voiceUploadFile=null,voiceSrt="",voiceSrtReady=false,voiceId=null,voiceUrl=null,logoFile=null;
 localStorage.removeItem("yoon_voice_id");localStorage.removeItem("yoon_voice_url");
 
 
@@ -140,7 +140,42 @@ if(localStorage.getItem("yoon_recap_script")&&$("recapScript"))$("recapScript").
 $("downloadOriginalSrt")?.addEventListener("click",()=>{const s=$("originalSrt")?.value.trim();if(s)download("original-timeline.srt",s+"\n","application/x-subrip");else status("tstatus","Original SRT မရှိသေးပါ။")});
 if($("translate"))$("translate").onclick=()=>translateSrtAutomatically($("originalSrt").value,false);
 
-$("generateVoiceSrt")?.addEventListener("click",async()=>{const b=$("generateVoiceSrt");const id=voiceId||localStorage.getItem("yoon_voice_id")||"";if(!id)return status("trstatus","⚠️ Burmese Recap Script ကနေ AI Voice အရင်ထုတ်ပါ။");if(!groq())return status("trstatus","⚠️ AI Voice SRT ထုတ်ဖို့ Groq API Key ထည့်ပြီး Save လုပ်ပါ။");b.disabled=true;status("trstatus","⏳ AI Voice အသံကို Whisper နဲ့ နားထောင်စစ်ဆေးပြီး SRT ထုတ်နေပါတယ်...");try{const d=await apiJson(await fetch("/api/voice-to-srt",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({voiceId:id,groqKey:groq()})}));const s=String(d.srt||"").trim();if(!s)throw new Error("AI Voice SRT မရပါ။");voiceSrt=s+"\n";voiceSrtReady=true;$("burmeseSrt").value=voiceSrt;localStorage.setItem("yoon_voice_srt",voiceSrt);localStorage.setItem("yoon_burmese_srt",voiceSrt);localStorage.setItem("yoon_voice_srt_ready","1");status("trstatus","✅ AI Voice အသံမှ SRT ထုတ်ပြီးပါပြီ။ "+(d.segments||"")+" segments — Final Video မှာ ဒီ SRT ကိုပဲ သုံးပါမယ်။")}catch(e){status("trstatus","❌ "+e.message)}finally{b.disabled=false}});
+const voiceSrtButton = $("generateVoiceSrt");
+if (voiceSrtButton) {
+  voiceSrtButton.disabled = false;
+  voiceSrtButton.addEventListener("click", async () => {
+    const b = voiceSrtButton;
+    if (b.dataset.busy === "1") return;
+    if (voiceSrt && voiceSrt.trim()) {
+      voiceSrtReady = true;
+      $("burmeseSrt").value = voiceSrt.trim() + "\n";
+      localStorage.setItem("yoon_voice_srt", $("burmeseSrt").value);
+      localStorage.setItem("yoon_burmese_srt", $("burmeseSrt").value);
+      localStorage.setItem("yoon_voice_srt_ready", "1");
+      return status("trstatus", "✅ AI Voice နဲ့ အချိန်ကိုက် SRT အသင့်ဖြစ်ပါပြီ။ Final Video မှာ ဒီ SRT ကို သုံးပါမယ်။");
+    }
+    if (!voiceId) return status("trstatus", "⚠️ အရင် STEP 03 မှာ Recap Script ရေးပြီး AI Voice ထုတ်ပါ။");
+    if (!groq()) return status("trstatus", "⚠️ Whisper နဲ့ အသံပြန်စစ်ဖို့ Groq API Key ထည့်ပါ။ AI Voice ကိုတော့ အရင်ထုတ်နိုင်ပါတယ်။");
+    b.dataset.busy = "1"; b.disabled = true;
+    status("trstatus", "⏳ AI Voice အသံကို စစ်ပြီး SRT ထုတ်နေပါတယ်...");
+    try {
+      const d = await apiJson(await fetch("/api/voice-to-srt", {
+        method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({voiceId, groqKey:groq()})
+      }));
+      const s = String(d.srt || "").trim();
+      if (!s) throw new Error("AI Voice SRT မရပါ။");
+      voiceSrt = s; voiceSrtReady = true;
+      $("burmeseSrt").value = s + "\n";
+      localStorage.setItem("yoon_voice_srt", $("burmeseSrt").value);
+      localStorage.setItem("yoon_burmese_srt", $("burmeseSrt").value);
+      localStorage.setItem("yoon_voice_srt_ready", "1");
+      status("trstatus", "✅ AI Voice SRT ထုတ်ပြီးပါပြီ။ " + (d.segments || "") + " segments။");
+    } catch (e) {
+      status("trstatus", "❌ SRT မထုတ်နိုင်ပါ — " + errorText(e));
+    } finally { b.disabled = false; delete b.dataset.busy; }
+  });
+}
 $("prepareVoiceSrt")?.addEventListener("click",()=>{
  if(!voiceSrtReady||!$("burmeseSrt").value.trim())return status("trstatus","⚠️ AI Voice SRT မပြီးသေးပါ။ အပေါ်က Video မှ AI Voice SRT တန်းထုတ်မယ် ခလုတ်ကို အရင်နှိပ်ပါ။");
  download("ai-voice.srt",$("burmeseSrt").value.trim()+"\n","application/x-subrip");
@@ -192,8 +227,11 @@ if (makeVoiceButton) {
       localStorage.setItem("yoon_voice_srt_ready", "0");
       const srtBox = $("burmeseSrt");
       if (srtBox) srtBox.value = "";
+      voiceSrt = String(data.voiceSrt || data.srt || "").trim();
+      voiceSrtReady = Boolean(voiceSrt);
       const srtButton = $("generateVoiceSrt");
       if (srtButton) srtButton.disabled = false;
+      if (voiceSrt && $("burmeseSrt")) $("burmeseSrt").value = voiceSrt + "\n";
       const player = $("voicePreview");
       if (player) {
         player.pause();
