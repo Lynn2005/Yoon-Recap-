@@ -33,7 +33,7 @@
     b.dataset.fixedRender='1';
     b.onclick=async e=>{
       e.preventDefault();e.stopImmediatePropagation();
-      const file=window.file||null;
+      const input=$("video"),file=input?.files?.[0]||null;
       if(!file){msg('fstatus','⚠️ Video ရွေးပါ။');return;}
       const voiceId=window.voiceId||localStorage.getItem('yoon_voice_id')||'';
       const voiceSrt=window.voiceSrt||localStorage.getItem('yoon_voice_srt')||'';
