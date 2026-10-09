@@ -39,9 +39,9 @@ if (voiceAudioEl) {
   });
 }
 
-let file=null,videoUrl=null,fontFile=null,customFontUrl=null,voiceUploadFile=null,voiceSrt=localStorage.getItem("yoon_voice_srt")||"",voiceSrtReady=localStorage.getItem("yoon_voice_srt_ready")==="1",voiceId=localStorage.getItem("yoon_voice_id")||null,voiceUrl=localStorage.getItem("yoon_voice_url")||null,logoFile=null;
-if(voiceId&&voiceUrl){$("voicePreview").src=voiceUrl;$("voicePreview").hidden=false;}
-const initialVoiceSrtButton=$("generateVoiceSrt");if(initialVoiceSrtButton&&voiceId)initialVoiceSrtButton.disabled=false;
+let file=null,videoUrl=null,fontFile=null,customFontUrl=null,voiceUploadFile=null,voiceSrt=localStorage.getItem("yoon_voice_srt")||"",voiceSrtReady=localStorage.getItem("yoon_voice_srt_ready")==="1",voiceId=null,voiceUrl=null,logoFile=null;
+localStorage.removeItem("yoon_voice_id");localStorage.removeItem("yoon_voice_url");
+
 
 const savedGroq=localStorage.getItem("yoon_groq_key"),savedGemini=localStorage.getItem("yoon_gemini_key");
 if(localStorage.getItem("yoon_original_srt"))$("originalSrt").value=localStorage.getItem("yoon_original_srt");
@@ -184,8 +184,8 @@ if (makeVoiceButton) {
       voiceUrl = data.url;
       voiceSrt = "";
       voiceSrtReady = false;
-      localStorage.setItem("yoon_voice_id", voiceId);
-      localStorage.setItem("yoon_voice_url", voiceUrl);
+      localStorage.removeItem("yoon_voice_id");
+      localStorage.removeItem("yoon_voice_url");
       localStorage.removeItem("yoon_pending_voice_srt");
       localStorage.removeItem("yoon_voice_srt");
       localStorage.removeItem("yoon_burmese_srt");
