@@ -122,7 +122,7 @@ const replacement = String.raw`app.post("/api/tts",async(req,res)=>{
 source = source.slice(0,start) + replacement + source.slice(end);
 
 // Final-video fixes: keep the editor's portrait frame, hide burned-in English subtitles,
-// and use a Myanmar-capable font instead of DejaVu Sans for Burmese text.
+// use a Myanmar-capable font, and keep Burmese subtitle text readable inside the frame.
 source = source.replace(
   'f.push(cur+"scale=w=1280:h=1280:force_original_aspect_ratio=decrease:force_divisible_by=2[v0]");cur="[v0]";',
   'f.push(cur+"scale=w=1080:h=1920:force_original_aspect_ratio=decrease:force_divisible_by=2,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:color=black[v0]");cur="[v0]";'
@@ -135,5 +135,17 @@ source = source.replace(
   'const fontFile=font?.path||(fontStyle==="sans"?(textWeight>=600&&sansFont?sansFont.replace(/DejaVuSans\\.ttf$/,\"DejaVuSans-Bold.ttf\"):sansFont)||MYANMAR_FONT_FILE:(textWeight>=600&&boldFont?boldFont:MYANMAR_FONT_FILE));',
   'const padaukFont=["/usr/share/fonts/TTF/Padauk-Regular.ttf","/usr/share/fonts/truetype/padauk/Padauk-Regular.ttf"].find(fs.existsSync);\n  const fontFile=font?.path||padaukFont||MYANMAR_FONT_FILE;'
 );
+source = source.replace(
+  'const textWeight=Math.max(100,Math.min(900,Number(body?.textWeight||800)));',
+  'const textWeight=Math.max(100,Math.min(900,Number(body?.textWeight||800)));\n  const subtitleY=Math.max(55,Math.min(92,Number(body?.subtitleY||80)));\n  const subtitleFs=Math.max(24,Math.min(60,Math.round(fsx*1.5)));'
+);
+source = source.replace(
+  'fs.writeFileSync(stp,sb.text,"utf8");',
+  'const sg=Array.from(new Intl.Segmenter("my",{granularity:"grapheme"}).segment(sb.text),x=>x.segment);let wrapped=[],line="";for(const g of sg){const next=line+g;if(line&&next.length>30&&/[\\s၊၊။!?]/.test(g)){wrapped.push(line.trim());line="";}line+=g;}if(line.trim())wrapped.push(line.trim());fs.writeFileSync(stp,wrapped.join("\\n"),"utf8");'
+);
+source = source.replace(
+  'f.push(cur+"drawtext=fontfile=\'"+safeFilterValue(fontFile)+"\':textfile=\'"+st+"\':fontsize="+fsx+":fontcolor="+fontColor+":borderw="+borderWidth+":bordercolor="+borderColor+":x=w*"+tx+"/100-text_w/2:y=h*"+ty+"/100-text_h/2:fix_bounds=1:enable=\'"+enable+"\'[sub"+si+"]");',
+  'f.push(cur+"drawtext=fontfile=\'"+safeFilterValue(fontFile)+"\':textfile=\'"+st+"\':fontsize="+subtitleFs+":fontcolor="+fontColor+":borderw="+borderWidth+":bordercolor="+borderColor+":x=w*"+tx+"/100-text_w/2:y=h*"+subtitleY+"/100-text_h/2:fix_bounds=1:enable=\'"+enable+"\'[sub"+si+"]");'
+);
 fs.writeFileSync(file,source,"utf8");
-console.log("Patched AI Voice timeline + final render: 1080x1920, subtitle cover, Padauk Myanmar font:",file);
+console.log("Patched AI Voice timeline + final render: 1080x1920, wrapped Burmese subtitles, subtitle cover, Padauk Myanmar font:",file);
