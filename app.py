@@ -93,9 +93,26 @@ def dialogue(srt):
 
 def esc(path): return str(path).replace("\\","/").replace(":","\\:").replace("'","\\'")
 
+@st.cache_data(show_spinner=False)
 def font():
-    for p in ["/usr/share/fonts/truetype/noto/NotoSansMyanmar-Regular.ttf","/usr/share/fonts/truetype/noto/NotoSansMyanmar-VF.ttf","/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf"]:
-        if Path(p).exists(): return p
+    # Find a Myanmar-capable font once; avoid a full filesystem scan on every Streamlit rerun.
+    candidates = [
+        "/usr/share/fonts/truetype/noto/NotoSansMyanmar-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansMyanmar-VF.ttf",
+        "/usr/share/fonts/opentype/noto/NotoSansMyanmar-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSerifMyanmar-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
+    ]
+    for p in candidates:
+        if Path(p).is_file():
+            return p
+    try:
+        found = list(Path("/usr/share/fonts").rglob("*Myanmar*"))
+        for p in found:
+            if p.is_file() and p.suffix.lower() in (".ttf", ".otf"):
+                return str(p)
+    except Exception:
+        pass
     return ""
 
 @st.cache_data(show_spinner=False, max_entries=4)
@@ -270,17 +287,19 @@ with tabs[3]:
                 except Exception:
                     lim=Image.new("RGBA",(120,80),(0,0,0,0)); ratio=1
                     lbuf=io.BytesIO(); lim.save(lbuf,format="PNG"); src="data:image/png;base64,"+base64.b64encode(lbuf.getvalue()).decode("ascii")
+                # Use the exact normalized PNG dimensions so Fabric does not stretch or black-box the logo.
                 drawing["objects"].append({
                     "type":"image","version":"4.4.0","name":"overlay_logo","left":int(frame.width*logo_x/100),
-                    "top":int(frame.height*logo_y/100),"width":max(1,int(frame.width*0.18)),
-                    "height":max(1,int(frame.width*0.18*ratio)),"scaleX":1,"scaleY":1,
+                    "top":int(frame.height*logo_y/100),"width":lim.width,
+                    "height":lim.height,"scaleX":1,"scaleY":1,"opacity":1,
                     "src":src,"crossOrigin":"anonymous"
                 })
             st.markdown("**👆 လက်နဲ့ရွှေ့ရန် Canvas toolbar ထဲက Edit (မြှား/ရွေးချယ်ရေး) toggle ကို အရင်ဖွင့်ပြီး စာသား/Logo ကိုနှိပ်ကာ ဖိဆွဲပါ။**")
             canvas_result=st_canvas(
                 fill_color="rgba(255, 255, 255, 0.15)",stroke_width=1,
                 background_image=frame,background_color="#222222",
-                update_streamlit=True,width=frame.width,height=frame.height,
+                # Only send canvas state after a drag/draw completes to reduce rerun lag.
+                update_streamlit=False,width=frame.width,height=frame.height,
                 drawing_mode="rect",initial_drawing=drawing,
                 key="live_edit_drag_canvas"
             )
