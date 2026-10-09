@@ -3,6 +3,22 @@
 <body><main class="wrap">
 <header><img class="yoon-avatar" src="/yoon-avatar.jpg" alt="Yoon"><div><div class="eyebrow">AI RECAP ASSISTANT</div><h1>Yoon Recap Studio</h1><p>Video → SRT → Gemini → AI Voice → Final Video</p></div></header>
 
+<section class="card one-click-card">
+  <div class="badge">ONE-CLICK MODE</div><h2>🎬 AI MOVIE RECAP</h2>
+  <p>Movie တင်ပြီး တစ်ချက်နှိပ်ရုံနဲ့ Burmese Recap Video အလိုအလျောက်ဖန်တီးပါ။</p>
+  <label>🎞️ Movie Video</label><input id="oneVideo" type="file" accept=".mp4,.mkv,.mov,.webm,.avi,video/*">
+  <div id="oneMovieInfo" class="status">Video မရွေးရသေးပါ။</div>
+  <div class="grid"><div><label>⏱️ Recap Length</label><select id="oneLength"><option value="auto">Auto</option><option value="1-2 minutes">1–2 Minutes</option><option value="3-5 minutes">3–5 Minutes</option><option value="5-10 minutes">5–10 Minutes</option><option value="10-15 minutes">10–15 Minutes</option></select></div><div><label>🎭 Recap Style</label><select id="oneStyle"><option value="natural storytelling">Natural Storytelling</option><option value="cinematic">🎬 Cinematic</option><option value="suspense">😱 Suspense</option><option value="casual">😂 Casual</option><option value="fast paced">🔥 Fast Paced</option></select></div></div>
+  <div class="grid"><div><label>🔊 Voice</label><select id="oneVoice"><option value="myanmar-female">👩 Natural Female</option><option value="myanmar-male">👨 Natural Male</option></select></div><div><label>⚡ Voice Speed <output id="oneSpeedValue">1.0x</output></label><input id="oneSpeed" type="range" min="0.8" max="1.2" step="0.1" value="1"></div></div>
+  <label class="editor-option"><input id="oneSubtitles" type="checkbox" checked><span>🇲🇲 မြန်မာစာတန်းထိုး ထည့်မယ်</span></label>
+  <details class="advanced-settings"><summary>⚙️ Advanced Settings</summary><p>Groq နှင့် Gemini API Key ကို အောက်ပါ Settings တွင် ထည့်ထားပါ။ Render Environment Variables သုံးခြင်းက ပိုလုံခြုံပါတယ်။</p><label>Subtitle Line Length</label><select id="oneLineLength"><option value="25">25 characters (Default)</option><option value="20">20 characters</option><option value="30">30 characters</option><option value="35">35 characters</option></select></details>
+  <button id="oneClickRecap" class="primary-action">🚀 ONE CLICK RECAP</button>
+  <div id="oneProgressWrap" hidden><div class="render-progress-top"><span id="oneStepLabel">Preparing...</span><b id="oneProgressPct">0%</b></div><div class="render-progress-track"><div id="oneProgressBar"></div></div><div id="oneSteps" class="one-steps"></div></div>
+  <div id="oneStatus" class="status" aria-live="polite"></div>
+  <div id="oneResult" hidden><h2>✅ YOUR RECAP IS READY</h2><video id="oneFinalVideo" controls playsinline></video><a id="oneDownload" class="download-link" download>🎬 DOWNLOAD FINAL MP4</a><div class="grid"><button id="oneOriginalSrt">📄 Original SRT</button><button id="oneBurmeseSrt">🇲🇲 Burmese SRT</button><button id="oneRecapScript">✍️ Recap Script</button><button id="oneRecapSrt">📝 Recap SRT</button><button id="oneVoiceDownload">🔊 AI Voice</button><button id="oneTranscript">📃 Transcript</button></div></div>
+</section>
+<details class="legacy-tools"><summary>🛠️ Advanced / Manual Tools</summary>
+
 <section class="card key"><div class="badge">API</div><h2>🔑 API Keys</h2>
 <label>Groq API Key <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer">🔗 Get Groq API Key</a></label><div class="keyrow"><input id="groqKey" type="password" placeholder="gsk_..."><button id="saveGroq">💾 Save</button></div>
 <label>Gemini API Key <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">🔗 Get Gemini API Key</a></label><div class="keyrow"><input id="geminiKey" type="password" placeholder="AIza..."><button id="saveGemini">💾 Save</button></div>
@@ -45,5 +61,5 @@
 
 <section class="card"><div class="badge">STEP 06</div><h2>🚀 Final Video</h2><p>Video + AI Voice + (ရှိရင်) External SRT subtitles + Adjustments ကို FFmpeg နဲ့ MP4 ထုတ်မယ်။</p>
 <button id="render">🎬 Final MP4 Render</button><div id="fstatus" class="status"></div><a id="finalLink" class="download-link" hidden target="_blank">📥 Final MP4 Download</a></section>
-<footer>Yoon Recap Studio 4.0 • Upload → Audio → Original SRT → Gemini → AI Voice → Adjust → Final</footer>
-</main><script src="/app.js?v=5.3.0"></script></body></html>
+</details><footer>Yoon Recap Studio • One Click Burmese Movie Recap</footer>
+</main><script src="/app.js?v=6.0.0"></script></body></html>
