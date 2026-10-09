@@ -17,6 +17,9 @@ RUN sed -i 's/const GEMINI_MODELS=\["gemini-2\.5-flash","gemini-2\.0-flash","gem
     && sed -i 's/generationConfig:{temperature:\.2}/generationConfig:{}/' server.js \
     && grep -q 'const GEMINI_MODELS=\["gemini-3.8-flash"' server.js
 
+# Robust button handlers: AI Voice + Final Video.
+RUN sed -i 's#</body>#<script src="/button-fix.js?v=2"></script></body>#' public/index.html
+
 RUN mkdir -p uploads work
 EXPOSE 10000
 CMD ["node", "server.js"]
