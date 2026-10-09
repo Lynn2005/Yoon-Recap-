@@ -234,8 +234,10 @@ async function runRenderJob(job){
   const bx=Math.max(5,Math.min(95,Number(body?.blurX||50))),by=Math.max(5,Math.min(95,Number(body?.blurY||82))),bw=Math.max(10,Math.min(100,Number(body?.blurW||90))),bh=Math.max(5,Math.min(80,Number(body?.blurH||22))),ba=Math.max(0,Math.min(24,Number(body?.blurAmount??8)));
   const ls=Math.max(30,Math.min(500,Number(body?.logoSize||72))),lx=Math.max(5,Math.min(95,Number(body?.logoX||90))),ly=Math.max(5,Math.min(95,Number(body?.logoY||10)));
   const fontStyle=String(body?.fontStyle||"noto");
+  const textWeight=Math.max(100,Math.min(900,Number(body?.textWeight||800)));
   const sansFont=["/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf","/usr/share/fonts/dejavu/DejaVuSans.ttf","/usr/share/fonts/TTF/DejaVuSans.ttf"].find(fs.existsSync);
-  const fontFile=font?.path||(fontStyle==="sans"&&sansFont?sansFont:MYANMAR_FONT_FILE);
+  const boldFont=["/usr/share/fonts/truetype/noto/NotoSansMyanmar-Bold.ttf","/usr/share/fonts/noto/NotoSansMyanmar-Bold.ttf","/usr/share/fonts/google-noto/NotoSansMyanmar-Bold.ttf"].find(fs.existsSync);
+  const fontFile=font?.path||(fontStyle==="sans"?(textWeight>=600&&sansFont?sansFont.replace(/DejaVuSans\.ttf$/,"DejaVuSans-Bold.ttf"):sansFont)||MYANMAR_FONT_FILE:(textWeight>=600&&boldFont?boldFont:MYANMAR_FONT_FILE));
   const safeFilterValue=v=>String(v||"").trim().replace(/\\/g,"/").replace(/'/g,"\\'");
   const fontColor=/^#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?$/.test(String(body?.fontColor||""))?String(body.fontColor):"#ffffff";
   const borderColor=/^#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?$/.test(String(body?.borderColor||""))?String(body.borderColor):"#000000";
