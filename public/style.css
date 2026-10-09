@@ -344,3 +344,13 @@ body>main.wrap>header>div{flex:1;min-width:0}
   .card.editor .option-panel select{height:26px!important;min-height:26px!important;font-size:11px!important}
   .card.editor .editor-option{padding:6px 7px!important;font-size:11px!important}
 }
+
+
+/* Live Edit drag layers: keep overlays above video controls and allow reliable touch dragging */
+.editor-preview{position:relative;isolation:isolate;touch-action:none;user-select:none;-webkit-user-select:none}
+.editor-preview video{position:relative;z-index:0;pointer-events:auto}
+.editor-preview .blur-layer{z-index:5}
+.editor-preview .text-preview{z-index:10}
+.editor-preview .logo-preview{z-index:20}
+.editor-preview .text-resize-handle{z-index:30;pointer-events:auto}
+.editor-preview .blur-layer,.editor-preview .text-preview,.editor-preview .logo-preview{touch-action:none;-webkit-user-select:none;user-select:none}
