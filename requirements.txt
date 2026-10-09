@@ -1,0 +1,5 @@
+streamlit>=1.40,<2
+requests>=2.32,<3
+edge-tts>=7.0,<8
+streamlit-drawable-canvas>=0.9,<1
+Pillow>=10,<13
