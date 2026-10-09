@@ -176,86 +176,43 @@ $("prepareVoiceSrt")?.addEventListener("click",()=>{
 
 $("voiceSpeed").addEventListener("input",()=>$("voiceSpeedValue").textContent=Number($("voiceSpeed").value).toFixed(1)+"x");
 
-// STEP 2 — AI VOICE (standalone; must not require any SRT)
+// STEP 2 — AI VOICE SRT first, then synthesize the exact prepared dialogue.
 const makeVoiceButton = $("makeVoiceNow");
 if (makeVoiceButton) {
-  makeVoiceButton.onclick = async function () {
-    const scriptBox = $("recapScript");
-    const text = String(scriptBox?.value || "").trim();
-    if (!text) {
-      status("vstatus", "⚠️ AI Voice မထုတ်နိုင်သေးပါ။ STEP 03 မှာ Burmese Recap Script အရင်ထုတ်ပါ။");
-      scriptBox?.focus();
-      return;
-    }
-    if (makeVoiceButton.dataset.busy === "1") return;
-    makeVoiceButton.dataset.busy = "1";
-    makeVoiceButton.disabled = true;
-    status("vstatus", "⏳ Burmese Recap Script ကနေ AI Voice ထုတ်နေပါတယ်။ SRT အရင်ထုတ်ရန် မလိုပါ။");
-    try {
-      const speed = Number($("voiceSpeed")?.value || 1);
-      const mode = $("srtLength")?.value || "normal";
-      const maxChars = mode === "short" ? 20 : mode === "long" ? 50 : 35;
-      const response = await fetch("/api/tts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text,
-          voice: $("voice")?.value || "myanmar-female",
-          rate: Math.max(0.5, Math.min(1.5, speed)),
-          maxChars
-        })
-      });
-      const data = await apiJson(response);
-      if (!data.id || !data.url) throw new Error("AI Voice ထွက်လာပေမယ့် audio link မရပါ။");
-      voiceId = data.id;
-      voiceUrl = data.url;
-      voiceSrt = "";
-      voiceSrtReady = false;
-      localStorage.removeItem("yoon_voice_id");
-      localStorage.removeItem("yoon_voice_url");
-      localStorage.removeItem("yoon_pending_voice_srt");
-      localStorage.removeItem("yoon_voice_srt");
-      localStorage.removeItem("yoon_burmese_srt");
-      localStorage.setItem("yoon_voice_srt_ready", "0");
-      const srtBox = $("burmeseSrt");
-      if (srtBox) srtBox.value = "";
-      voiceSrt = "";
-      voiceSrtReady = false;
-      const srtButton = $("generateVoiceSrt");
-      if (srtButton) srtButton.disabled = false;
-
-      const player = $("voicePreview");
-      if (player) {
-        player.pause();
-        player.removeAttribute("src");
-        player.load();
-        player.src = data.url + (data.url.includes("?") ? "&" : "?") + "t=" + Date.now();
-        player.hidden = false;
-        player.load();
-      }
-      const parseSrtEndSeconds = (srt) => {
-        const matches = [...String(srt || "").matchAll(/(\d{2}):(\d{2}):(\d{2}),(\d{3})\s*-->/g)];
-        const ends = [...String(srt || "").matchAll(/-->\s*(\d{2}):(\d{2}):(\d{2}),(\d{3})/g)];
-        if (!ends.length) return 0;
-        const m = ends[ends.length - 1];
-        return Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]) + Number(m[4]) / 1000;
-      };
-      let voiceDuration = Number(data.duration) || 0;
-      // Compatibility fallback for older server deployments that return no duration.
-      if (voiceDuration < 0.5) voiceDuration = parseSrtEndSeconds(data.srt || data.voiceSrt);
-      if (voiceDuration < 0.5 && Number(data.audioBytes) > 1000) voiceDuration = (Number(data.audioBytes) - 44) / (22050 * 2);
-      if (voiceDuration < 0.5) throw new Error("AI Voice အသံဖိုင်အရှည် မရပါ။ Render မှာ latest commit deploy လုပ်ထားကြောင်း စစ်ပြီး ပြန်ထုတ်ပါ။");
-      status("vstatus", "✅ AI Voice ထုတ်ပြီးပါပြီ။ အသံကြာချိန် " + Math.floor(voiceDuration/60) + ":" + String(Math.floor(voiceDuration%60)).padStart(2,"0") + " ဖြစ်ပါတယ်။ အောက်မှာ နားထောင်နိုင်ပါတယ်။");
-      status("trstatus", "AI Voice အဆင်သင့်ဖြစ်ပါပြီ။ SRT ကို သီးခြားထုတ်နိုင်ပါပြီ။");
-    } catch (error) {
-      status("vstatus", "❌ AI Voice မထုတ်နိုင်ပါ — " + errorText(error));
-    } finally {
-      makeVoiceButton.disabled = false;
-      delete makeVoiceButton.dataset.busy;
-    }
-  };
+ makeVoiceButton.onclick = async function () {
+  const scriptBox=$("recapScript"), text=String(scriptBox?.value||"").trim();
+  if(!text){status("vstatus","⚠️ STEP 03 မှာ Burmese Recap Script အရင်ထုတ်ပါ။");scriptBox?.focus();return;}
+  if(makeVoiceButton.dataset.busy==="1")return;
+  makeVoiceButton.dataset.busy="1";makeVoiceButton.disabled=true;
+  const srtButton=$("generateVoiceSrt");if(srtButton)srtButton.disabled=true;
+  try{
+   status("vstatus","⏳ အဆင့် ၁/၂ — Recap Script ကို AI Voice SRT အဖြစ် အရင်ပြင်ဆင်နေပါတယ်...");
+   const mode=$("srtLength")?.value||"normal",maxChars=mode==="short"?20:mode==="long"?50:35;
+   const pieces=String(text).replace(/\r/g,"").split(/(?<=[။.!?])\s+|\n+/u).map(x=>x.trim()).filter(Boolean);
+   const lines=[];let carry="";
+   for(const piece of pieces){let rest=piece;while(rest.length>maxChars){let cut=rest.lastIndexOf(" ",maxChars);if(cut<Math.floor(maxChars*.55))cut=maxChars;lines.push(rest.slice(0,cut).trim());rest=rest.slice(cut).trim();}if(rest)carry+=(carry?" ":"")+rest;if(carry.length>=Math.floor(maxChars*.7)||/[။.!?]$/.test(rest)){lines.push(carry);carry="";}}
+   if(carry)lines.push(carry);
+   if(!lines.length)throw Error("Recap Script မှ SRT မပြုလုပ်နိုင်ပါ။");
+   let cursor=0;
+   const stamp=n=>{const ms=Math.max(0,Math.round(n*1000)),hh=Math.floor(ms/3600000),mm=Math.floor(ms%3600000/60000),ss=Math.floor(ms%60000/1000),mmm=ms%1000;return String(hh).padStart(2,"0")+":"+String(mm).padStart(2,"0")+":"+String(ss).padStart(2,"0")+","+String(mmm).padStart(3,"0");};
+   const draft=lines.map((line,i)=>{const start=cursor;cursor+=Math.max(1.2,Array.from(line).length/5);return (i+1)+"\n"+stamp(start)+" --> "+stamp(cursor)+"\n"+line;}).join("\n\n")+"\n";
+   const prep=await apiJson(await fetch("/api/prepare-voice-srt",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({srt:draft,geminiKey:gemini()})}));
+   const preparedSrt=String(prep.srt||"").trim();if(!preparedSrt)throw Error("AI Voice SRT မရပါ။");
+   voiceSrt=preparedSrt+"\n";voiceSrtReady=true;
+   const srtBox=$("burmeseSrt");if(srtBox)srtBox.value=voiceSrt;
+   localStorage.setItem("yoon_voice_srt",voiceSrt);localStorage.setItem("yoon_burmese_srt",voiceSrt);localStorage.setItem("yoon_voice_srt_ready","1");
+   status("trstatus","✅ AI Voice SRT ပြီးပါပြီ။ ယခု SRT ထဲက စာသားအတိုင်း AI Voice ထုတ်နေပါတယ်...");
+   const dialogue=preparedSrt.replace(/\r/g,"").split(/\n\s*\n/).map(block=>{const a=block.split("\n"),ti=a.findIndex(x=>/-->/.test(x));return ti>=0?a.slice(ti+1).join(" ").trim():"";}).filter(Boolean).join("\n");
+   const data=await apiJson(await fetch("/api/tts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:dialogue,voice:$("voice")?.value||"myanmar-female",rate:Math.max(.5,Math.min(1.5,Number($("voiceSpeed")?.value||1))),maxChars})}));
+   if(!data.id||!data.url)throw Error("SRT ပြီးပါပြီ၊ ဒါပေမယ့် AI Voice audio link မရပါ။");
+   voiceId=data.id;voiceUrl=data.url;
+   const player=$("voicePreview");if(player){player.pause();player.src=data.url+(data.url.includes("?")?"&":"?")+"t="+Date.now();player.hidden=false;player.load();}
+   if(srtButton)srtButton.disabled=false;
+   status("vstatus","✅ AI Voice SRT အရင်ထုတ်ပြီး၊ အဲဒီစာသားအတိုင်း AI Voice ပြီးပါပြီ။");
+  }catch(error){status("vstatus","❌ "+errorText(error));}
+  finally{makeVoiceButton.disabled=false;delete makeVoiceButton.dataset.busy;if(srtButton)srtButton.disabled=!voiceId;}
+ };
 }
-
 const showText=$("showText"),showBlur=$("showBlur"),showLogo=$("showLogo"),showSubtitles=$("showSubtitles");
 const textControls=$("textControls"),blurControls=$("blurControls"),logoControls=$("logoControls"),subtitleControls=$("subtitleControls");
 const editorPreview=$("editorPreview"),textPreview=$("textPreview"),subtitlePreview=$("subtitlePreview"),blurLayer=$("blurLayer"),logoPreview=$("logoPreview");
@@ -390,13 +347,18 @@ $("render").onclick=async e=>{e?.preventDefault();
    progress(40,"Translating to Burmese",done);const tl=await json("/api/translate-srt",{geminiKey:gemini(),srt:original});burmese=tl.srt||"";if(!burmese)throw Error("Burmese translation မရပါ။");done.push("translation");
    if($("originalSrt"))$("originalSrt").value=original;if($("burmeseSrt"))$("burmeseSrt").value=burmese;
    progress(52,"Writing Burmese recap",done);const rec=await json("/api/recap",{transcript,groqKey:groq(),style:$("oneStyle").value,length:$("oneLength").value});recapText=String(rec.recap||"").trim();if(!recapText)throw Error("Recap script မရပါ။");done.push("recap");
-   progress(72,"Generating AI voice",done);const tts=await json("/api/tts",{text:recapText,voice:$("oneVoice").value,rate:Number($("oneSpeed").value||1)});if(!tts.id)throw Error("AI Voice မရပါ။");done.push("voice");
-   if($("oneSubtitles").checked){
-    progress(82,"Generating SRT from AI voice",done);
-    const vs=await json("/api/voice-to-srt",{voiceId:tts.id,groqKey:groq()});
-    recapSrt=String(vs.srt||"").trim();if(!recapSrt)throw Error("AI Voice SRT မရပါ။");
-    done.push("subtitle","sync");
-   }else{recapSrt="";done.push("subtitle","sync");}
+   progress(62,"Preparing AI Voice SRT before voice",done);
+   const mode=$("oneLength").value,maxChars=mode==="1-2 minutes"?20:mode==="5-10 minutes"?50:35;
+   const pieces=recapText.replace(/\r/g,"").split(/(?<=[။.!?])\s+|\n+/u).map(x=>x.trim()).filter(Boolean);
+   const lines=[];let carry="";
+   for(const piece of pieces){let rest=piece;while(rest.length>maxChars){let cut=rest.lastIndexOf(" ",maxChars);if(cut<Math.floor(maxChars*.55))cut=maxChars;lines.push(rest.slice(0,cut).trim());rest=rest.slice(cut).trim();}if(rest)carry+=(carry?" ":"")+rest;if(carry.length>=Math.floor(maxChars*.7)||/[။.!?]$/.test(rest)){lines.push(carry);carry="";}}
+   if(carry)lines.push(carry);
+   const stamp=n=>{const ms=Math.max(0,Math.round(n*1000)),hh=Math.floor(ms/3600000),mm=Math.floor(ms%3600000/60000),ss=Math.floor(ms%60000/1000),mmm=ms%1000;return String(hh).padStart(2,"0")+":"+String(mm).padStart(2,"0")+":"+String(ss).padStart(2,"0")+","+String(mmm).padStart(3,"0");};
+   let cursor=0;const draft=lines.map((line,i)=>{const start=cursor;cursor+=Math.max(1.2,Array.from(line).length/5);return (i+1)+"\\n"+stamp(start)+" --> "+stamp(cursor)+"\\n"+line;}).join("\\n\\n")+"\\n";
+   const prepared=await json("/api/prepare-voice-srt",{srt:draft,geminiKey:gemini()});recapSrt=String(prepared.srt||"").trim();if(!recapSrt)throw Error("AI Voice SRT မရပါ။");done.push("subtitle");
+   progress(72,"Generating AI voice from prepared SRT",done);
+   const dialogue=recapSrt.replace(/\\r/g,"").split(/\\n\\s*\\n/).map(block=>{const a=block.split("\\n"),ti=a.findIndex(x=>/-->/.test(x));return ti>=0?a.slice(ti+1).join(" ").trim():"";}).filter(Boolean).join("\\n");
+   const tts=await json("/api/tts",{text:dialogue,voice:$("oneVoice").value,rate:Number($("oneSpeed").value||1),maxChars});if(!tts.id)throw Error("AI Voice မရပါ။");done.push("voice","sync");
    try{const v=await fetch(tts.url,{cache:"no-store"});if(v.ok)voiceBlob=await v.blob();}catch{}
    progress(82,"Voice and subtitle timing ready",done);
    const rf=new FormData();rf.append("video",movie,movie.name);if($("oneSubtitles").checked)rf.append("srt",recapSrt);rf.append("voiceId",tts.id);rf.append("showText","0");rf.append("showBlur","0");rf.append("showLogo","0");
