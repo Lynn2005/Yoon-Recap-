@@ -169,3 +169,19 @@ body>main.wrap>header{display:flex;align-items:center;gap:12px}
 body>main.wrap>header>div{flex:1;min-width:0}
 .api-sidebar-tab:hover{filter:brightness(.96)}
 @media(max-width:520px){body>main.wrap>header{gap:8px}.api-sidebar-tab{width:42px;min-width:42px;height:42px;padding:8px}}
+
+
+/* Make the API KEY hamburger unmistakably visible on every screen */
+.api-sidebar-tab{
+  position:fixed!important;top:12px!important;right:12px!important;z-index:1200!important;
+  display:flex!important;flex-direction:column!important;align-items:center!important;
+  justify-content:center!important;gap:5px!important;
+  width:48px!important;min-width:48px!important;height:48px!important;min-height:48px!important;
+  padding:10px!important;margin:0!important;transform:none!important;writing-mode:horizontal-tb!important;
+  background:#1d4ed8!important;color:#fff!important;border:2px solid #fff!important;
+  border-radius:12px!important;box-shadow:0 4px 16px rgba(0,0,0,.28)!important;
+  opacity:1!important;visibility:visible!important;
+}
+.api-sidebar-tab span{display:block!important;width:24px!important;height:3px!important;min-height:3px!important;background:#fff!important;border-radius:3px!important;opacity:1!important;visibility:visible!important}
+.api-sidebar-backdrop[hidden]{display:none!important}
+@media(max-width:520px){.api-sidebar-tab{top:10px!important;right:10px!important;width:46px!important;min-width:46px!important;height:46px!important;min-height:46px!important}}
