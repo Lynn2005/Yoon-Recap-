@@ -227,11 +227,15 @@ if (makeVoiceButton) {
       const player = $("voicePreview");
       if (player) {
         player.pause();
-        player.src = data.url;
+        player.removeAttribute("src");
+        player.load();
+        player.src = data.url + (data.url.includes("?") ? "&" : "?") + "t=" + Date.now();
         player.hidden = false;
         player.load();
       }
-      status("vstatus", "✅ AI Voice ထုတ်ပြီးပါပြီ။ အသံကို အောက်မှာနားထောင်နိုင်ပါတယ်။ နောက်မှ STEP 03 မှာ “AI Voice SRT ထုတ်ရန်” ကိုနှိပ်ပါ။");
+      const voiceDuration = Number(data.duration) || 0;
+      if (voiceDuration < 0.5) throw new Error("AI Voice အသံဖိုင်ကြာချိန် 00:00 ဖြစ်နေပါတယ်။ ပြန်ထုတ်ကြည့်ပါ။");
+      status("vstatus", "✅ AI Voice ထုတ်ပြီးပါပြီ။ အသံကြာချိန် " + Math.floor(voiceDuration/60) + ":" + String(Math.floor(voiceDuration%60)).padStart(2,"0") + " ဖြစ်ပါတယ်။ အောက်မှာ နားထောင်နိုင်ပါတယ်။");
       status("trstatus", "AI Voice အဆင်သင့်ဖြစ်ပါပြီ။ SRT ကို သီးခြားထုတ်နိုင်ပါပြီ။");
     } catch (error) {
       status("vstatus", "❌ AI Voice မထုတ်နိုင်ပါ — " + errorText(error));
