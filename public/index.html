@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="my"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Yoon Recap Studio</title><link rel="stylesheet" href="/style.css?v=6.1.4"></head>
+<html lang="my"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Yoon Recap Studio</title><link rel="stylesheet" href="/style.css?v=6.1.5"></head>
 <body>
 <div id="apiSidebarBackdrop" class="api-sidebar-backdrop" hidden>
   <aside id="apiSidebar" class="api-sidebar" role="dialog" aria-modal="true" aria-labelledby="apiSidebarTitle">
-    <div class="api-sidebar-head"><h2 id="apiSidebarTitle">🔑 API KEY</h2><button type="button" id="apiSidebarClose" class="api-sidebar-close" aria-label="Close API Key sidebar">✕</button></div>
+    <div class="api-sidebar-head"><h2 id="apiSidebarTitle">🔑 API KEY</h2><button type="button" id="apiSidebarClose" class="api-sidebar-close" aria-label="Close API Key sidebar" onclick="var p=document.getElementById('apiSidebarBackdrop');p.hidden=true;p.style.display='none';document.body.classList.remove('api-sidebar-open');document.getElementById('apiSidebarOpen').setAttribute('aria-expanded','false')">✕</button></div>
     <section class="card key"><div class="badge">API</div><h2>🔑 API Keys</h2>
 <label>Groq API Key <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer">🔗 Get Groq API Key</a></label><div class="keyrow"><input id="groqKey" type="password" placeholder="gsk_..."><button id="saveGroq">💾 Save</button></div>
 <label>Gemini API Key <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">🔗 Get Gemini API Key</a></label><div class="keyrow"><input id="geminiKey" type="password" placeholder="AIza..."><button id="saveGemini">💾 Save</button></div>
@@ -11,7 +11,7 @@
   </aside>
 </div>
 <main class="wrap">
-<header><img class="yoon-avatar" src="/yoon-avatar.jpg" alt="Yoon"><div><div class="eyebrow">AI RECAP ASSISTANT</div><h1>Yoon Recap Studio</h1><p>Video → SRT → Gemini → AI Voice → Final Video</p></div><button type="button" id="apiSidebarOpen" class="api-sidebar-tab" aria-label="Open API KEY menu" title="API KEY" aria-controls="apiSidebar" aria-expanded="false"><span></span><span></span><span></span></button></header>
+<header><img class="yoon-avatar" src="/yoon-avatar.jpg" alt="Yoon"><div><div class="eyebrow">AI RECAP ASSISTANT</div><h1>Yoon Recap Studio</h1><p>Video → SRT → Gemini → AI Voice → Final Video</p></div><button type="button" id="apiSidebarOpen" class="api-sidebar-tab" aria-label="Open API KEY menu" title="API KEY" aria-controls="apiSidebar" aria-expanded="false" onclick="var p=document.getElementById('apiSidebarBackdrop');p.hidden=false;p.style.display='flex';document.body.classList.add('api-sidebar-open');this.setAttribute('aria-expanded','true')"><span></span><span></span><span></span></button></header>
 
 <section class="card"><div class="badge">STEP 01</div><h2>🎬 Upload Video → Audio → Transcript</h2>
 <label>🎬 Video Upload</label><input id="video" type="file" accept="video/*"><video id="preview" controls playsinline hidden></video>
