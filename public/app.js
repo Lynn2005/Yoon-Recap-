@@ -203,8 +203,22 @@ if(makeVoiceButton){
    } else {
     throw Error("AI Voice အချိန်ကိုက် SRT မရပါ။ Voice ကိုပြန်ထုတ်ပါ။");
    }
-   const player=$("voicePreview");if(player){player.pause();player.src=data.url+(data.url.includes("?")?"&":"?")+"t="+Date.now();player.hidden=false;player.load();}
-   status("vstatus","✅ AI Voice ထုတ်ပြီးပါပြီ။ Final Video မှာ အသံနဲ့အချိန်ကိုက် SRT ကို သုံးပါမယ်။ STEP 06 မှာ Edit လုပ်ပြီး STEP 07 မှာ Render လုပ်ပါ။");
+   const player=$("voicePreview");
+   if(!player)throw Error("AI Voice Player မတွေ့ပါ။ Page ကို refresh လုပ်ပြီး ပြန်စမ်းပါ။");
+   player.pause();player.removeAttribute("src");player.load();
+   const audioUrl=new URL(data.url,window.location.href);audioUrl.searchParams.set("t",String(Date.now()));
+   player.src=audioUrl.href;player.hidden=false;player.preload="auto";player.load();
+   // Do not report success until the browser has loaded real audio metadata.
+   await new Promise((resolve,reject)=>{
+    let settled=false;
+    const finish=(err)=>{if(settled)return;settled=true;clearTimeout(timer);player.removeEventListener("loadedmetadata",onMeta);player.removeEventListener("error",onError);err?reject(err):resolve();};
+    const onMeta=()=>{if(Number.isFinite(player.duration)&&player.duration>0)finish();else finish(new Error("Audio duration မရပါ။"));};
+    const onError=()=>finish(new Error("အသံဖိုင်ကို Browser က ဖတ်မရပါ။ AI Voice ကိုပြန်ထုတ်ပါ။"));
+    const timer=setTimeout(()=>finish(new Error("အသံဖိုင်ဖွင့်ရန် အချိန်ကုန်သွားပါတယ်။ Internet/Render server ကိုစစ်ပြီး ပြန်စမ်းပါ။")),15000);
+    player.addEventListener("loadedmetadata",onMeta);player.addEventListener("error",onError);
+    if(player.readyState>=1)onMeta();
+   });
+   status("vstatus","✅ AI Voice အသံဖိုင် အလုပ်လုပ်နေပါပြီ ("+Math.floor(player.duration)+" စက္ကန့်)။ STEP 06 မှာ Edit လုပ်ပြီး Final MP4 Render လုပ်ပါ။");
   }catch(e){status("vstatus","❌ AI Voice မထုတ်နိုင်ပါ — "+errorText(e));}
   finally{makeVoiceButton.disabled=false;delete makeVoiceButton.dataset.busy;}
  };
