@@ -86,7 +86,7 @@ window.yoonSelectEditorOption=selectEditorOption;
  option.addEventListener("change",()=>selectEditorOption(option));
  option.addEventListener("click",()=>requestAnimationFrame(()=>selectEditorOption(option)));
 });
-document.querySelectorAll("#textControls input,#blurControls input,#logoControls input").forEach(el=>{if(el.type!=="file")el.addEventListener("input",update);});
+document.querySelectorAll("#textControls input,#subtitleControls input,#blurControls input,#logoControls input").forEach(el=>{if(el.type!=="file")el.addEventListener("input",update);});
 ["editText","fontStyle","textColor","borderColor","borderWidth"].forEach(id=>$(id).addEventListener("input",update));
 $("fontFile").addEventListener("change",e=>{
  fontFile=e.target.files?.[0]||null;if(!fontFile)return;
@@ -103,7 +103,7 @@ $("logoFile").addEventListener("change",e=>{
 function attachDrag(el,type,xId,yId){
  el.style.touchAction="none";
  el.addEventListener("pointerdown",e=>{
-  if(!(type==="text"?showText.checked:type==="blur"?showBlur.checked:showLogo.checked))return;
+  const enabled=type==="text"?showText.checked:type==="blur"?showBlur.checked:type==="logo"?showLogo.checked:true;if(!enabled)return;
   if(type==="text"&&e.target.closest(".text-resize-handle"))return;
   if(e.button!==undefined&&e.button!==0)return;
   e.preventDefault();e.stopPropagation();
@@ -123,7 +123,7 @@ function attachDrag(el,type,xId,yId){
   editorPreview.addEventListener("pointermove",move);editorPreview.addEventListener("pointerup",end);editorPreview.addEventListener("pointercancel",end);
  });
 }
-attachDrag(textPreview,"text","textX","textY");attachDrag(blurLayer,"blur","blurX","blurY");attachDrag(logoPreview,"logo","logoX","logoY");
+attachDrag(textPreview,"text","textX","textY");attachDrag(subtitlePreview,"subtitle","subtitleX","subtitleY");attachDrag(blurLayer,"blur","blurX","blurY");attachDrag(logoPreview,"logo","logoX","logoY");
 textResizeHandle.addEventListener("pointerdown",e=>{
  if(!showText.checked||e.button!==0)return;e.preventDefault();e.stopPropagation();
  const rect=editorPreview.getBoundingClientRect(),sx=e.clientX,sy=e.clientY,start=Number($("fontSize").value),pid=e.pointerId;
