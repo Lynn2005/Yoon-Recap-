@@ -62,6 +62,8 @@ function update(){
  textPreview.style.left=val("textX")+"%";textPreview.style.top=val("textY")+"%";
  textPreview.style.fontWeight=val("textWeight");textPreview.style.width="max-content";textPreview.style.height="auto";textPreview.style.maxWidth="92%";
  $("fontValue").textContent=val("fontSize");$("borderWidthValue").textContent=val("borderWidth");$("textWeightValue").textContent=val("textWeight");$("textXValue").textContent=val("textX");$("textYValue").textContent=val("textY");
+ subtitlePreview.style.fontSize=val("subtitleFontSize")+"px";subtitlePreview.style.color=val("subtitleColor");subtitlePreview.style.webkitTextStroke=Math.max(0,Number(val("subtitleBorderWidth")||0))+"px "+val("subtitleBorderColor");subtitlePreview.style.left=val("subtitleX")+"%";subtitlePreview.style.top=val("subtitleY")+"%";subtitlePreview.style.display="block";subtitlePreview.style.maxWidth="92%";
+ $("subtitleFontSizeValue").textContent=val("subtitleFontSize");$("subtitleBorderWidthValue").textContent=val("subtitleBorderWidth");$("subtitleXValue").textContent=val("subtitleX");$("subtitleYValue").textContent=val("subtitleY");
  const bw=Number(val("blurW")||90),bh=Number(val("blurH")||22);
  blurLayer.style.left=(Number(val("blurX")||50)-bw/2)+"%";blurLayer.style.top=val("blurY")+"%";
  blurLayer.style.width=bw+"%";blurLayer.style.height=bh+"%";blurLayer.style.transform="translateY(-50%)";
