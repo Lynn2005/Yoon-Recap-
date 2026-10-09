@@ -76,30 +76,33 @@ $("logoFile").onchange=e=>{logoFile=e.target.files?.[0]||null;if(logoFile){const
 update();
 
 function dragElement(el,type,xId,yId){
+  el.style.touchAction="none";
   el.addEventListener("pointerdown",e=>{
     const enabled=$(type==="blur"?"showBlur":type==="text"?"showText":"showLogo").checked;
     if(!enabled)return;
     if(type==="text" && e.target===textResizeHandle)return;
-    if(e.pointerType==="mouse") e.preventDefault();
+    e.preventDefault();
     e.stopPropagation();
     const box=$("editorPreview").getBoundingClientRect();
     const startX=e.clientX,startY=e.clientY;
     const ox=Number($(xId).value),oy=Number($(yId).value);
+    try{el.setPointerCapture(e.pointerId)}catch{}
     const move=ev=>{
-      const dx=(ev.clientX-startX)/box.width*100;
-      const dy=(ev.clientY-startY)/box.height*100;
-      $(xId).value=Math.max(5,Math.min(95,ox+dx));
-      $(yId).value=Math.max(5,Math.min(95,oy+dy));
+      const dx=(ev.clientX-startX)/Math.max(1,box.width)*100;
+      const dy=(ev.clientY-startY)/Math.max(1,box.height)*100;
+      $(xId).value=Math.max(0,Math.min(100,ox+dx));
+      $(yId).value=Math.max(0,Math.min(100,oy+dy));
       update();
     };
     const end=()=>{
-      document.removeEventListener("pointermove",move);
-      document.removeEventListener("pointerup",end);
-      document.removeEventListener("pointercancel",end);
+      el.removeEventListener("pointermove",move);
+      el.removeEventListener("pointerup",end);
+      el.removeEventListener("pointercancel",end);
+      try{el.releasePointerCapture(e.pointerId)}catch{}
     };
-    document.addEventListener("pointermove",move);
-    document.addEventListener("pointerup",end);
-    document.addEventListener("pointercancel",end);
+    el.addEventListener("pointermove",move);
+    el.addEventListener("pointerup",end);
+    el.addEventListener("pointercancel",end);
   });
 }
 // Text ကို Blur box လို yellow boundary + corner resize နဲ့ တိုက်ရိုက်ပြင်နိုင်စေမယ်
