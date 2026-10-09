@@ -390,6 +390,14 @@ app.post("/api/render",upload.fields([{name:"video",maxCount:1},{name:"logo",max
  const video=req.files?.video?.[0],logo=req.files?.logo?.[0],voice=req.files?.voice?.[0],font=req.files?.font?.[0],srt=String(req.body?.srt||"").trim(),voiceId=String(req.body?.voiceId||"").replace(/[^a-zA-Z0-9_-]/g,"");
  if(!video)return res.status(400).json({error:"Video ရွေးပါ။"});
  const savedVoicePath=voiceId?path.join("work",voiceId+".wav"):"";
+ const approvedSrtPath=voiceId?path.join("work",voiceId+".srt"):"";
+ if(srt){
+  const approvedSrt=approvedSrtPath&&fs.existsSync(approvedSrtPath)?fs.readFileSync(approvedSrtPath,"utf8").trim():"";
+  if(!approvedSrt||approvedSrt!==srt){
+   fs.unlink(video.path,()=>{});
+   return res.status(400).json({error:"Final Video အတွက် AI Voice ကနေ ထုတ်ထားတဲ့ SRT ကိုသာ သုံးပါ။ AI Voice SRT ကို အရင်ထုတ်ပါ။"});
+  }
+ }
  const renderVoice=voice||((voiceId&&fs.existsSync(savedVoicePath))?{path:savedVoicePath}:null);
  const id="render-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);
  if(renderRunning){
