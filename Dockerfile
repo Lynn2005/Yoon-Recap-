@@ -17,12 +17,8 @@ RUN sed -i 's/const GEMINI_MODELS=\["gemini-2\.5-flash","gemini-2\.0-flash","gem
     && sed -i 's/generationConfig:{temperature:\.2}/generationConfig:{}/' server.js \
     && grep -q 'const GEMINI_MODELS=\["gemini-3.8-flash"' server.js
 
-# Render speed patch: allow FFmpeg/x264 to use all available CPU threads.
-RUN sed -i 's/"-threads","1","-filter_threads","1","-filter_complex_threads","1"/"-threads","0","-filter_threads","0","-filter_complex_threads","0"/' server.js \
-    && grep -q '"-threads","0","-filter_threads","0","-filter_complex_threads","0"' server.js
-
-# Robust button handlers: AI Voice + Final Video + touch-edit controls.
-RUN sed -i 's#</body>#<script src="/button-fix.js?v=2"></script><script src="/touch-edit.js?v=1"></script></body>#' public/index.html
+# Robust button handlers + touch edit + live preview playback.
+RUN sed -i 's#</body>#<script src="/button-fix.js?v=2"></script><script src="/touch-edit.js?v=1"></script><script src="/live-preview-fix.js?v=2"></script></body>#' public/index.html
 
 RUN mkdir -p uploads work
 EXPOSE 10000
