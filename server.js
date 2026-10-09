@@ -282,8 +282,9 @@ app.post("/api/tts",async(req,res)=>{
    if(!Number.isFinite(finalDuration)||finalDuration<0.5){
      const streamDuration=Number(audioInfo.streams[0].duration);
      const bytes=fs.statSync(out).size;
-     const estimated=Math.max(0,(bytes-128)/(22050*2));
-     finalDuration=Number.isFinite(streamDuration)&&streamDuration>=0.5?streamDuration:estimated;
+     const estimated=Math.max(0,(bytes-44)/(22050*2));
+     const chunkDuration=made.reduce((sum,item)=>sum+item.duration,0);
+     finalDuration=Number.isFinite(streamDuration)&&streamDuration>=0.5?streamDuration:(estimated>=0.5?estimated:chunkDuration);
    }
    if(!Number.isFinite(finalDuration)||finalDuration<0.5)throw new Error("AI Voice ဖိုင်အရှည်ကို မဖတ်နိုင်ပါ။ TTS output size="+fs.statSync(out).size+" bytes; chunks="+made.length+".");
    let cursor=0;
