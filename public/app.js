@@ -23,33 +23,46 @@ async function apiJson(r){
 function download(name,text,type="text/plain"){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 
 $("video").onchange=e=>{file=e.target.files?.[0];if(videoUrl)URL.revokeObjectURL(videoUrl);if(file){videoUrl=URL.createObjectURL(file);$("preview").src=videoUrl;$("preview").hidden=false;$("editVideo").src=videoUrl}};
+async function prepareVoiceSrtAutomatically(srt,auto=false){
+ srt=(srt||"").trim();if(!srt)throw Error("မြန်မာ SRT မရပါ။");
+ if(!gemini())throw Error("Options ထဲမှာ Gemini API Key ထည့်ပြီး Save လုပ်ပါ။");
+ const b=$("prepareVoiceSrt");if(b)b.disabled=true;
+ status("trstatus","⏳ AI Voice SRT အဖြစ် အလိုအလျောက် ပြင်ဆင်နေပါတယ်...");
+ if(auto)status("tstatus","⏳ မြန်မာဘာသာပြန်ပြီးပါပြီ။ AI Voice SRT ပြင်ဆင်နေပါတယ်...");
+ try{
+  const d=await apiJson(await fetch("/api/prepare-voice-srt",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({geminiKey:gemini(),srt})}));
+  if(!d.srt)throw Error("AI Voice SRT မရပါ။");
+  $("burmeseSrt").value=d.srt;localStorage.setItem("yoon_burmese_srt",d.srt);voiceSrtReady=true;localStorage.setItem("yoon_voice_srt_ready","1");
+  status("trstatus","✅ AI Voice SRT အဆင်သင့်ဖြစ်ပါပြီ။ “AI Voice SRT Download” ကိုနှိပ်ပြီး သိမ်းနိုင်ပါတယ်။");
+  if(auto)status("tstatus","✅ Original SRT → မြန်မာဘာသာပြန် → AI Voice SRT အားလုံးပြီးပါပြီ။");
+  return true;
+ }catch(e){voiceSrtReady=false;localStorage.removeItem("yoon_voice_srt_ready");status("trstatus","❌ AI Voice SRT ပြင်ဆင်မရပါ — "+e.message);if(auto)status("tstatus","❌ "+e.message);return false;}
+ finally{if(b)b.disabled=false;}
+}
 async function translateSrtAutomatically(srt,auto=false){
- srt=(srt||"").trim();if(!srt)return status("trstatus","⚠️ Original SRT အရင်ထုတ်ပါ။");
- if(!gemini()){const msg=auto?"⚠️ Original SRT ပြီးပါပြီ။ Auto Translate အတွက် Options ထဲမှာ Gemini API Key ထည့်ပြီး Save လုပ်ပါ။":"⚠️ Gemini API Key ထည့်ပါ။";status("trstatus",msg);if(auto)status("tstatus",msg);return false;}
- const b=$("translate");if(b)b.disabled=true;const working=auto?"⏳ Original SRT ပြီးပါပြီ။ Gemini နဲ့ မြန်မာလို အလိုအလျောက် ဘာသာပြန်နေပါတယ်...":"⏳ Gemini နဲ့ မြန်မာဘာသာပြန်နေပါတယ်...";status("trstatus",working);if(auto)status("tstatus",working);
- try{const d=await apiJson(await fetch("/api/translate-srt",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({geminiKey:gemini(),srt})}));$("burmeseSrt").value=d.srt||"";localStorage.setItem("yoon_burmese_srt",$("burmeseSrt").value);voiceSrtReady=false;localStorage.removeItem("yoon_voice_srt_ready");status("trstatus","✅ Burmese SRT ပြီးပါပြီ။ နောက်တစ်ဆင့်မှာ AI Voice SRT ပြောင်းပါ။");if(auto)status("tstatus","✅ Original SRT + Burmese SRT အလိုအလျောက် ပြီးပါပြီ။");return true}
- catch(e){const msg="❌ Auto Translate မအောင်မြင်ပါ — "+e.message;status("trstatus",msg);if(auto)status("tstatus",msg);return false}
+ srt=(srt||"").trim();if(!srt){status("trstatus","⚠️ Original SRT အရင်ထုတ်ပါ။");return false;}
+ if(!gemini()){const msg="⚠️ Options ထဲမှာ Gemini API Key ထည့်ပြီး Save လုပ်ပါ။";status("trstatus",msg);if(auto)status("tstatus",msg);return false;}
+ const b=$("translate");if(b)b.disabled=true;const working="⏳ Original SRT ကို မြန်မာဘာသာပြန်နေပါတယ်...";
+ status("trstatus",working);if(auto)status("tstatus",working);
+ try{
+  const d=await apiJson(await fetch("/api/translate-srt",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({geminiKey:gemini(),srt})}));
+  const burmese=(d.srt||"").trim();if(!burmese)throw Error("မြန်မာဘာသာပြန် SRT မရပါ။");
+  voiceSrtReady=false;localStorage.removeItem("yoon_voice_srt_ready");
+  $("burmeseSrt").value=burmese;localStorage.setItem("yoon_burmese_srt",burmese);
+  return await prepareVoiceSrtAutomatically(burmese,auto);
+ }catch(e){const msg="❌ SRT ပြောင်းမအောင်မြင်ပါ — "+e.message;status("trstatus",msg);if(auto)status("tstatus",msg);return false}
  finally{if(b)b.disabled=false}
 }
 $("transcribe").onclick=async()=>{if(!file)return status("tstatus","⚠️ Video ရွေးပါ။");if(!groq())return status("tstatus","⚠️ Groq API Key ထည့်ပါ။");const b=$("transcribe");b.disabled=true;status("tstatus","⏳ Audio extract → Whisper → Original SRT ထုတ်နေပါတယ်...");try{const f=new FormData();f.append("video",file);f.append("groqKey",groq());const d=await apiJson(await fetch("/api/transcribe",{method:"POST",body:f}));$("originalSrt").value=d.srt||"";localStorage.setItem("yoon_original_srt",$("originalSrt").value);status("tstatus","✅ Original SRT ပြီးပါပြီ။");await translateSrtAutomatically($("originalSrt").value,true)}catch(e){status("tstatus","❌ "+e.message)}finally{b.disabled=false}};
-$("downloadOriginal").onclick=()=>download("original.srt",$("originalSrt").value,"application/x-subrip");
+
 
 if($("translate"))$("translate").onclick=()=>translateSrtAutomatically($("originalSrt").value,false);
 
-$("prepareVoiceSrt")?.addEventListener("click",async()=>{
- const srt=$("burmeseSrt").value.trim();
- if(!srt)return status("trstatus","⚠️ Burmese SRT အရင်ထည့်ပါ။");
- if(!gemini())return status("trstatus","⚠️ Gemini API Key ထည့်ပြီး Save လုပ်ပါ။");
- const b=$("prepareVoiceSrt");b.disabled=true;
- status("trstatus","⏳ AI Voice ဖတ်ရလွယ်အောင် ပြင်နေပြီး မူရင်း Content ကို စစ်ဆေးနေပါတယ်...");
- try{
-  const d=await apiJson(await fetch("/api/prepare-voice-srt",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({geminiKey:gemini(),srt})}));
-  $("burmeseSrt").value=d.srt;localStorage.setItem("yoon_burmese_srt",d.srt);voiceSrtReady=true;localStorage.setItem("yoon_voice_srt_ready","1");
-  download("ai-voice.srt",d.srt,"application/x-subrip");
-  status("trstatus","✅ AI Voice SRT ပြီးပါပြီ။ အပေါ်က Burmese SRT နေရာမှာ ပြထားတဲ့ ဒီ SRT ကိုပဲ AI Voice ထုတ်ရာမှာ သုံးပါမယ်။");
- }catch(e){status("trstatus","❌ "+e.message+" — မူရင်း SRT ကို မပြောင်းထားပါ။");}
- finally{b.disabled=false;}
-});$("burmeseSrt").addEventListener("input",()=>{voiceSrtReady=false;localStorage.removeItem("yoon_voice_srt_ready");});$("srtUpload")?.addEventListener("change",async e=>{const f=e.target.files?.[0];if(!f)return;try{const s=await f.text();if(!/\\d+\\s*\\n\\d{2}:\\d{2}:\\d{2},\\d{3}\\s*-->\\s*\\d{2}:\\d{2}:\\d{2},\\d{3}/.test(s))throw new Error("Valid SRT ဖိုင်မဟုတ်ပါ။");voiceSrt=s.trim()+"\\n";localStorage.setItem("yoon_voice_srt",voiceSrt);$("voiceSrt").value=voiceSrt;status("vstatus","✅ External SRT Upload ပြီးပါပြီ။ Final Video မှာ ဒီ SRT ကိုသုံးပါမယ်။")}catch(err){status("vstatus","❌ "+err.message)}});$("downloadVoiceSrt")?.addEventListener("click",()=>download("external.srt",voiceSrt||$("voiceSrt")?.value||"","application/x-subrip"));$("voiceUpload")?.addEventListener("change",e=>{voiceUploadFile=e.target.files?.[0]||null;if(voiceUploadFile){voiceId=null;voiceUrl=null;localStorage.removeItem("yoon_voice_id");localStorage.removeItem("yoon_voice_url");$("voicePreview").src=URL.createObjectURL(voiceUploadFile);$("voicePreview").hidden=false;status("vstatus","✅ AI Voice Upload ပြီးပါပြီ။ Final Video မှာ ဒီအသံကိုသုံးပါမယ်။")}});
+$("prepareVoiceSrt")?.addEventListener("click",()=>{
+ if(!voiceSrtReady||!$("burmeseSrt").value.trim())return status("trstatus","⚠️ AI Voice SRT မပြီးသေးပါ။ အပေါ်က Video မှ AI Voice SRT တန်းထုတ်မယ် ခလုတ်ကို အရင်နှိပ်ပါ။");
+ download("ai-voice.srt",$("burmeseSrt").value.trim()+"\n","application/x-subrip");
+ status("trstatus","✅ AI Voice SRT Download လုပ်ပြီးပါပြီ။");
+});$("srtUpload")?.addEventListener("change",async e=>{const f=e.target.files?.[0];if(!f)return;try{const s=await f.text();if(!/\\d+\\s*\\n\\d{2}:\\d{2}:\\d{2},\\d{3}\\s*-->\\s*\\d{2}:\\d{2}:\\d{2},\\d{3}/.test(s))throw new Error("Valid SRT ဖိုင်မဟုတ်ပါ။");voiceSrt=s.trim()+"\\n";localStorage.setItem("yoon_voice_srt",voiceSrt);$("voiceSrt").value=voiceSrt;status("vstatus","✅ External SRT Upload ပြီးပါပြီ။ Final Video မှာ ဒီ SRT ကိုသုံးပါမယ်။")}catch(err){status("vstatus","❌ "+err.message)}});$("downloadVoiceSrt")?.addEventListener("click",()=>download("external.srt",voiceSrt||$("voiceSrt")?.value||"","application/x-subrip"));$("voiceUpload")?.addEventListener("change",e=>{voiceUploadFile=e.target.files?.[0]||null;if(voiceUploadFile){voiceId=null;voiceUrl=null;localStorage.removeItem("yoon_voice_id");localStorage.removeItem("yoon_voice_url");$("voicePreview").src=URL.createObjectURL(voiceUploadFile);$("voicePreview").hidden=false;status("vstatus","✅ AI Voice Upload ပြီးပါပြီ။ Final Video မှာ ဒီအသံကိုသုံးပါမယ်။")}});
 
 $("voiceSpeed").addEventListener("input",()=>$("voiceSpeedValue").textContent=Number($("voiceSpeed").value).toFixed(1)+"x");
 
