@@ -43,7 +43,7 @@ $("makeVoice").onclick=async()=>{const srtInput=$("burmeseSrt").value.trim();if(
 
 const showText=$("showText"),showBlur=$("showBlur"),showLogo=$("showLogo");
 const textControls=$("textControls"),blurControls=$("blurControls"),logoControls=$("logoControls");
-const editorPreview=$("editorPreview"),textPreview=$("textPreview"),blurLayer=$("blurLayer"),logoPreview=$("logoPreview");
+const editorPreview=$("editorPreview"),textPreview=$("textPreview"),subtitlePreview=$("subtitlePreview"),blurLayer=$("blurLayer"),logoPreview=$("logoPreview");
 let activeOption=showText;
 let textLabel=textPreview.querySelector(".text-preview-label");
 if(!textLabel){textLabel=document.createElement("span");textLabel.className="text-preview-label";textPreview.replaceChildren(textLabel);}
@@ -142,7 +142,7 @@ $("render").onclick=async e=>{e?.preventDefault();
  makeProgress();setProgress(1);status("fstatus","⏳ Final Video render စနေပါတယ်... 1%");
  try{
   const f=new FormData();f.append("video",file);if(srt)f.append("srt",srt);if(voiceId)f.append("voiceId",voiceId);if(voiceUploadFile)f.append("voice",voiceUploadFile,voiceUploadFile.name);f.append("text",$("editText").value);f.append("fontStyle",$("fontStyle").value);f.append("textWeight",$("textWeight").value);f.append("fontColor",$("textColor").value);f.append("borderColor",$("borderColor").value);f.append("borderWidth",$("borderWidth").value);f.append("showText",showText.checked?"1":"0");f.append("showBlur",showBlur.checked?"1":"0");f.append("showLogo",showLogo.checked?"1":"0");
-  ["fontSize","textWeight","textX","textY","blurAmount","blurX","blurY","blurW","blurH","logoSize","logoX","logoY"].forEach(id=>f.append(id,$(id).value));if(logoFile)f.append("logo",logoFile);if(fontFile)f.append("font",fontFile);
+  ["fontSize","textWeight","textX","textY","subtitleFontSize","subtitleX","subtitleY","subtitleBorderWidth","blurAmount","blurX","blurY","blurW","blurH","logoSize","logoX","logoY"].forEach(id=>f.append(id,$(id).value));f.append("subtitleColor",$("subtitleColor").value);f.append("subtitleBorderColor",$("subtitleBorderColor").value);if(logoFile)f.append("logo",logoFile);if(fontFile)f.append("font",fontFile);
   if(!voiceUploadFile&&voiceUrl){try{const vr=await fetch(voiceUrl,{cache:"no-store"});if(!vr.ok)throw new Error();const vb=await vr.blob();f.append("voice",vb,"saved-ai-voice.wav");}catch(e){throw new Error("သိမ်းထားတဲ့ AI Voice ကို Final Video ထဲထည့်မရပါ။ AI Voice ကို တစ်ခါပြန်ထုတ်ပါ။");}}
   const d=await apiJson(await fetch("/api/render",{method:"POST",body:f}));const jobId=d.jobId;if(!jobId)throw new Error("Render job ID မရပါ။");
   for(let attempts=0;attempts<600;attempts++){await new Promise(r=>setTimeout(r,1000));const q=await apiJson(await fetch("/api/render/status/"+encodeURIComponent(jobId),{cache:"no-store"}));if(q.status==="processing"){setProgress(Math.max(pct,Math.min(96,Number(q.progress||5)+Math.min(70,attempts*.15))));status("fstatus","⏳ Final Video render လုပ်နေပါတယ်... "+pct+"%");continue;}if(q.status==="error")throw new Error(q.error||"Final render failed");if(q.status==="done"){setProgress(100);const label=document.getElementById("renderProgressLabel");if(label)label.textContent="Final Video Complete";$("finalLink").href=q.url;$("finalLink").hidden=false;status("fstatus","✅ Final MP4 ပြီးပါပြီ — 100%");break;}}
