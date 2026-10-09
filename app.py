@@ -185,6 +185,11 @@ with tabs[3]:
         mirror=st.checkbox("Mirror / ဘယ်ညာပြောင်း",False,key="mirror_enabled")
         blur_amount=st.slider("Blur အား",1,20,5,key="blur_amount",disabled=not st.session_state.blur_enabled)
         blur=blur_amount if st.session_state.blur_enabled else 0
+        st.caption("Blur လုပ်မည့် နေရာ (ရာခိုင်နှုန်း)")
+        blur_x=st.slider("Blur X",0,90,25,key="blur_x",disabled=not st.session_state.blur_enabled)
+        blur_y=st.slider("Blur Y",0,90,25,key="blur_y",disabled=not st.session_state.blur_enabled)
+        blur_w=st.slider("Blur အကျယ်",10,100,25,key="blur_w",disabled=not st.session_state.blur_enabled)
+        blur_h=st.slider("Blur အမြင့်",10,100,25,key="blur_h",disabled=not st.session_state.blur_enabled)
     with c2:
         mix=st.checkbox("မူရင်းအသံကို နောက်ခံအဖြစ်ထားမယ်",False,key="mix_original_audio")
         vol=st.slider("မူရင်းအသံ Volume (%)",0,100,15,key="original_audio_volume")
@@ -205,7 +210,11 @@ with tabs[3]:
             import io, base64
             frame=Image.open(io.BytesIO(extract_preview_frame(st.session_state.video_bytes,st.session_state.video_name,preview_second))).convert("RGB")
                 if mirror: frame=frame.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
-                if blur: frame=frame.filter(ImageFilter.GaussianBlur(radius=max(1,blur/2)))
+                if blur:
+                    bx=min(frame.width-1,int(frame.width*blur_x/100)); by=min(frame.height-1,int(frame.height*blur_y/100))
+                    bw=max(1,min(frame.width-bx,int(frame.width*blur_w/100))); bh=max(1,min(frame.height-by,int(frame.height*blur_h/100)))
+                    roi=frame.crop((bx,by,bx+bw,by+bh)).filter(ImageFilter.GaussianBlur(radius=max(1,blur/2)))
+                    frame.paste(roi,(bx,by))
                 # Burn the currently active subtitle into the background frame.
                 if burn and st.session_state.burmese_srt.strip():
                     def parse_sec(ts):
@@ -300,7 +309,6 @@ with tabs[3]:
                     vp.write_bytes(st.session_state.video_bytes); ap.write_bytes(st.session_state.voice_bytes)
                     filters=[]
                     if mirror: filters.append("hflip")
-                    if blur: filters.append(f"boxblur={blur}:1")
                     if burn and st.session_state.burmese_srt.strip():
                         sp=root/"burmese.srt"; sp.write_text(st.session_state.burmese_srt,encoding="utf-8-sig")
                         align=2 if pos=="အောက်" else 8
@@ -311,11 +319,17 @@ with tabs[3]:
                         filters.append(f"drawtext=fontfile='{esc(fp)}':text='{safe}':fontcolor=white:fontsize=36:borderw=3:bordercolor=black:x=(w-text_w)*{tx/100:.3f}:y=(h-text_h)*{ty/100:.3f}")
                     args=["ffmpeg","-y","-i",str(vp),"-i",str(ap)]
                     graph=[]; vf=",".join(filters) if filters else "null"
+                    if blur:
+                        bx=blur_x/100; by=blur_y/100; bw=min(blur_w/100,1-bx); bh=min(blur_h/100,1-by)
+                        graph.append(f"[0:v]{vf}[clean];[clean]split[base][tmp];[tmp]crop=w=iw*{bw:.4f}:h=ih*{bh:.4f}:x=iw*{bx:.4f}:y=ih*{by:.4f},boxblur={blur}:1[blurred];[base][blurred]overlay=x=W*{bx:.4f}:y=H*{by:.4f}[blurout]")
+                        video_base="[blurout]"
+                    else:
+                        graph.append(f"[0:v]{vf}[base]"); video_base="[base]"
                     if logo:
                         lp=root/("logo"+(Path(logo.name).suffix or ".png")); lp.write_bytes(logo.getvalue())
                         args += ["-i",str(lp)]
-                        graph.append(f"[0:v]{vf}[base];[2:v]scale=iw*0.18:-1[lg];[base][lg]overlay=(W-w)*{logo_x/100:.3f}:(H-h)*{logo_y/100:.3f}[vout]")
-                    else: graph.append(f"[0:v]{vf}[vout]")
+                        graph.append(f"[2:v]scale=iw*0.18:-1[lg];{video_base}[lg]overlay=(W-w)*{logo_x/100:.3f}:(H-h)*{logo_y/100:.3f}[vout]")
+                    else: graph.append(f"{video_base}null[vout]")
                     if mix: graph.append(f"[0:a]volume={vol/100:.2f}[bg];[bg][1:a]amix=inputs=2:duration=first:dropout_transition=2[aout]")
                     args += ["-filter_complex",";".join(graph),"-map","[vout]"]
                     args += ["-map","[aout]"] if mix else ["-map","1:a:0"]
@@ -337,7 +351,7 @@ with tabs[3]:
     if st.session_state.thumbnail_bytes:
         st.subheader("Thumbnail"); st.image(st.session_state.thumbnail_bytes)
         st.download_button("⬇️ Thumbnail Download",st.session_state.thumbnail_bytes,f"{st.session_state.project_name}_thumbnail.jpg","image/jpeg")
-    st.caption("Preview frame ကို cache လုပ်ထားလို့ ထပ်ပြင်တဲ့အခါ ပိုမြန်သင့်ပါတယ်။ Blur ကို ရွေးထားရင် လက်ရှိ version မှာ ဗီဒီယိုတစ်ခုလုံး ဝါးသွားပါတယ်။")
+    st.caption("Preview frame ကို cache လုပ်ထားပါတယ်။ Blur ကို ရွေးပြီး X/Y နဲ့ အကျယ်/အမြင့်ကို ချိန်ပါ — ရွေးထားတဲ့ ဧရိယာပဲ ဝါးစေပါတယ်။")
 
 st.divider()
 st.caption("အရေးကြီး SRT၊ Voice၊ Final MP4 ကို အလုပ်ပြီးတိုင်း Download လုပ်ထားပါ။ Session ပြတ်လျှင် မသိမ်းရသေးသော data ပျောက်နိုင်သည်။")
