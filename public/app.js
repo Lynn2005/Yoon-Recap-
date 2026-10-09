@@ -233,8 +233,18 @@ if (makeVoiceButton) {
         player.hidden = false;
         player.load();
       }
-      const voiceDuration = Number(data.duration) || 0;
-      if (voiceDuration < 0.5) throw new Error("AI Voice အသံဖိုင်ကြာချိန် 00:00 ဖြစ်နေပါတယ်။ ပြန်ထုတ်ကြည့်ပါ။");
+      const parseSrtEndSeconds = (srt) => {
+        const matches = [...String(srt || "").matchAll(/(\d{2}):(\d{2}):(\d{2}),(\d{3})\s*-->/g)];
+        const ends = [...String(srt || "").matchAll(/-->\s*(\d{2}):(\d{2}):(\d{2}),(\d{3})/g)];
+        if (!ends.length) return 0;
+        const m = ends[ends.length - 1];
+        return Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]) + Number(m[4]) / 1000;
+      };
+      let voiceDuration = Number(data.duration) || 0;
+      // Compatibility fallback for older server deployments that return no duration.
+      if (voiceDuration < 0.5) voiceDuration = parseSrtEndSeconds(data.srt || data.voiceSrt);
+      if (voiceDuration < 0.5 && Number(data.audioBytes) > 1000) voiceDuration = (Number(data.audioBytes) - 44) / (22050 * 2);
+      if (voiceDuration < 0.5) throw new Error("AI Voice အသံဖိုင်အရှည် မရပါ။ Render မှာ latest commit deploy လုပ်ထားကြောင်း စစ်ပြီး ပြန်ထုတ်ပါ။");
       status("vstatus", "✅ AI Voice ထုတ်ပြီးပါပြီ။ အသံကြာချိန် " + Math.floor(voiceDuration/60) + ":" + String(Math.floor(voiceDuration%60)).padStart(2,"0") + " ဖြစ်ပါတယ်။ အောက်မှာ နားထောင်နိုင်ပါတယ်။");
       status("trstatus", "AI Voice အဆင်သင့်ဖြစ်ပါပြီ။ SRT ကို သီးခြားထုတ်နိုင်ပါပြီ။");
     } catch (error) {
