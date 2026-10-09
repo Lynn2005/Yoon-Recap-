@@ -146,3 +146,49 @@ $("render").onclick=async e=>{e?.preventDefault();
   for(let attempts=0;attempts<600;attempts++){await new Promise(r=>setTimeout(r,1000));const q=await apiJson(await fetch("/api/render/status/"+encodeURIComponent(jobId),{cache:"no-store"}));if(q.status==="processing"){setProgress(Math.max(pct,Math.min(96,Number(q.progress||5)+Math.min(70,attempts*.15))));status("fstatus","⏳ Final Video render လုပ်နေပါတယ်... "+pct+"%");continue;}if(q.status==="error")throw new Error(q.error||"Final render failed");if(q.status==="done"){setProgress(100);const label=document.getElementById("renderProgressLabel");if(label)label.textContent="Final Video Complete";$("finalLink").href=q.url;$("finalLink").hidden=false;status("fstatus","✅ Final MP4 ပြီးပါပြီ — 100%");break;}}
  }catch(e){status("fstatus","❌ "+e.message)}finally{b.disabled=false}
 };
+
+
+// One-click controller: runs existing pipeline endpoints in sequence.
+(()=>{
+ const $=id=>document.getElementById(id);if(!$("oneClickRecap"))return;
+ let movie=null,original="",burmese="",transcript="",recapText="",recapSrt="",voiceBlob=null;
+ const all=[["validation",5,"Validating video"],["audio",10,"Extracting audio / transcribing"],["original",30,"Creating original SRT"],["translation",40,"Translating to Burmese"],["recap",52,"Writing recap script"],["subtitle",62,"Creating recap subtitles"],["voice",72,"Generating AI voice"],["sync",82,"Syncing voice and subtitles"],["render",90,"Rendering final MP4"],["complete",100,"Complete"]];
+ function progress(p,label,done=[]){$("oneProgressWrap").hidden=false;$("oneProgressPct").textContent=p+"%";$("oneProgressBar").style.width=p+"%";$("oneStepLabel").textContent=label;$("oneSteps").innerHTML=all.slice(0,-1).map(s=>'<div class="one-step '+(done.includes(s[0])?'done':(p>=s[1]?'active':''))+'">'+(done.includes(s[0])?'✓':(p>=s[1]?'→':'○'))+' '+s[2]+'</div>').join("");}
+ function say(s){$("oneStatus").textContent=s;}
+ async function call(url,opts){return apiJson(await fetch(url,opts));}
+ async function json(url,obj){return call(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(obj)});}
+ $("oneVideo").addEventListener("change",e=>{movie=e.target.files?.[0]||null;$("oneResult").hidden=true;$("oneMovieInfo").textContent=movie?movie.name+" • "+(movie.size/1048576).toFixed(1)+" MB":"Video မရွေးရသေးပါ။";});
+ $("oneSpeed").addEventListener("input",()=> $("oneSpeedValue").textContent=Number($("oneSpeed").value).toFixed(1)+"x");
+ $("oneClickRecap").addEventListener("click",async()=>{
+  const btn=$("oneClickRecap");if(btn.disabled)return;
+  if(!movie)return say("❌ Movie Video အရင်ရွေးပါ။");if(!groq())return say("❌ Groq API Key ထည့်ပြီး Save လုပ်ပါ။");if(!gemini())return say("❌ Gemini API Key ထည့်ပြီး Save လုပ်ပါ။");if(movie.size>500*1048576)return say("❌ Video size 500MB ထက်မကျော်ရပါ။");
+  btn.disabled=true;$("oneResult").hidden=true;const done=[];
+  try{
+   progress(5,"Validating movie",done);say("Movie file ကိုစစ်ဆေးပြီး audio ထုတ်နေပါတယ်...");
+   const fd=new FormData();fd.append("video",movie,movie.name);fd.append("groqKey",groq());
+   progress(10,"Extracting audio / transcribing",done);const tr=await call("/api/transcribe",{method:"POST",body:fd});
+   original=tr.srt||"";transcript=tr.text||"";if(!original)throw Error("Original SRT မရပါ။");done.push("validation","audio","original");progress(30,"Original SRT ready",done);
+   progress(40,"Translating to Burmese",done);const tl=await json("/api/translate-srt",{geminiKey:gemini(),srt:original});burmese=tl.srt||"";if(!burmese)throw Error("Burmese translation မရပါ။");done.push("translation");
+   if($("originalSrt"))$("originalSrt").value=original;if($("burmeseSrt"))$("burmeseSrt").value=burmese;
+   progress(52,"Writing Burmese recap",done);const rec=await json("/api/recap",{transcript,style:$("oneStyle").value,length:$("oneLength").value});recapText=String(rec.recap||"").trim();if(!recapText)throw Error("Recap script မရပါ။");done.push("recap");
+   progress(62,"Creating recap subtitles",done);const tts=await json("/api/tts",{text:recapText,voice:$("oneVoice").value,rate:Number($("oneSpeed").value||1)});recapSrt=tts.voiceSrt||tts.srt||"";if(!tts.id)throw Error("AI Voice မရပါ။");done.push("subtitle","voice","sync");
+   try{const v=await fetch(tts.url);if(v.ok)voiceBlob=await v.blob();}catch{}
+   progress(82,"Voice and subtitle timing ready",done);
+   const rf=new FormData();rf.append("video",movie,movie.name);if($("oneSubtitles").checked)rf.append("srt",recapSrt);rf.append("voiceId",tts.id);rf.append("showText","0");rf.append("showBlur","0");rf.append("showLogo","0");
+   progress(90,"Rendering final MP4",done);say("AI Voice + Video ကိုပေါင်းပြီး MP4 ထုတ်နေပါတယ်...");
+   const r=await call("/api/render",{method:"POST",body:rf});if(!r.jobId)throw Error("Render job ID မရပါ။");
+   let result=null;
+   for(let i=0;i<900;i++){await new Promise(resolve=>setTimeout(resolve,1000));const q=await call("/api/render/status/"+encodeURIComponent(r.jobId),{cache:"no-store"});if(q.status==="error")throw Error(q.error||"Final rendering failed");if(q.status==="done"){result=q;break;}progress(Math.min(97,90+Math.floor(i/8)),"Rendering final video",done);}
+   if(!result)throw Error("Render ကြာမြင့်နေပါတယ်။ ပြန်စမ်းပါ။");if(!result.url)throw Error("Final MP4 URL မရပါ။");
+   $("oneFinalVideo").src=result.url;$("oneDownload").href=result.url;$("oneDownload").download=result.filename||"yoon-recap.mp4";$("oneResult").hidden=false;done.push("render","complete");progress(100,"Recap complete",done);say("✅ Recap ပြီးပါပြီ။ Final MP4 ကို preview ကြည့်ပြီး download လုပ်နိုင်ပါတယ်။");
+   localStorage.setItem("yoon_original_srt",original);localStorage.setItem("yoon_burmese_srt",burmese);
+  }catch(e){say("❌ "+(e?.message||String(e)));}
+  finally{btn.disabled=false;}
+ });
+ $("oneOriginalSrt").onclick=()=>download("original.srt",original,"application/x-subrip");
+ $("oneBurmeseSrt").onclick=()=>download("burmese.srt",burmese,"application/x-subrip");
+ $("oneRecapScript").onclick=()=>download("recap.txt",recapText,"text/plain;charset=utf-8");
+ $("oneRecapSrt").onclick=()=>download("recap.srt",recapSrt,"application/x-subrip");
+ $("oneVoiceDownload").onclick=()=>{if(!voiceBlob)return say("Voice file မရနိုင်သေးပါ။");const u=URL.createObjectURL(voiceBlob),a=document.createElement("a");a.href=u;a.download="ai-voice.wav";a.click();setTimeout(()=>URL.revokeObjectURL(u),2000);};
+ $("oneTranscript").onclick=()=>download("transcript.txt",transcript,"text/plain;charset=utf-8");
+})();
