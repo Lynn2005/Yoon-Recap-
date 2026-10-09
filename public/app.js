@@ -203,10 +203,10 @@ $("render").onclick=async e=>{e?.preventDefault();
   }catch(e){say("❌ "+(e?.message||String(e)));}
   finally{btn.disabled=false;}
  });
- $("oneOriginalSrt").onclick=()=>download("original.srt",original,"application/x-subrip");
- $("oneBurmeseSrt").onclick=()=>download("burmese.srt",burmese,"application/x-subrip");
- $("oneRecapScript").onclick=()=>download("recap.txt",recapText,"text/plain;charset=utf-8");
- $("oneRecapSrt").onclick=()=>download("recap.srt",recapSrt,"application/x-subrip");
- $("oneVoiceDownload").onclick=()=>{if(!voiceBlob)return say("Voice file မရနိုင်သေးပါ။");const u=URL.createObjectURL(voiceBlob),a=document.createElement("a");a.href=u;a.download="ai-voice.wav";a.click();setTimeout(()=>URL.revokeObjectURL(u),2000);};
- $("oneTranscript").onclick=()=>download("transcript.txt",transcript,"text/plain;charset=utf-8");
+ if($("oneOriginalSrt"))$("oneOriginalSrt").onclick=()=>download("original.srt",original,"application/x-subrip");
+ if($("oneBurmeseSrt"))$("oneBurmeseSrt").onclick=()=>download("burmese.srt",burmese,"application/x-subrip");
+ if($("oneRecapScript"))$("oneRecapScript").onclick=()=>download("recap.txt",recapText,"text/plain;charset=utf-8");
+ if($("oneRecapSrt"))$("oneRecapSrt").onclick=()=>download("recap.srt",recapSrt,"application/x-subrip");
+ if($("oneVoiceDownload"))$("oneVoiceDownload").onclick=()=>{if(!voiceBlob)return say("Voice file မရနိုင်သေးပါ။");const u=URL.createObjectURL(voiceBlob),a=document.createElement("a");a.href=u;a.download="ai-voice.wav";a.click();setTimeout(()=>URL.revokeObjectURL(u),2000);};
+ if($("oneTranscript"))$("oneTranscript").onclick=()=>download("transcript.txt",transcript,"text/plain;charset=utf-8");
 })();
