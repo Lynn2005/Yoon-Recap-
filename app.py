@@ -153,6 +153,65 @@ with tabs[3]:
     logo_x=st.slider("Logo X Position (%)",0,100,4)
     logo_y=st.slider("Logo Y Position (%)",0,100,5)
     if logo: st.image(logo,width=140)
+
+    st.divider()
+    st.subheader("👁️ Live Edit Preview")
+    st.caption("Slider/စာသား/Logo ပြောင်းတာနဲ့ Preview Frame ကို ပြန်ပြပေးမယ်။ ဒီ Preview က ဗီဒီယိုတစ်ခုလုံးကို မပြန် Render လုပ်ဘဲ ရွေးထားတဲ့အချိန်က Frame ကို ပြသတာပါ။")
+    preview_second=st.number_input("Preview အချိန် (စက္ကန့်)",min_value=0.0,max_value=36000.0,value=1.0,step=1.0)
+    if st.session_state.video_bytes:
+        try:
+            from PIL import Image, ImageDraw, ImageFont, ImageFilter
+            import io
+            with tempfile.TemporaryDirectory() as ptd:
+                pdir=Path(ptd)
+                vext=Path(st.session_state.video_name or "video.mp4").suffix or ".mp4"
+                pvideo=pdir/("preview"+vext)
+                pframe=pdir/"frame.jpg"
+                pvideo.write_bytes(st.session_state.video_bytes)
+                cmd(["ffmpeg","-y","-ss",str(preview_second),"-i",str(pvideo),"-frames:v","1","-vf","scale=960:-2",str(pframe)])
+                im=Image.open(pframe).convert("RGB")
+                if mirror: im=im.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+                if blur: im=im.filter(ImageFilter.GaussianBlur(radius=max(1,blur/2)))
+                draw=ImageDraw.Draw(im)
+                fp=font()
+                try: textfont=ImageFont.truetype(fp, max(14,int(im.width*0.038))) if fp else ImageFont.load_default()
+                except Exception: textfont=ImageFont.load_default()
+                if text.strip():
+                    x=int((im.width-textfont.getlength(text))*tx/100)
+                    y=int((im.height-textfont.size)*ty/100)
+                    draw.text((x,y),text,font=textfont,fill="white",stroke_width=2,stroke_fill="black")
+                if burn and st.session_state.burmese_srt.strip():
+                    def parse_sec(ts):
+                        hh,mm,rest=ts.split(":"); ss,ms=rest.split(",")
+                        return int(hh)*3600+int(mm)*60+int(ss)+int(ms)/1000
+                    active=""
+                    for block in re.split(r"\\n\\s*\\n",st.session_state.burmese_srt.strip()):
+                        lines=block.splitlines()
+                        if len(lines)>=3 and "-->" in lines[1]:
+                            try:
+                                a,b=[parse_sec(z.strip()) for z in lines[1].split("-->")]
+                                if a<=preview_second<=b: active=" ".join(lines[2:]); break
+                            except Exception: pass
+                    if active:
+                        sf=ImageFont.truetype(fp,fontsize) if fp else ImageFont.load_default()
+                        bbox=draw.textbbox((0,0),active,font=sf,stroke_width=2)
+                        sw=bbox[2]-bbox[0]; sh=bbox[3]-bbox[1]
+                        sx=max(4,(im.width-sw)//2)
+                        sy=im.height-sh-24 if pos=="အောက်" else 12
+                        draw.text((sx,sy),active,font=sf,fill="white",stroke_width=2,stroke_fill="black")
+                if logo:
+                    lim=Image.open(io.BytesIO(logo.getvalue())).convert("RGBA")
+                    nw=max(1,int(im.width*0.18)); nh=max(1,int(lim.height*nw/lim.width))
+                    lim=lim.resize((nw,nh))
+                    im=im.convert("RGBA")
+                    im.alpha_composite(lim,(int((im.width-nw)*logo_x/100),int((im.height-nh)*logo_y/100)))
+                    im=im.convert("RGB")
+                st.image(im,caption=f"Preview · {preview_second:.1f}s",use_container_width=True)
+        except Exception as e:
+            st.warning(f"Live Preview မပြနိုင်သေးပါ: {e}")
+    else:
+        st.info("Live Preview ကြည့်ရန် Video ကို အရင် Upload လုပ်ပါ။")
+
     if st.button("🎬 Final MP4 Render",disabled=not st.session_state.video_bytes or not st.session_state.voice_bytes):
         with st.spinner("FFmpeg နဲ့ Render လုပ်နေပါတယ်..."):
             try:
