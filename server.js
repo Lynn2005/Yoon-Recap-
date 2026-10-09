@@ -172,20 +172,30 @@ app.post("/api/tts",async(req,res)=>{
    fs.mkdirSync(dir,{recursive:true});
    const sourceBlocks=parseSrt(inputSrt);
    const blocks=sourceBlocks.length?sourceBlocks:[{start:0,end:0,text:rawText}];
-   const audioParts=[],voiceBlocks=[];
+   // Prepare all subtitle chunks first, then generate up to 3 voice files at once.
+   // This avoids waiting for every single subtitle request sequentially.
+   const jobs=[];
    for(let bi=0;bi<blocks.length;bi++){
-     const parts=split20(blocks[bi].text,25);
-     if(!parts.length)continue;
-     const made=[];
-     for(const part of parts)made.push(await makeVoiceFile(part,audioParts.length));
-     let cursor=0;
-     for(let pi=0;pi<parts.length;pi++){
-       const dur=made[pi].duration;
-       const start=cursor,end=cursor+dur;
-       voiceBlocks.push({start,text:parts[pi],duration:Math.max(0.05,dur)});
-       cursor=end;
-       audioParts.push(made[pi].path);
+     const parts=split20(blocks[bi].text,60);
+     for(const part of parts)jobs.push({text:part,index:jobs.length});
+   }
+   if(!jobs.length)throw new Error("AI Voice အတွက် စာသားမရှိပါ။");
+   const made=new Array(jobs.length);
+   let nextJob=0;
+   const worker=async()=>{
+     while(true){
+       const j=nextJob++;
+       if(j>=jobs.length)return;
+       made[j]=await makeVoiceFile(jobs[j].text,jobs[j].index);
      }
+   };
+   await Promise.all(Array.from({length:Math.min(3,jobs.length)},()=>worker()));
+   const audioParts=made.map(x=>x.path),voiceBlocks=[];
+   let cursor=0;
+   for(let i=0;i<jobs.length;i++){
+     const dur=made[i].duration;
+     voiceBlocks.push({start:cursor,text:jobs[i].text,duration:Math.max(0.05,dur)});
+     cursor+=dur;
    }
    if(audioParts.length===1){
      await execFileAsync("ffmpeg",["-y","-i",audioParts[0],"-ac","1","-ar","22050","-c:a","pcm_s16le",out],{maxBuffer:5*1024*1024});
