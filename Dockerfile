@@ -21,8 +21,8 @@ RUN sed -i 's/const GEMINI_MODELS=\["gemini-2\.5-flash","gemini-2\.0-flash","gem
 RUN sed -i 's/"-threads","1","-filter_threads","1","-filter_complex_threads","1"/"-threads","0","-filter_threads","0","-filter_complex_threads","0"/' server.js \
     && grep -q '"-threads","0","-filter_threads","0","-filter_complex_threads","0"' server.js
 
-# Robust button handlers: AI Voice + Final Video.
-RUN sed -i 's#</body>#<script src="/button-fix.js?v=2"></script></body>#' public/index.html
+# Robust button handlers: AI Voice + Final Video + touch-edit controls.
+RUN sed -i 's#</body>#<script src="/button-fix.js?v=2"></script><script src="/touch-edit.js?v=1"></script></body>#' public/index.html
 
 RUN mkdir -p uploads work
 EXPOSE 10000
