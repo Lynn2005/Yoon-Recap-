@@ -107,28 +107,30 @@ function attachDrag(el,type,xId,yId){
   if(type==="text"&&e.target.closest(".text-resize-handle"))return;
   if(e.button!==undefined&&e.button!==0)return;
   e.preventDefault();e.stopPropagation();
-  const rect=editorPreview.getBoundingClientRect(),sx=e.clientX,sy=e.clientY,ox=Number($(xId).value),oy=Number($(yId).value);
-  try{el.setPointerCapture(e.pointerId)}catch{}
+  const rect=editorPreview.getBoundingClientRect(),sx=e.clientX,sy=e.clientY,ox=Number($(xId).value),oy=Number($(yId).value),pid=e.pointerId;
+  try{editorPreview.setPointerCapture(pid)}catch{}
   const move=ev=>{
+   if(ev.pointerId!==pid)return;
    const dx=(ev.clientX-sx)/Math.max(1,rect.width)*100,dy=(ev.clientY-sy)/Math.max(1,rect.height)*100;
-   const minX=type==="blur"?Number($("blurW").value)/2:0,maxX=type==="blur"?100-Number($("blurW").value)/2:100;
-   $(xId).value=Math.max(minX,Math.min(maxX,ox+dx));$(yId).value=Math.max(0,Math.min(100,oy+dy));update();
+   const minX=type==="blur"?Number($("blurW").value)/2:2,maxX=type==="blur"?100-Number($("blurW").value)/2:98;
+   $(xId).value=Math.max(minX,Math.min(maxX,ox+dx));$(yId).value=Math.max(2,Math.min(98,oy+dy));update();
   };
   const end=ev=>{
-   el.removeEventListener("pointermove",move);el.removeEventListener("pointerup",end);el.removeEventListener("pointercancel",end);
-   try{if(el.hasPointerCapture?.(ev.pointerId))el.releasePointerCapture(ev.pointerId)}catch{}
+   if(ev.pointerId!==pid)return;
+   editorPreview.removeEventListener("pointermove",move);editorPreview.removeEventListener("pointerup",end);editorPreview.removeEventListener("pointercancel",end);
+   try{if(editorPreview.hasPointerCapture?.(pid))editorPreview.releasePointerCapture(pid)}catch{}
   };
-  el.addEventListener("pointermove",move);el.addEventListener("pointerup",end);el.addEventListener("pointercancel",end);
+  editorPreview.addEventListener("pointermove",move);editorPreview.addEventListener("pointerup",end);editorPreview.addEventListener("pointercancel",end);
  });
 }
 attachDrag(textPreview,"text","textX","textY");attachDrag(blurLayer,"blur","blurX","blurY");attachDrag(logoPreview,"logo","logoX","logoY");
 textResizeHandle.addEventListener("pointerdown",e=>{
  if(!showText.checked||e.button!==0)return;e.preventDefault();e.stopPropagation();
- const rect=editorPreview.getBoundingClientRect(),sx=e.clientX,sy=e.clientY,start=Number($("fontSize").value);
- try{textResizeHandle.setPointerCapture(e.pointerId)}catch{}
- const move=ev=>{const dx=(ev.clientX-sx)/Math.max(1,rect.width)*100,dy=(ev.clientY-sy)/Math.max(1,rect.height)*100;$("fontSize").value=Math.max(10,Math.min(64,start+Math.round((dx+dy)*.5)));update();};
- const end=ev=>{textResizeHandle.removeEventListener("pointermove",move);textResizeHandle.removeEventListener("pointerup",end);textResizeHandle.removeEventListener("pointercancel",end);try{if(textResizeHandle.hasPointerCapture?.(ev.pointerId))textResizeHandle.releasePointerCapture(ev.pointerId)}catch{}};
- textResizeHandle.addEventListener("pointermove",move);textResizeHandle.addEventListener("pointerup",end);textResizeHandle.addEventListener("pointercancel",end);
+ const rect=editorPreview.getBoundingClientRect(),sx=e.clientX,sy=e.clientY,start=Number($("fontSize").value),pid=e.pointerId;
+ try{editorPreview.setPointerCapture(pid)}catch{}
+ const move=ev=>{if(ev.pointerId!==pid)return;const dx=(ev.clientX-sx)/Math.max(1,rect.width)*100,dy=(ev.clientY-sy)/Math.max(1,rect.height)*100;$("fontSize").value=Math.max(10,Math.min(64,start+Math.round((dx+dy)*.5)));update();};
+ const end=ev=>{if(ev.pointerId!==pid)return;editorPreview.removeEventListener("pointermove",move);editorPreview.removeEventListener("pointerup",end);editorPreview.removeEventListener("pointercancel",end);try{if(editorPreview.hasPointerCapture?.(pid))editorPreview.releasePointerCapture(pid)}catch{}};
+ editorPreview.addEventListener("pointermove",move);editorPreview.addEventListener("pointerup",end);editorPreview.addEventListener("pointercancel",end);
 });
 update();
 
@@ -139,7 +141,7 @@ $("render").onclick=async e=>{e?.preventDefault();
  const setProgress=n=>{pct=Math.max(pct,Math.min(99,Math.round(n)));const bar=document.getElementById("renderProgressBar"),label=document.getElementById("renderProgressLabel"),num=document.getElementById("renderProgressPct");if(bar)bar.style.width=pct+"%";if(num)num.textContent=pct+"%";if(label)label.textContent=pct<99?"Final Video Loading...":"Final Video Finishing...";};
  makeProgress();setProgress(1);status("fstatus","⏳ Final Video render စနေပါတယ်... 1%");
  try{
-  const f=new FormData();f.append("video",file);if(srt)f.append("srt",srt);if(voiceId)f.append("voiceId",voiceId);if(voiceUploadFile)f.append("voice",voiceUploadFile,voiceUploadFile.name);f.append("text",$("editText").value);f.append("fontStyle",$("fontStyle").value);f.append("fontColor",$("textColor").value);f.append("borderColor",$("borderColor").value);f.append("borderWidth",$("borderWidth").value);f.append("showText",showText.checked?"1":"0");f.append("showBlur",showBlur.checked?"1":"0");f.append("showLogo",showLogo.checked?"1":"0");
+  const f=new FormData();f.append("video",file);if(srt)f.append("srt",srt);if(voiceId)f.append("voiceId",voiceId);if(voiceUploadFile)f.append("voice",voiceUploadFile,voiceUploadFile.name);f.append("text",$("editText").value);f.append("fontStyle",$("fontStyle").value);f.append("textWeight",$("textWeight").value);f.append("fontColor",$("textColor").value);f.append("borderColor",$("borderColor").value);f.append("borderWidth",$("borderWidth").value);f.append("showText",showText.checked?"1":"0");f.append("showBlur",showBlur.checked?"1":"0");f.append("showLogo",showLogo.checked?"1":"0");
   ["fontSize","textWeight","textX","textY","blurAmount","blurX","blurY","blurW","blurH","logoSize","logoX","logoY"].forEach(id=>f.append(id,$(id).value));if(logoFile)f.append("logo",logoFile);if(fontFile)f.append("font",fontFile);
   if(!voiceUploadFile&&voiceUrl){try{const vr=await fetch(voiceUrl,{cache:"no-store"});if(!vr.ok)throw new Error();const vb=await vr.blob();f.append("voice",vb,"saved-ai-voice.wav");}catch(e){throw new Error("သိမ်းထားတဲ့ AI Voice ကို Final Video ထဲထည့်မရပါ။ AI Voice ကို တစ်ခါပြန်ထုတ်ပါ။");}}
   const d=await apiJson(await fetch("/api/render",{method:"POST",body:f}));const jobId=d.jobId;if(!jobId)throw new Error("Render job ID မရပါ။");
