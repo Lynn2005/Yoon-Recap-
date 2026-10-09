@@ -265,7 +265,7 @@ async function runRenderJob(job){
   }
   const args=["-y","-hide_banner","-loglevel","error","-threads","1","-filter_threads","1","-filter_complex_threads","1","-i",video.path];
   if(voice)args.push("-i",voice.path);
-  if(showLogo&&logo){f.push("[2:v]scale="+ls+":"+ls+"[lg]");f.push(cur+"[lg]overlay=x=main_w*"+lx+"/100-overlay_w/2:y=main_h*"+ly+"/100-overlay_h/2[vout]");cur="[vout]";args.push("-i",logo.path);}
+  if(showLogo&&logo){const logoInputIndex=voice?2:1;f.push("["+logoInputIndex+":v]scale="+ls+":"+ls+"[lg]");f.push(cur+"[lg]overlay=x=main_w*"+lx+"/100-overlay_w/2:y=main_h*"+ly+"/100-overlay_h/2[vout]");cur="[vout]";args.push("-i",logo.path);}
   args.push("-filter_complex",f.join(";"),"-map",cur); if(voice)args.push("-map","1:a:0"); else args.push("-map","0:a:0?"); args.push("-c:v","libx264","-preset","ultrafast","-crf","24","-pix_fmt","yuv420p","-c:a","aac","-b:a","128k","-movflags","+faststart","-shortest",out);
   job.progress=15;
   const result=await execFileAsync("ffmpeg",args,{maxBuffer:8*1024*1024});
