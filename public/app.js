@@ -129,11 +129,11 @@ function attachDrag(el,type,xId,yId){
    if(ev.pointerId!==pid)return;
    const dx=(ev.clientX-sx)/Math.max(1,rect.width)*100,dy=(ev.clientY-sy)/Math.max(1,rect.height)*100;
    const minX=type==="blur"?Number($("blurW").value)/2:2,maxX=type==="blur"?100-Number($("blurW").value)/2:98;
-   $(xId).value=Math.max(minX,Math.min(maxX,ox+dx));$(yId).value=Math.max(2,Math.min(98,oy+dy));update();
+   $(xId).value=Math.max(minX,Math.min(maxX,ox+dx));$(yId).value=Math.max(2,Math.min(98,oy+dy));update();if(typeof scheduleEditState==="function")scheduleEditState();
   };
   const end=ev=>{
    if(ev.pointerId!==pid)return;
-   editorPreview.removeEventListener("pointermove",move);editorPreview.removeEventListener("pointerup",end);editorPreview.removeEventListener("pointercancel",end);
+   editorPreview.removeEventListener("pointermove",move);editorPreview.removeEventListener("pointerup",end);editorPreview.removeEventListener("pointercancel",end);if(typeof scheduleEditState==="function"){clearTimeout(historyTimer);saveEditState();}
    try{if(editorPreview.hasPointerCapture?.(pid))editorPreview.releasePointerCapture(pid)}catch{}
   };
   editorPreview.addEventListener("pointermove",move);editorPreview.addEventListener("pointerup",end);editorPreview.addEventListener("pointercancel",end);
