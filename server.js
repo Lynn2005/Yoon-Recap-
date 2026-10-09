@@ -93,14 +93,14 @@ async function geminiGenerate(key,requestedModel,prompt){
 }
 function srtTime(sec){const ms=Math.max(0,Math.round(Number(sec||0)*1000)),h=Math.floor(ms/3600000),m=Math.floor(ms%3600000/60000),s=Math.floor(ms%60000/1000),z=ms%1000;return String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0")+","+String(z).padStart(3,"0")}
 function splitSrtLines(text,max=32){
- const g=Array.from(new Intl.Segmenter("my",{granularity:"grapheme"}).segment(String(text||"").replace(/\\s+/g," ").trim()),x=>x.segment);
+ const g=Array.from(new Intl.Segmenter("my",{granularity:"grapheme"}).segment(String(text||"").replace(/\s+/g," ").trim()),x=>x.segment);
  const out=[];let rest=g;
  while(rest.length){
   if(rest.length<=max){const p=rest.join("").trim();if(p)out.push(p);break;}
   let cut=max;
-  for(let i=max;i>=Math.max(1,max-10);i--){if(/[\\s၊။၊!?]/.test(rest[i-1])){cut=i;break;}}
+  for(let i=max;i>=Math.max(1,max-10);i--){if(/[\s၊။၊!?]/.test(rest[i-1])){cut=i;break;}}
   const p=rest.slice(0,cut).join("").trim();if(p)out.push(p);
-  rest=rest.slice(cut);while(rest.length&&/^\\s+$/.test(rest[0]))rest.shift();
+  rest=rest.slice(cut);while(rest.length&&/^\s+$/.test(rest[0]))rest.shift();
  }
  return out;
 }
@@ -109,7 +109,7 @@ function makeSrt(segments,text,totalDuration){
  if(!source.length){
   const duration=Math.max(1,Number(totalDuration)||String(text||"").length/8);
   const lines=splitSrtLines(text,32),total=lines.reduce((n,x)=>n+x.length,0)||1;let cursor=0;
-  return lines.map((line,i)=>{const start=cursor;cursor=i===lines.length-1?duration:cursor+duration*line.length/total;return (i+1)+"\\n"+srtTime(start)+" --> "+srtTime(Math.max(start+0.5,cursor))+"\\n"+line;}).join("\\n\\n")+"\\n";
+  return lines.map((line,i)=>{const start=cursor;cursor=i===lines.length-1?duration:cursor+duration*line.length/total;return (i+1)+"\n"+srtTime(start)+" --> "+srtTime(Math.max(start+0.5,cursor))+"\n"+line;}).join("\n\n")+"\n";
  }
  const cues=[];
  for(const seg of source){
@@ -118,7 +118,7 @@ function makeSrt(segments,text,totalDuration){
   const weights=lines.map(x=>Math.max(1,x.length)),sum=weights.reduce((a,b)=>a+b,0);let cursor=start;
   lines.forEach((line,i)=>{const next=i===lines.length-1?end:cursor+(end-start)*weights[i]/sum;cues.push({start:cursor,end:Math.max(cursor+0.05,next),text:line});cursor=next;});
  }
- return cues.map((x,i)=>(i+1)+"\\n"+srtTime(x.start)+" --> "+srtTime(x.end)+"\\n"+x.text).join("\\n\\n")+"\\n";
+ return cues.map((x,i)=>(i+1)+"\n"+srtTime(x.start)+" --> "+srtTime(x.end)+"\n"+x.text).join("\n\n")+"\n";
 }
 function geminiText(data){return String(data?.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("")||"").trim()}
 function cleanSrtText(s){let x=String(s||"").trim();const ticks=String.fromCharCode(96).repeat(3);if(x.startsWith(ticks))x=x.replace(new RegExp("^"+ticks+"(?:srt|text)?","i"),"").replace(new RegExp(ticks+"$"),"").trim();return x.replace(/\r/g,"").trim()+"\n"}
