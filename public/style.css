@@ -248,3 +248,26 @@ body>main.wrap>header>div{flex:1;min-width:0}
   .api-sidebar-tab{top:8px!important;right:6px!important;width:34px!important;min-width:34px!important;height:34px!important;min-height:34px!important;padding:6px!important;gap:3px!important}
   .api-sidebar-tab span{width:18px!important}
 }
+
+
+/* User requested the hamburger on the LEFT side, pinned and compact */
+.api-sidebar-tab{
+  position:fixed!important;
+  top:10px!important;
+  left:8px!important;
+  right:auto!important;
+  bottom:auto!important;
+  width:36px!important;
+  min-width:36px!important;
+  height:36px!important;
+  min-height:36px!important;
+  padding:6px!important;
+  gap:4px!important;
+  z-index:9999!important;
+  transform:none!important;
+}
+.api-sidebar-tab span{width:20px!important;height:2px!important;min-height:2px!important}
+@media(max-width:520px){
+  .api-sidebar-tab{top:8px!important;left:6px!important;width:34px!important;min-width:34px!important;height:34px!important;min-height:34px!important;padding:6px!important;gap:3px!important}
+  .api-sidebar-tab span{width:18px!important}
+}
