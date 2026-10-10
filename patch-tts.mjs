@@ -119,7 +119,11 @@ const replacement = String.raw`app.post("/api/tts",async(req,res)=>{
  }finally{try{fs.rmSync(dir,{recursive:true,force:true});}catch{}}
 });
 `;
-source = source.slice(0,start) + replacement + source.slice(end);
+if (start >= 0 && end >= 0) {
+  source = source.slice(0,start) + replacement + source.slice(end);
+} else {
+  console.log("Skipping TTS endpoint replacement because this server.js has no matching /api/tts route.");
+}
 
 // Final-video fixes: keep the editor's portrait frame, hide burned-in English subtitles,
 // use a Myanmar-capable font, and keep Burmese subtitle text readable inside the frame.
