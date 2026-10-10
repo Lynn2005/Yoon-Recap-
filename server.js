@@ -260,7 +260,8 @@ async function runRenderJob(job){
     fs.writeFileSync(stp,sb.text,"utf8");
     const st=safeFilterValue(stp);
     const enable="between(t,"+sb.start+","+sb.end+")";
-    f.push(cur+"drawtext=fontfile='"+safeFilterValue(fontFile)+"':textfile='"+st+"':fontsize="+subtitleFontSize+":fontcolor="+subtitleColor+":borderw="+subtitleBorderWidth+":bordercolor="+subtitleBorderColor+":x=w*"+tx+"/100-text_w/2:y=h*"+ty+"/100-text_h/2:fix_bounds=1:enable='"+enable+"'[sub"+si+"]");
+    const stx=Math.max(5,Math.min(95,Number(body?.subtitleX||50))),sty=Math.max(5,Math.min(95,Number(body?.subtitleY||82)));
+    f.push(cur+"drawtext=fontfile='"+safeFilterValue(fontFile)+"':textfile='"+st+"':fontsize="+subtitleFontSize+":fontcolor="+subtitleColor+":borderw="+subtitleBorderWidth+":bordercolor="+subtitleBorderColor+":x=w*"+stx+"/100-text_w/2:y=h*"+sty+"/100-text_h/2:fix_bounds=1:enable='"+enable+"'[sub"+si+"]");
     cur="[sub"+si+"]";
   }
   if(showText){
