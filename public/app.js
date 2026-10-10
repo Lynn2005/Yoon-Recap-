@@ -97,7 +97,7 @@ let textLabel=textPreview.querySelector(".text-preview-label");
 if(!textLabel){textLabel=document.createElement("span");textLabel.className="text-preview-label";textPreview.replaceChildren(textLabel);}
 const textResizeHandle=document.createElement("div");
 textResizeHandle.className="text-resize-handle";textResizeHandle.title="Resize text";textResizeHandle.setAttribute("aria-label","Resize text");
-textPreview.appendChild(textResizeHandle);textPreview.style.willChange="left, top, font-size";subtitlePreview.style.willChange="left, top";blurLayer.style.willChange="left, top, width, height";logoPreview.style.willChange="left, top, width, height";
+textPreview.appendChild(textResizeHandle);
 
 let editorUpdateFrame=0;
 function scheduleEditorUpdate(){if(editorUpdateFrame)return;editorUpdateFrame=requestAnimationFrame(()=>{editorUpdateFrame=0;update();});}
@@ -153,12 +153,13 @@ $("logoFile").addEventListener("change",e=>{
  logoFile=next;const url=URL.createObjectURL(next);logoPreview.dataset.objectUrl=url;logoPreview.src=url;showLogo.checked=true;activeOption=showLogo;update();
 });
 function attachDrag(el,type,xId,yId){
- el.style.touchAction="none";el.style.willChange="left, top, width, height";
+ el.style.touchAction="none";
  el.addEventListener("pointerdown",e=>{
   const enabled=type==="text"?showText.checked:type==="blur"?showBlur.checked:type==="logo"?showLogo.checked:true;if(!enabled)return;
   if(type==="text"&&e.target.closest(".text-resize-handle"))return;
   if(e.button!==undefined&&e.button!==0)return;
   e.preventDefault();e.stopPropagation();
+  if(type==="blur")editorPreview.classList.add("is-editing-blur");
   const rect=editorPreview.getBoundingClientRect(),sx=e.clientX,sy=e.clientY,ox=Number($(xId).value),oy=Number($(yId).value),pid=e.pointerId;
   try{editorPreview.setPointerCapture(pid)}catch{}
   const move=ev=>{
@@ -169,7 +170,7 @@ function attachDrag(el,type,xId,yId){
   };
   const end=ev=>{
    if(ev.pointerId!==pid)return;
-   editorPreview.removeEventListener("pointermove",move);editorPreview.removeEventListener("pointerup",end);editorPreview.removeEventListener("pointercancel",end);if(typeof scheduleEditState==="function"){clearTimeout(historyTimer);saveEditState();}
+   editorPreview.removeEventListener("pointermove",move);editorPreview.removeEventListener("pointerup",end);editorPreview.removeEventListener("pointercancel",end);if(type==="blur")editorPreview.classList.remove("is-editing-blur");if(typeof scheduleEditState==="function"){clearTimeout(historyTimer);saveEditState();}
    try{if(editorPreview.hasPointerCapture?.(pid))editorPreview.releasePointerCapture(pid)}catch{}
   };
   editorPreview.addEventListener("pointermove",move);editorPreview.addEventListener("pointerup",end);editorPreview.addEventListener("pointercancel",end);
