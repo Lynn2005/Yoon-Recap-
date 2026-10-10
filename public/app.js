@@ -99,32 +99,39 @@ const textResizeHandle=document.createElement("div");
 textResizeHandle.className="text-resize-handle";textResizeHandle.title="Resize text";textResizeHandle.setAttribute("aria-label","Resize text");
 textPreview.appendChild(textResizeHandle);
 
-let editorUpdateFrame=0;
-function scheduleEditorUpdate(){if(editorUpdateFrame)return;editorUpdateFrame=requestAnimationFrame(()=>{editorUpdateFrame=0;update();});}
-function update(){
- const val=id=>$(id)?.value??"";
- textLabel.textContent=val("editText");
- const fs=val("fontStyle");
+let editorUpdateFrame=0, pendingEditorGroups=new Set();
+function scheduleEditorUpdate(group="all"){
+ pendingEditorGroups.add(group);if(editorUpdateFrame)return;
+ editorUpdateFrame=requestAnimationFrame(()=>{editorUpdateFrame=0;const groups=new Set(pendingEditorGroups);pendingEditorGroups.clear();if(groups.has("all")){update();return;}groups.forEach(g=>{if(g==="text")updateText();else if(g==="subtitle")updateSubtitle();else if(g==="blur")updateBlur();else if(g==="logo")updateLogo();});updateVisibility();});
+}
+const val=id=>$(id)?.value??"";
+function updateText(){
+ textLabel.textContent=val("editText");const fs=val("fontStyle");
  textPreview.style.fontFamily=fs==="sans"?"sans-serif":fs==="eka"?"Eka03Custom, 'Noto Sans Myanmar', sans-serif":"'Noto Sans Myanmar', sans-serif";
- textPreview.style.color=val("textColor");
- textPreview.style.webkitTextStroke=Math.max(0,Number(val("borderWidth")||0))+"px "+val("borderColor");
- textPreview.style.textShadow="none";textPreview.style.fontSize=val("fontSize")+"px";
- textPreview.style.left=val("textX")+"%";textPreview.style.top=val("textY")+"%";
- textPreview.style.fontWeight=val("textWeight");textPreview.style.width="max-content";textPreview.style.height="auto";textPreview.style.maxWidth="92%";
+ textPreview.style.color=val("textColor");textPreview.style.webkitTextStroke=Math.max(0,Number(val("borderWidth")||0))+"px "+val("borderColor");
+ textPreview.style.textShadow="none";textPreview.style.fontSize=val("fontSize")+"px";textPreview.style.left=val("textX")+"%";textPreview.style.top=val("textY")+"%";textPreview.style.fontWeight=val("textWeight");textPreview.style.maxWidth="92%";
  $("fontValue").textContent=val("fontSize");$("borderWidthValue").textContent=val("borderWidth");$("textWeightValue").textContent=val("textWeight");$("textXValue").textContent=val("textX");$("textYValue").textContent=val("textY");
- subtitlePreview.style.fontSize=val("subtitleFontSize")+"px";subtitlePreview.style.color=val("subtitleColor");subtitlePreview.style.webkitTextStroke=Math.max(0,Number(val("subtitleBorderWidth")||0))+"px "+val("subtitleBorderColor");subtitlePreview.style.left=val("subtitleX")+"%";subtitlePreview.style.top=val("subtitleY")+"%";subtitlePreview.style.display="block";subtitlePreview.style.maxWidth="92%";
+}
+function updateSubtitle(){
+ subtitlePreview.style.fontSize=val("subtitleFontSize")+"px";subtitlePreview.style.color=val("subtitleColor");subtitlePreview.style.webkitTextStroke=Math.max(0,Number(val("subtitleBorderWidth")||0))+"px "+val("subtitleBorderColor");
+ subtitlePreview.style.left=val("subtitleX")+"%";subtitlePreview.style.top=val("subtitleY")+"%";subtitlePreview.style.maxWidth="92%";
  $("subtitleFontSizeValue").textContent=val("subtitleFontSize");$("subtitleBorderWidthValue").textContent=val("subtitleBorderWidth");$("subtitleXValue").textContent=val("subtitleX");$("subtitleYValue").textContent=val("subtitleY");
- const bw=Number(val("blurW")||90),bh=Number(val("blurH")||22);
- blurLayer.style.left=(Number(val("blurX")||50)-bw/2)+"%";blurLayer.style.top=val("blurY")+"%";
- blurLayer.style.width=bw+"%";blurLayer.style.height=bh+"%";blurLayer.style.transform="translateY(-50%)";
- blurLayer.style.backdropFilter="blur("+val("blurAmount")+"px)";blurLayer.style.webkitBackdropFilter="blur("+val("blurAmount")+"px)";
+}
+function updateBlur(){
+ const bw=Number(val("blurW")||90),bh=Number(val("blurH")||22);blurLayer.style.left=(Number(val("blurX")||50)-bw/2)+"%";blurLayer.style.top=val("blurY")+"%";blurLayer.style.width=bw+"%";blurLayer.style.height=bh+"%";blurLayer.style.transform="translateY(-50%)";
+ const amount="blur("+val("blurAmount")+"px)";if(blurLayer.style.backdropFilter!==amount)blurLayer.style.backdropFilter=amount;if(blurLayer.style.webkitBackdropFilter!==amount)blurLayer.style.webkitBackdropFilter=amount;
  $("blurValue").textContent=val("blurAmount");$("blurXValue").textContent=val("blurX");$("blurYValue").textContent=val("blurY");$("blurWValue").textContent=val("blurW");$("blurHValue").textContent=val("blurH");
+}
+function updateLogo(){
  logoPreview.style.width=val("logoSize")+"px";logoPreview.style.height=val("logoSize")+"px";logoPreview.style.left=val("logoX")+"%";logoPreview.style.top=val("logoY")+"%";logoPreview.style.right="auto";logoPreview.style.transform="translate(-50%,-50%)";
  $("logoValue").textContent=val("logoSize");$("logoXValue").textContent=val("logoX");$("logoYValue").textContent=val("logoY");
+}
+function updateVisibility(){
  textPreview.hidden=!showText.checked;textPreview.style.display=showText.checked?"block":"none";subtitlePreview.style.display=showSubtitles.checked?"block":"none";blurLayer.style.display=showBlur.checked?"block":"none";
  const hasLogo=!!logoPreview.getAttribute("src");logoPreview.hidden=!(showLogo.checked&&hasLogo);logoPreview.style.display=showLogo.checked&&hasLogo?"block":"none";
  textControls.hidden=!(activeOption===showText&&showText.checked);blurControls.hidden=!(activeOption===showBlur&&showBlur.checked);logoControls.hidden=!(activeOption===showLogo&&showLogo.checked);subtitleControls.hidden=!(activeOption===showSubtitles&&showSubtitles.checked);
 }
+function update(){updateText();updateSubtitle();updateBlur();updateLogo();updateVisibility();}
 window.update=update;
 function selectEditorOption(which){
  const selected=typeof which==="string"?$(which==="blur"?"showBlur":which==="logo"?"showLogo":which==="subtitle"?"showSubtitles":"showText"):which;
@@ -138,8 +145,7 @@ window.yoonSelectEditorOption=selectEditorOption;
  option.addEventListener("change",()=>selectEditorOption(option));
  option.addEventListener("click",()=>requestAnimationFrame(()=>selectEditorOption(option)));
 });
-document.querySelectorAll("#textControls input,#subtitleControls input,#blurControls input,#logoControls input").forEach(el=>{if(el.type!=="file")el.addEventListener("input",scheduleEditorUpdate);});
-["editText","fontStyle","textColor","borderColor","borderWidth"].forEach(id=>$(id).addEventListener("input",scheduleEditorUpdate));
+document.querySelectorAll("#textControls input,#subtitleControls input,#blurControls input,#logoControls input").forEach(el=>{if(el.type==="file")return;const group=el.closest("#textControls")?"text":el.closest("#subtitleControls")?"subtitle":el.closest("#blurControls")?"blur":"logo";el.addEventListener("input",()=>scheduleEditorUpdate(group));el.addEventListener("change",()=>scheduleEditorUpdate(group));});
 $("fontFile").addEventListener("change",e=>{
  fontFile=e.target.files?.[0]||null;if(!fontFile)return;
  if(customFontUrl)URL.revokeObjectURL(customFontUrl);customFontUrl=URL.createObjectURL(fontFile);
