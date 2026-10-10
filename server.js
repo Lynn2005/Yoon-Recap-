@@ -5,7 +5,6 @@ import fs from "fs";
 import path from "path";
 import {execFile} from "child_process";
 import {promisify} from "util";
-import {MsEdgeTTS,OUTPUT_FORMAT} from "msedge-tts";
 const execFileAsync=promisify(execFile);
 
 const app=express();
@@ -135,7 +134,7 @@ function cleanJson(s){
   const x=String(s||"").trim().replace(/^\`\`\`json/i,"").replace(/^\`\`\`/,"").replace(/\`\`\`$/,"").trim();
   const m=x.match(/\{[\s\S]*\}/); return JSON.parse(m?m[0]:x);
 }
-app.get("/api/health",(req,res)=>res.json({ok:true,name:"Yoon Recap",version:"4.6.1",provider:"groq+gemini+MyanmarTTS",models:["whisper-large-v3-turbo",...GEMINI_MODELS],tts:"MyanmarTTS-free",ttsSpace:"freococo/MyanmarTTS",geminiFallback:true,retryDelaysMs:RETRY_DELAYS}));
+app.get("/api/health",(req,res)=>res.json({ok:true,name:"Yoon Recap",version:"5.0.0",provider:"Groq + Gemini",models:["whisper-large-v3-turbo",...GEMINI_MODELS]});
 
 app.post("/api/transcribe",upload.single("video"),async(req,res)=>{
  const file=req.file,key=keyOf(req);if(!file)return res.status(400).json({error:"Video ရွေးပါ။"});if(!key)return res.status(400).json({error:"Groq API Key ထည့်ပါ။"});
@@ -158,7 +157,7 @@ app.post("/api/translate-srt",async(req,res)=>{
  try{
   const source=parseBlocks(srt);
   if(!source.length)return res.status(400).json({error:"Valid SRT မဟုတ်ပါ။"});
-  const prompt="Translate every subtitle into natural, fluent spoken Burmese suitable for a Myanmar movie-recap AI voice. Preserve the complete meaning, story order, character relationships, names, numbers, money amounts, and all details. Use concise natural spoken Burmese; split overly long dialogue only by keeping the SAME number of subtitle blocks (do not split or merge blocks). Do not add explanations or invent events. Keep subtitle numbering and timestamps exactly as supplied for now. Return ONLY valid SRT. SOURCE SRT:\n"+srt.slice(0,180000);
+  const prompt="Translate every subtitle into natural, fluent spoken Burmese suitable for a Myanmar movie-recap . Preserve the complete meaning, story order, character relationships, names, numbers, money amounts, and all details. Use concise natural spoken Burmese; split overly long dialogue only by keeping the SAME number of subtitle blocks (do not split or merge blocks). Do not add explanations or invent events. Keep subtitle numbering and timestamps exactly as supplied for now. Return ONLY valid SRT. SOURCE SRT:\n"+srt.slice(0,180000);
   let lastErr=null,translated=null;
   for(const key of keys){
    try{
@@ -189,123 +188,6 @@ app.post("/api/translate-srt",async(req,res)=>{
  }catch(e){res.status(422).json({error:e.message||"Gemini translation failed"});}
 });
 
-app.post("/api/prepare-voice-srt",async(req,res)=>{
- const keys=geminiKeysOf(req),srt=String(req.body?.srt||"").trim();
- if(!keys.length)return res.status(400).json({error:"Gemini API Key ထည့်ပါ။"});
- if(!srt)return res.status(400).json({error:"Burmese SRT မရှိပါ။"});
- const parseBlocks=input=>String(input||"").replace(/\r/g,"").trim().split(/\n\s*\n/).map(block=>{
-  const lines=block.split("\n");
-  const ti=lines.findIndex(line=>/^\s*\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}/.test(line));
-  if(ti<0)return null;
-  return {number:lines.slice(0,ti).join("").trim(),time:lines[ti].trim(),text:lines.slice(ti+1).join("\n").trim()};
- }).filter(Boolean);
- const contentOnly=value=>String(value||"").replace(/<[^>]*>/g,"").replace(/[\s\p{P}\p{S}]/gu,"");
- try{
-  const original=parseBlocks(srt);
-  if(!original.length||original.some(block=>!block.text))return res.status(400).json({error:"Valid SRT မဟုတ်ပါ။"});
-  const prompt="Make this Burmese subtitle SRT easier for Burmese AI voice to read naturally. Preserve the exact dialogue words, meaning, details, word order, subtitle order, subtitle numbers, timestamps, and number of blocks. Do not summarize, omit, add, translate, paraphrase, or replace any dialogue words. Only adjust punctuation and harmless spacing/line breaks for natural pauses. Return ONLY valid SRT, without markdown or explanations.\nSOURCE SRT:\n"+srt.slice(0,180000);
-  let lastErr=null,out="";
-  for(const key of keys){
-   try{
-    const data=await geminiGenerate(key,"gemini-3.8-flash",prompt);
-    const candidate=cleanSrtText(geminiText(data)),prepared=parseBlocks(candidate);
-    if(!validSrt(candidate)||prepared.length!==original.length)throw new Error("SRT block အရေအတွက် မကိုက်ညီပါ။");
-    let safe=true;
-    for(let i=0;i<original.length;i++){
-     if(prepared[i].number!==original[i].number||prepared[i].time!==original[i].time||contentOnly(prepared[i].text)!==contentOnly(original[i].text)){safe=false;break;}
-    }
-    if(!safe)throw new Error("Content၊ စာသားအစီအစဉ် သို့မဟုတ် Timestamp ပြောင်းသွားသောကြောင့် မူရင်းစာသားကို ကာကွယ်ပြီး ပယ်ချလိုက်ပါတယ်။");
-    out=candidate;break;
-   }catch(e){lastErr=e;}
-  }
-  if(!out)throw lastErr||new Error("AI Voice SRT ပြင်ဆင်မှု မအောင်မြင်ပါ။");
-  res.json({srt:out,contentPreserved:true,blocks:original.length});
- }catch(e){res.status(422).json({error:e.message||"AI Voice SRT preparation failed"});}
-});
-
-app.post("/api/tts",async(req,res)=>{
- const rawText=String(req.body?.text||"").trim();
- const voice=String(req.body?.voice||"myanmar-female");
- const rate=Math.max(0.5,Math.min(1.5,Number(req.body?.rate||1)));
- const voiceName=voice==="myanmar-male"||voice==="my-MM-ThihaNeural"?"my-MM-ThihaNeural":"my-MM-NilarNeural";
- const maxChars=Math.max(15,Math.min(60,Number(req.body?.maxChars)||35));
- if(!rawText)return res.status(400).json({error:"AI Voice အတွက် Burmese Recap Script စာသားမရှိပါ။"});
- const id="voice-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);
- const dir=path.join("work",id+"-parts");
- const out=path.join("work",id+".wav");
- function splitText(s,max){
-   const graphemes=Array.from(new Intl.Segmenter("my",{granularity:"grapheme"}).segment(String(s||"").replace(/\s+/g," ").trim()),x=>x.segment);
-   const chunks=[];let rest=graphemes;
-   while(rest.length>max){
-     let cut=max;
-     for(let i=max;i>=Math.max(1,max-8);i--){if(/[\s၊။!?]/.test(rest[i-1])){cut=i;break;}}
-     const part=rest.slice(0,cut).join("").trim();if(part)chunks.push(part);
-     rest=Array.from(new Intl.Segmenter("my",{granularity:"grapheme"}).segment(rest.slice(cut).join("").trim()),x=>x.segment);
-   }
-   if(rest.length){const part=rest.join("").trim();if(part)chunks.push(part);}
-   return chunks;
- }
- try{
-   fs.mkdirSync(dir,{recursive:true});
-   const jobs=splitText(rawText,maxChars);
-   if(!jobs.length)throw new Error("AI Voice အတွက် ဖတ်စရာစာသားမရှိပါ။");
-   const made=[];
-   // Every chunk gets its own folder: the TTS library's default output filename
-   // must never collide between concurrent requests.
-   for(let i=0;i<jobs.length;i++){
-     const chunkDir=path.join(dir,String(i).padStart(4,"0"));
-     fs.mkdirSync(chunkDir,{recursive:true});
-     const tts=new MsEdgeTTS();
-     await tts.setMetadata(voiceName,OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3);
-     const result=await tts.toFile(chunkDir,jobs[i],{rate});
-     let audioPath=typeof result==="string"?result:(result?.audioFilePath||result?.audioFile||result?.path||"");
-     if(!audioPath||!fs.existsSync(audioPath)){
-       const candidates=fs.readdirSync(chunkDir).filter(n=>/\.(mp3|wav|webm|mp4)$/i.test(n));
-       if(candidates.length===1)audioPath=path.join(chunkDir,candidates[0]);
-     }
-     if(!audioPath||!fs.existsSync(audioPath)||fs.statSync(audioPath).size<100)throw new Error("AI Voice chunk "+(i+1)+" အသံဖိုင်မထွက်လာပါ။");
-     const probe=await execFileAsync("ffprobe",["-v","error","-show_entries","format=duration","-of","default=noprint_wrappers=1:nokey=1",audioPath],{maxBuffer:1024*1024});
-     const duration=Number(String(probe.stdout||"").trim());
-     if(!Number.isFinite(duration)||duration<=0)throw new Error("AI Voice chunk "+(i+1)+" အသံကြာချိန် မရပါ။");
-     made.push({path:audioPath,text:jobs[i],duration});
-   }
-   if(made.length===1){
-     await execFileAsync("ffmpeg",["-y","-i",made[0].path,"-vn","-ac","1","-ar","22050","-c:a","pcm_s16le","-f","wav",out],{maxBuffer:10*1024*1024});
-   }else{
-     const listFile=path.join(dir,"concat.txt");
-     fs.writeFileSync(listFile,made.map(x=>"file '"+path.resolve(x.path).replace(/'/g,"'\''")+"'").join("\n"),"utf8");
-     await execFileAsync("ffmpeg",["-y","-f","concat","-safe","0","-i",listFile,"-vn","-ac","1","-ar","22050","-c:a","pcm_s16le","-f","wav",out],{maxBuffer:20*1024*1024});
-   }
-   if(!fs.existsSync(out)||fs.statSync(out).size<1000)throw new Error("AI Voice WAV ဖိုင်အလွတ်ဖြစ်နေပါတယ်။");
-   let finalDuration=0;
-   try{
-     const finalProbe=await execFileAsync("ffprobe",["-v","error","-show_entries","format=duration","-of","default=noprint_wrappers=1:nokey=1",out],{maxBuffer:1024*1024});
-     finalDuration=Number(String(finalProbe.stdout||"").trim());
-   }catch(e){console.warn("[/api/tts] ffprobe format duration failed:",e.message);}
-   const streamProbe=await execFileAsync("ffprobe",["-v","error","-select_streams","a:0","-show_entries","stream=codec_name,sample_rate,channels,duration","-of","json",out],{maxBuffer:1024*1024});
-   const audioInfo=JSON.parse(streamProbe.stdout||"{}");
-   if(!audioInfo.streams?.length)throw new Error("ဖန်တီးထားတဲ့ WAV ထဲမှာ audio stream မပါပါ။");
-   // ffprobe can omit WAV format duration on some container builds. PCM WAV is mono,
-   // 22050 Hz, signed 16-bit: derive duration from payload size as a safe fallback.
-   const chunkDuration=made.reduce((sum,item)=>sum+(Number(item.duration)||0),0);
-   const streamDuration=Number(audioInfo.streams[0].duration);
-   const bytes=fs.statSync(out).size;
-   const estimated=Math.max(0,(bytes-44)/(22050*2));
-   // Prefer actual WAV probe, but use validated source-chunk duration if this
-   // FFmpeg/FFprobe build reports zero for a PCM WAV container.
-   if(!Number.isFinite(finalDuration)||finalDuration<0.5){
-     finalDuration=Number.isFinite(streamDuration)&&streamDuration>=0.5?streamDuration:(estimated>=0.5?estimated:chunkDuration);
-   }
-   if(!Number.isFinite(finalDuration)||finalDuration<0.5)throw new Error("AI Voice duration validation failed; wavBytes="+bytes+", chunkDuration="+chunkDuration.toFixed(3)+", chunks="+made.length+".");
-   let cursor=0;
-   const voiceSrt=made.map((x,i)=>{const begin=cursor;cursor+=x.duration;return (i+1)+"\n"+srtTime(begin)+" --> "+srtTime(cursor)+"\n"+x.text;}).join("\n\n")+"\n";
-   res.json({id,url:"/media/"+path.basename(out),srt:voiceSrt,voiceSrt,chunks:made.length,duration:finalDuration,voice:voiceName,rate,maxCharsPerLine:maxChars,provider:"Microsoft Edge AI TTS — Free",audioBytes:fs.statSync(out).size});
- }catch(e){
-   console.error("[/api/tts] AI Voice generation failed:",e?.stack||e);
-   res.status(500).json({error:e instanceof Error?e.message:String(e)});
- }finally{try{fs.rmSync(dir,{recursive:true,force:true});}catch{}}
-});
-
 app.post("/api/recap",async(req,res)=>{
  const key=keyOf(req),transcript=String(req.body?.transcript||"").trim(),style=String(req.body?.style||"natural storytelling"),length=String(req.body?.length||"auto");
  if(!key)return res.status(400).json({error:"Groq API Key ထည့်ပါ။"});if(!transcript)return res.status(400).json({error:"Transcript မရှိပါ။"});
@@ -320,7 +202,7 @@ const renderJobs=new Map();
 let renderRunning=false;
 
 async function runRenderJob(job){
- const {video,logo,font,voice,srt,voiceId,body}=job;
+ const {video,logo,font,srt,body}=job
  const base=path.basename(video.path),srtPath=path.join("work",base+"-my.srt"),out=path.join("work",base+"-final.mp4"),textPath=path.join("work",base+"-text.txt");
  try{
   if(srt)fs.writeFileSync(srtPath,srt,"utf8");fs.writeFileSync(textPath,String(body?.text||"Myanmar Recap"),"utf8");
@@ -361,7 +243,7 @@ async function runRenderJob(job){
    f.push("[blur_base][blur_patch]overlay=x=trunc(main_w*"+bx+"/100-overlay_w/2):y=trunc(main_h*"+by+"/100-overlay_h/2)[vb]");
    cur="[vb]";
   }
-  // Render the AI Voice 25-character SRT with the same font/color/border settings selected in the editor.
+  // Render the  25-character SRT with the same font/color/border settings selected in the editor.
   // FFmpeg drawtext supports fontfile, fontcolor, bordercolor and borderw directly.
   const parseRenderSrt=s=>String(s||"").replace(/\r/g,"").split(/\n\s*\n/).map(block=>{
     const lines=block.split("\n"),m=lines.findIndex(x=>/\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}/.test(x));
@@ -388,9 +270,8 @@ async function runRenderJob(job){
     cur="[vt]";
   }
   const args=["-y","-hide_banner","-loglevel","error","-threads","1","-filter_threads","1","-filter_complex_threads","1","-i",video.path];
-  if(voice)args.push("-i",voice.path);
-  if(showLogo&&logo){const logoInputIndex=voice?2:1;f.push("["+logoInputIndex+":v]scale="+ls+":"+ls+"[lg]");f.push(cur+"[lg]overlay=x=main_w*"+lx+"/100-overlay_w/2:y=main_h*"+ly+"/100-overlay_h/2[vout]");cur="[vout]";args.push("-i",logo.path);}
-  args.push("-filter_complex",f.join(";"),"-map",cur); if(voice)args.push("-map","1:a:0"); else args.push("-map","0:a:0?"); args.push("-c:v","libx264","-preset","ultrafast","-crf","24","-pix_fmt","yuv420p","-c:a","aac","-b:a","128k","-movflags","+faststart","-shortest",out);
+  if(showLogo&&logo){const logoInputIndex=1;f.push("["+logoInputIndex+":v]scale="+ls+":"+ls+"[lg]");f.push(cur+"[lg]overlay=x=main_w*"+lx+"/100-overlay_w/2:y=main_h*"+ly+"/100-overlay_h/2[vout]");cur="[vout]";args.push("-i",logo.path);}
+  args.push("-filter_complex",f.join(";"),"-map",cur); args.push("-map","0:a:0?"); args.push("-c:v","libx264","-preset","ultrafast","-crf","24","-pix_fmt","yuv420p","-c:a","aac","-b:a","128k","-movflags","+faststart","-shortest",out);
   job.progress=15;
   const result=await execFileAsync("ffmpeg",args,{maxBuffer:8*1024*1024});
   job.progress=100;job.state="done";job.url="/media/"+path.basename(out);job.filename=path.basename(out);
@@ -399,30 +280,21 @@ async function runRenderJob(job){
   job.state="error";job.error=String(msg).slice(-6000);
  }finally{
   renderRunning=false;
-  fs.unlink(video.path,()=>{});if(logo)fs.unlink(logo.path,()=>{});if(font)fs.unlink(font.path,()=>{});if(job.cleanupVoice&&voice?.path)fs.unlink(voice.path,()=>{});fs.unlink(srtPath,()=>{});fs.unlink(textPath,()=>{});try{fs.rmSync(path.join("work",base+"-subtitle-parts"),{recursive:true,force:true});}catch{}
+  fs.unlink(video.path,()=>{});if(logo)fs.unlink(logo.path,()=>{});if(font)fs.unlink(font.path,()=>{});fs.unlink(srtPath,()=>{});fs.unlink(textPath,()=>{});try{fs.rmSync(path.join("work",base+"-subtitle-parts"),{recursive:true,force:true});}catch{}
   setTimeout(()=>renderJobs.delete(job.id),30*60*1000);
  }
 }
 
-app.post("/api/render",upload.fields([{name:"video",maxCount:1},{name:"logo",maxCount:1},{name:"voice",maxCount:1},{name:"font",maxCount:1}]),async(req,res)=>{
- const video=req.files?.video?.[0],logo=req.files?.logo?.[0],voice=req.files?.voice?.[0],font=req.files?.font?.[0],srt=String(req.body?.srt||"").trim(),voiceId=String(req.body?.voiceId||"").replace(/[^a-zA-Z0-9_-]/g,"");
+app.post("/api/render",upload.fields([{name:"video",maxCount:1},{name:"logo",maxCount:1},{name:"font",maxCount:1}]),async(req,res)=>{
+ const video=req.files?.video?.[0],logo=req.files?.logo?.[0],font=req.files?.font?.[0],srt=String(req.body?.srt||"").trim();
  if(!video)return res.status(400).json({error:"Video ရွေးပါ။"});
- const savedVoicePath=voiceId?path.join("work",voiceId+".wav"):"";
- const approvedSrtPath=voiceId?path.join("work",voiceId+".srt"):"";
- if(srt){
-  const approvedSrt=approvedSrtPath&&fs.existsSync(approvedSrtPath)?fs.readFileSync(approvedSrtPath,"utf8").trim():"";
-  if(!approvedSrt||approvedSrt!==srt){
-   fs.unlink(video.path,()=>{});
-   return res.status(400).json({error:"Final Video အတွက် AI Voice ကနေ ထုတ်ထားတဲ့ SRT ကိုသာ သုံးပါ။ AI Voice SRT ကို အရင်ထုတ်ပါ။"});
-  }
- }
- const renderVoice=voice||((voiceId&&fs.existsSync(savedVoicePath))?{path:savedVoicePath}:null);
+ if(srt&&!srt.includes("-->")){fs.unlink(video.path,()=>{});return res.status(400).json({error:"Valid SRT ဖိုင်မဟုတ်ပါ။"});}
  const id="render-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);
  if(renderRunning){
-   fs.unlink(video.path,()=>{});if(logo)fs.unlink(logo.path,()=>{});if(font)fs.unlink(font.path,()=>{});if(voice)fs.unlink(voice.path,()=>{});
+   fs.unlink(video.path,()=>{});if(logo)fs.unlink(logo.path,()=>{});if(font)fs.unlink(font.path,()=>{});
    return res.status(429).json({error:"Final Video render တစ်ခု လုပ်နေပြီးသားပါ။ ပြီးသွားမှ ပြန်စမ်းပါ။"});
  }
- const job={id,video,logo,font,voice:renderVoice,cleanupVoice:!!voice,srt,voiceId,body:req.body,progress:5,state:"processing"};
+ const job={id,video,logo,font,srt,body:req.body,progress:5,state:"processing"};
  renderJobs.set(id,job);renderRunning=true;
  res.status(202).json({jobId:id,status:"processing",progress:5});
  setImmediate(()=>runRenderJob(job));
