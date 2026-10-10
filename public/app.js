@@ -166,7 +166,7 @@ function attachDrag(el,type,xId,yId){
    if(ev.pointerId!==pid)return;
    const dx=(ev.clientX-sx)/Math.max(1,rect.width)*100,dy=(ev.clientY-sy)/Math.max(1,rect.height)*100;
    const minX=type==="blur"?Number($("blurW").value)/2:2,maxX=type==="blur"?100-Number($("blurW").value)/2:98;
-   $(xId).value=Math.max(minX,Math.min(maxX,ox+dx));$(yId).value=Math.max(2,Math.min(98,oy+dy));scheduleEditorUpdate();
+   $(xId).value=Math.max(minX,Math.min(maxX,ox+dx));$(yId).value=Math.max(2,Math.min(98,oy+dy));scheduleEditorUpdate(type==="subtitle"?"subtitle":type);
   };
   const end=ev=>{
    if(ev.pointerId!==pid)return;
@@ -181,7 +181,7 @@ textResizeHandle.addEventListener("pointerdown",e=>{
  if(!showText.checked||e.button!==0)return;e.preventDefault();e.stopPropagation();
  const rect=editorPreview.getBoundingClientRect(),sx=e.clientX,sy=e.clientY,start=Number($("fontSize").value),pid=e.pointerId;
  try{editorPreview.setPointerCapture(pid)}catch{}
- const move=ev=>{if(ev.pointerId!==pid)return;const dx=(ev.clientX-sx)/Math.max(1,rect.width)*100,dy=(ev.clientY-sy)/Math.max(1,rect.height)*100;$("fontSize").value=Math.max(10,Math.min(64,start+Math.round((dx+dy)*.5)));scheduleEditorUpdate();};
+ const move=ev=>{if(ev.pointerId!==pid)return;const dx=(ev.clientX-sx)/Math.max(1,rect.width)*100,dy=(ev.clientY-sy)/Math.max(1,rect.height)*100;$("fontSize").value=Math.max(10,Math.min(64,start+Math.round((dx+dy)*.5)));scheduleEditorUpdate("text");};
  const end=ev=>{if(ev.pointerId!==pid)return;editorPreview.removeEventListener("pointermove",move);editorPreview.removeEventListener("pointerup",end);editorPreview.removeEventListener("pointercancel",end);try{if(editorPreview.hasPointerCapture?.(pid))editorPreview.releasePointerCapture(pid)}catch{}};
  editorPreview.addEventListener("pointermove",move);editorPreview.addEventListener("pointerup",end);editorPreview.addEventListener("pointercancel",end);
 });
