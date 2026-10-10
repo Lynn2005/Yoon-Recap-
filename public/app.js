@@ -97,8 +97,10 @@ let textLabel=textPreview.querySelector(".text-preview-label");
 if(!textLabel){textLabel=document.createElement("span");textLabel.className="text-preview-label";textPreview.replaceChildren(textLabel);}
 const textResizeHandle=document.createElement("div");
 textResizeHandle.className="text-resize-handle";textResizeHandle.title="Resize text";textResizeHandle.setAttribute("aria-label","Resize text");
-textPreview.appendChild(textResizeHandle);
+textPreview.appendChild(textResizeHandle);textPreview.style.willChange="left, top, font-size";subtitlePreview.style.willChange="left, top";blurLayer.style.willChange="left, top, width, height";logoPreview.style.willChange="left, top, width, height";
 
+let editorUpdateFrame=0;
+function scheduleEditorUpdate(){if(editorUpdateFrame)return;editorUpdateFrame=requestAnimationFrame(()=>{editorUpdateFrame=0;update();});}
 function update(){
  const val=id=>$(id)?.value??"";
  textLabel.textContent=val("editText");
@@ -136,8 +138,8 @@ window.yoonSelectEditorOption=selectEditorOption;
  option.addEventListener("change",()=>selectEditorOption(option));
  option.addEventListener("click",()=>requestAnimationFrame(()=>selectEditorOption(option)));
 });
-document.querySelectorAll("#textControls input,#subtitleControls input,#blurControls input,#logoControls input").forEach(el=>{if(el.type!=="file")el.addEventListener("input",update);});
-["editText","fontStyle","textColor","borderColor","borderWidth"].forEach(id=>$(id).addEventListener("input",update));
+document.querySelectorAll("#textControls input,#subtitleControls input,#blurControls input,#logoControls input").forEach(el=>{if(el.type!=="file")el.addEventListener("input",scheduleEditorUpdate);});
+["editText","fontStyle","textColor","borderColor","borderWidth"].forEach(id=>$(id).addEventListener("input",scheduleEditorUpdate));
 $("fontFile").addEventListener("change",e=>{
  fontFile=e.target.files?.[0]||null;if(!fontFile)return;
  if(customFontUrl)URL.revokeObjectURL(customFontUrl);customFontUrl=URL.createObjectURL(fontFile);
@@ -151,7 +153,7 @@ $("logoFile").addEventListener("change",e=>{
  logoFile=next;const url=URL.createObjectURL(next);logoPreview.dataset.objectUrl=url;logoPreview.src=url;showLogo.checked=true;activeOption=showLogo;update();
 });
 function attachDrag(el,type,xId,yId){
- el.style.touchAction="none";
+ el.style.touchAction="none";el.style.willChange="left, top, width, height";
  el.addEventListener("pointerdown",e=>{
   const enabled=type==="text"?showText.checked:type==="blur"?showBlur.checked:type==="logo"?showLogo.checked:true;if(!enabled)return;
   if(type==="text"&&e.target.closest(".text-resize-handle"))return;
@@ -163,7 +165,7 @@ function attachDrag(el,type,xId,yId){
    if(ev.pointerId!==pid)return;
    const dx=(ev.clientX-sx)/Math.max(1,rect.width)*100,dy=(ev.clientY-sy)/Math.max(1,rect.height)*100;
    const minX=type==="blur"?Number($("blurW").value)/2:2,maxX=type==="blur"?100-Number($("blurW").value)/2:98;
-   $(xId).value=Math.max(minX,Math.min(maxX,ox+dx));$(yId).value=Math.max(2,Math.min(98,oy+dy));update();if(typeof scheduleEditState==="function")scheduleEditState();
+   $(xId).value=Math.max(minX,Math.min(maxX,ox+dx));$(yId).value=Math.max(2,Math.min(98,oy+dy));scheduleEditorUpdate();
   };
   const end=ev=>{
    if(ev.pointerId!==pid)return;
@@ -178,7 +180,7 @@ textResizeHandle.addEventListener("pointerdown",e=>{
  if(!showText.checked||e.button!==0)return;e.preventDefault();e.stopPropagation();
  const rect=editorPreview.getBoundingClientRect(),sx=e.clientX,sy=e.clientY,start=Number($("fontSize").value),pid=e.pointerId;
  try{editorPreview.setPointerCapture(pid)}catch{}
- const move=ev=>{if(ev.pointerId!==pid)return;const dx=(ev.clientX-sx)/Math.max(1,rect.width)*100,dy=(ev.clientY-sy)/Math.max(1,rect.height)*100;$("fontSize").value=Math.max(10,Math.min(64,start+Math.round((dx+dy)*.5)));update();};
+ const move=ev=>{if(ev.pointerId!==pid)return;const dx=(ev.clientX-sx)/Math.max(1,rect.width)*100,dy=(ev.clientY-sy)/Math.max(1,rect.height)*100;$("fontSize").value=Math.max(10,Math.min(64,start+Math.round((dx+dy)*.5)));scheduleEditorUpdate();};
  const end=ev=>{if(ev.pointerId!==pid)return;editorPreview.removeEventListener("pointermove",move);editorPreview.removeEventListener("pointerup",end);editorPreview.removeEventListener("pointercancel",end);try{if(editorPreview.hasPointerCapture?.(pid))editorPreview.releasePointerCapture(pid)}catch{}};
  editorPreview.addEventListener("pointermove",move);editorPreview.addEventListener("pointerup",end);editorPreview.addEventListener("pointercancel",end);
 });
