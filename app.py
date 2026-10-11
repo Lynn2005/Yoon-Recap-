@@ -279,7 +279,7 @@ with tabs[3]:
                 x=max(0,min(99,round(float(obj.get("left",0))/frame.width*100)))
                 y=max(0,min(99,round(float(obj.get("top",0))/frame.height*100)))
                 scale=max(0.2,min(5.0,float(obj.get("scaleX",1))))
-                elif name=="overlay_subtitle": lp["subtitle"].update({"x":x,"y":y,"scale":scale})
+                if name=="overlay_subtitle": lp["subtitle"].update({"x":x,"y":y,"scale":scale})
                 elif name=="overlay_text": lp["text"].update({"x":x,"y":y,"scale":scale})
             st.session_state.live_positions=lp
             tx,ty=lp["text"]["x"],lp["text"]["y"]
