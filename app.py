@@ -97,6 +97,8 @@ def esc(path): return str(path).replace("\\","/").replace(":","\\:").replace("'"
 def font():
     # Find a Myanmar-capable font once; avoid a full filesystem scan on every Streamlit rerun.
     candidates = [
+        "/usr/share/fonts/TTF/NotoSansMyanmar-Regular.ttf",
+        "/usr/share/fonts/TTF/Padauk-Regular.ttf",
         "/usr/share/fonts/truetype/noto/NotoSansMyanmar-Regular.ttf",
         "/usr/share/fonts/truetype/noto/NotoSansMyanmar-VF.ttf",
         "/usr/share/fonts/opentype/noto/NotoSansMyanmar-Regular.ttf",
@@ -183,7 +185,7 @@ with tabs[3]:
             st.session_state[key] = default
     if "live_positions" not in st.session_state:
         st.session_state.live_positions = {
-            "blur": {"x": 25, "y": 25, "w": 25, "h": 25},
+            "blur": {"x": 25, "y": 5, "w": 25, "h": 25},
             "subtitle": {"x": 20, "y": 82, "scale": 1.0},
             "text": {"x": 5, "y": 8, "scale": 1.0},
             "logo": {"x": 4, "y": 5, "scale": 1.0},
@@ -226,13 +228,6 @@ with tabs[3]:
                 bw=max(1,min(frame.width-bx,int(frame.width*blur_w/100))); bh=max(1,min(frame.height-by,int(frame.height*blur_h/100)))
                 roi=frame.crop((bx,by,bx+bw,by+bh)).filter(ImageFilter.GaussianBlur(radius=max(1,blur/2)))
                 frame.paste(roi,(bx,by))
-            # Blur the selected region in the preview; its rectangle is draggable/resizable on canvas.
-            if blur:
-                bx=min(frame.width-1,int(frame.width*blur_x/100)); by=min(frame.height-1,int(frame.height*blur_y/100))
-                bw=max(1,min(frame.width-bx,int(frame.width*blur_w/100))); bh=max(1,min(frame.height-by,int(frame.height*blur_h/100)))
-                roi=frame.crop((bx,by,bx+bw,by+bh)).filter(ImageFilter.GaussianBlur(radius=max(1,blur/2)))
-                frame.paste(roi,(bx,by))
-
             def parse_sec(ts):
                 hh,mm,rest=ts.split(":"); ss,ms=rest.split(",")
                 return int(hh)*3600+int(mm)*60+int(ss)+int(ms)/1000
@@ -357,7 +352,7 @@ with tabs[3]:
                     fp=font()
                     if text.strip() and fp:
                         safe=text.replace("\\","\\\\").replace(":","\\:").replace("'","\\'").replace("%","\\%")
-                        filters.append(f"drawtext=fontfile='{esc(fp)}':text='{safe}':fontcolor=white:fontsize={max(8,int(36*lp['text']['scale']))}:borderw=3:bordercolor=black:x=w*{tx/100:.3f}:y=h*{ty/100:.3f}")
+                        filters.append(f"drawtext=fontfile='{esc(fp)}':text='{safe}':text_shaping=1:fontcolor=white:fontsize={max(8,int(36*lp['text']['scale']))}:borderw=3:bordercolor=black:x=w*{tx/100:.3f}:y=h*{ty/100:.3f}")
                     args=["ffmpeg","-y","-i",str(vp),"-i",str(ap)]
                     graph=[]; vf=",".join(filters) if filters else "null"
                     if blur:
@@ -380,7 +375,7 @@ with tabs[3]:
                     ta=["ffmpeg","-y","-ss","1","-i",str(op),"-frames:v","1","-vf","scale=1280:-2"]
                     if text.strip() and fp:
                         safe=text.replace("\\","\\\\").replace(":","\\:").replace("'","\\'").replace("%","\\%")
-                        ta[-1]+=f",drawtext=fontfile='{esc(fp)}':text='{safe}':fontcolor=white:fontsize=52:borderw=4:bordercolor=black:x=(w-text_w)/2:y=h-text_h-50"
+                        ta[-1]+=f",drawtext=fontfile='{esc(fp)}':text='{safe}':text_shaping=1:fontcolor=white:fontsize=52:borderw=4:bordercolor=black:x=(w-text_w)/2:y=h-text_h-50"
                     ta.append(str(tp))
                     try: cmd(ta); st.session_state.thumbnail_bytes=tp.read_bytes()
                     except Exception: st.session_state.thumbnail_bytes=None
