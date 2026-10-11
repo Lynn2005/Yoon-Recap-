@@ -178,42 +178,33 @@ with tabs[2]:
 
 with tabs[3]:
     st.subheader("🎬 Live Edit Preview")
-    st.caption("Blur၊ Subtitle၊ Logo နဲ့ စာသားကို Live Edit ပေါ်မှာ တိုက်ရိုက်ဖိဆွဲပြီး နေရာ/အရွယ်အစား ပြင်ပါ။ သီးခြား X/Y Adjust slider တွေ မလိုပါ။")
+    st.caption("မြန်မာစာတန်းနဲ့ စာသားကို Live Edit ပေါ်မှာ တိုက်ရိုက်ဖိဆွဲပြီး နေရာ/အရွယ်အစား ပြင်ပါ။")
 
-    for key, default in (("blur_enabled", False), ("burn_subtitles", True), ("mirror_enabled", False),
+    for key, default in (("burn_subtitles", True), ("mirror_enabled", False),
                          ("mix_original_audio", False), ("original_audio_volume", 15),
-                         ("blur_amount", 5), ("overlay_text", ""), ("subtitle_size", 24)):
+                         ("overlay_text", ""), ("subtitle_size", 40)):
         if key not in st.session_state:
             st.session_state[key] = default
     if "live_positions" not in st.session_state:
         st.session_state.live_positions = {
-            "blur": {"x": 25, "y": 5, "w": 25, "h": 25},
             "subtitle": {"x": 20, "y": 82, "scale": 1.0},
             "text": {"x": 5, "y": 8, "scale": 1.0},
-            "logo": {"x": 4, "y": 5, "scale": 1.0},
         }
 
     c1,c2=st.columns(2)
     with c1:
-        st.checkbox("🌫️ Blur ထည့်မယ်",key="blur_enabled")
         burn=st.checkbox("မြန်မာစာတန်းထိုး",True,key="burn_subtitles")
-        fontsize=st.slider("စာတန်းအရွယ်အစား",14,42,24,key="subtitle_size")
+        fontsize=st.slider("မြန်မာစာတန်း အရွယ်အစား",24,64,40,key="subtitle_size")
         mirror=st.checkbox("Mirror / ဘယ်ညာပြောင်း",False,key="mirror_enabled")
-        blur_amount=st.slider("Blur အား",1,20,5,key="blur_amount",disabled=not st.session_state.blur_enabled)
-        blur=blur_amount if st.session_state.blur_enabled else 0
     with c2:
         mix=st.checkbox("မူရင်းအသံကို နောက်ခံအဖြစ်ထားမယ်",False,key="mix_original_audio")
         vol=st.slider("မူရင်းအသံ Volume (%)",0,100,15,key="original_audio_volume")
         text_value=st.text_input("Live Edit ပေါ်တင်မည့်စာသား",placeholder="Yoon Recap",key="overlay_text")
-        logo_upload=st.file_uploader("Logo ပုံ (PNG/JPG)",type=["png","jpg","jpeg"],key="logo_upload")
     text=text_value.strip()
-    logo=logo_upload
 
     # Positions and scale are driven by direct manipulation on the Live Edit canvas.
     lp=st.session_state.live_positions
-    blur_x,blur_y,blur_w,blur_h=lp["blur"]["x"],lp["blur"]["y"],lp["blur"]["w"],lp["blur"]["h"]
     tx,ty=lp["text"]["x"],lp["text"]["y"]
-    logo_x,logo_y=lp["logo"]["x"],lp["logo"]["y"]
     subtitle_y=lp["subtitle"]["y"]
     pos="အပေါ်" if subtitle_y < 50 else "အောက်"
 
@@ -225,11 +216,6 @@ with tabs[3]:
             import io, base64
             frame=Image.open(io.BytesIO(extract_preview_frame(st.session_state.video_bytes,st.session_state.video_name,preview_second))).convert("RGB")
             if mirror: frame=frame.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
-            if blur:
-                bx=min(frame.width-1,int(frame.width*blur_x/100)); by=min(frame.height-1,int(frame.height*blur_y/100))
-                bw=max(1,min(frame.width-bx,int(frame.width*blur_w/100))); bh=max(1,min(frame.height-by,int(frame.height*blur_h/100)))
-                roi=frame.crop((bx,by,bx+bw,by+bh)).filter(ImageFilter.GaussianBlur(radius=max(1,blur/2)))
-                frame.paste(roi,(bx,by))
             def parse_sec(ts):
                 hh,mm,rest=ts.split(":"); ss,ms=rest.split(",")
                 return int(hh)*3600+int(mm)*60+int(ss)+int(ms)/1000
@@ -243,14 +229,8 @@ with tabs[3]:
                             if aa<=preview_second<=bb: active=" ".join(lines[2:]); break
                         except Exception: pass
 
-            # All adjustable items are objects on this canvas, including subtitle and blur region.
+            # Adjustable subtitle and text objects are placed on this canvas.
             drawing={"version":"4.4.0","objects":[]}
-            if st.session_state.blur_enabled:
-                bp=lp["blur"]
-                drawing["objects"].append({"type":"rect","version":"4.4.0","name":"overlay_blur",
-                    "left":int(frame.width*bp["x"]/100),"top":int(frame.height*bp["y"]/100),
-                    "width":max(20,int(frame.width*bp["w"]/100)),"height":max(20,int(frame.height*bp["h"]/100)),
-                    "fill":"rgba(80,160,255,0.18)","stroke":"#55aaff","strokeWidth":2,"scaleX":1,"scaleY":1})
             if active:
                 fp=font()
                 try: sf=ImageFont.truetype(fp,fontsize) if fp else ImageFont.load_default()
@@ -274,7 +254,7 @@ with tabs[3]:
                     "src":ssrc,"crossOrigin":"anonymous"})
             if text.strip():
                 # Render overlay text with the Myanmar font into a transparent PNG for reliable preview.
-                fp=font(); tf=ImageFont.truetype(fp,28) if fp else ImageFont.load_default()
+                fp=font(); tf=ImageFont.truetype(fp,44) if fp else ImageFont.load_default()
                 tw=max(220,frame.width//2); th=100
                 ti=Image.new("RGBA",(tw,th),(0,0,0,0)); td=ImageDraw.Draw(ti)
                 td.text((4,4),text,font=tf,fill="white",stroke_width=2,stroke_fill="black")
@@ -282,25 +262,7 @@ with tabs[3]:
                 buf=io.BytesIO(); ti.save(buf,format="PNG"); tsrc="data:image/png;base64,"+base64.b64encode(buf.getvalue()).decode("ascii")
                 tp=lp["text"]
                 drawing["objects"].append({"type":"image","version":"4.4.0","name":"overlay_text","left":int(frame.width*tp["x"]/100),"top":int(frame.height*tp["y"]/100),"width":ti.width,"height":ti.height,"scaleX":tp["scale"],"scaleY":tp["scale"],"src":tsrc,"crossOrigin":"anonymous"})
-            if logo:
-                raw=logo.getvalue()
-                try:
-                    lim=Image.open(io.BytesIO(raw)).convert("RGBA")
-                    lim.thumbnail((max(1,int(frame.width*0.18)),max(1,int(frame.height*0.35))))
-                    ratio=lim.height/max(1,lim.width)
-                    lbuf=io.BytesIO(); lim.save(lbuf,format="PNG")
-                    src="data:image/png;base64,"+base64.b64encode(lbuf.getvalue()).decode("ascii")
-                except Exception:
-                    lim=Image.new("RGBA",(120,80),(0,0,0,0)); ratio=1
-                    lbuf=io.BytesIO(); lim.save(lbuf,format="PNG"); src="data:image/png;base64,"+base64.b64encode(lbuf.getvalue()).decode("ascii")
-                # Use the exact normalized PNG dimensions so Fabric does not stretch or black-box the logo.
-                drawing["objects"].append({
-                    "type":"image","version":"4.4.0","name":"overlay_logo","left":int(frame.width*lp["logo"]["x"]/100),
-                    "top":int(frame.height*lp["logo"]["y"]/100),"width":lim.width,
-                    "height":lim.height,"scaleX":lp["logo"]["scale"],"scaleY":lp["logo"]["scale"],"opacity":1,
-                    "src":src,"crossOrigin":"anonymous"
-                })
-            st.markdown("**👆 Preview ပေါ်က Blur/Subtitle/စာသား/Logo ကို တိုက်ရိုက်နှိပ်ပြီး ဖိဆွဲပါ။ ထောင့်ကိုဆွဲရင် အရွယ်အစားပြောင်းနိုင်ပါတယ်။ Adjust slider မလိုပါ။**")
+            st.markdown("**👆 Preview ပေါ်က မြန်မာစာတန်း/စာသားကို ဖိဆွဲပြီး နေရာနဲ့ အရွယ်အစား ပြင်နိုင်ပါတယ်။**")
             canvas_result=st_canvas(
                 fill_color="rgba(255, 255, 255, 0.15)",stroke_width=1,
                 background_image=frame,background_color="#222222",
@@ -312,26 +274,19 @@ with tabs[3]:
             objects=(canvas_result.json_data or {}).get("objects",[]) if canvas_result else []
             for obj in objects:
                 name=obj.get("name")
-                if name not in ("overlay_blur","overlay_subtitle","overlay_text","overlay_logo"):
+                if name not in ("overlay_subtitle","overlay_text"):
                     continue
                 x=max(0,min(99,round(float(obj.get("left",0))/frame.width*100)))
                 y=max(0,min(99,round(float(obj.get("top",0))/frame.height*100)))
                 scale=max(0.2,min(5.0,float(obj.get("scaleX",1))))
-                if name=="overlay_blur":
-                    lp["blur"].update({"x":x,"y":y,
-                        "w":max(1,min(100-x,round(float(obj.get("width",1))*float(obj.get("scaleX",1))/frame.width*100))),
-                        "h":max(1,min(100-y,round(float(obj.get("height",1))*float(obj.get("scaleY",1))/frame.height*100)))})
                 elif name=="overlay_subtitle": lp["subtitle"].update({"x":x,"y":y,"scale":scale})
                 elif name=="overlay_text": lp["text"].update({"x":x,"y":y,"scale":scale})
-                elif name=="overlay_logo": lp["logo"].update({"x":x,"y":y,"scale":scale})
             st.session_state.live_positions=lp
-            blur_x,blur_y,blur_w,blur_h=lp["blur"]["x"],lp["blur"]["y"],lp["blur"]["w"],lp["blur"]["h"]
             tx,ty=lp["text"]["x"],lp["text"]["y"]
-            logo_x,logo_y=lp["logo"]["x"],lp["logo"]["y"]
             subtitle_y=lp["subtitle"]["y"]
             pos="အပေါ်" if subtitle_y < 50 else "အောက်"
             st.caption("Canvas မှာ ဆွဲရွှေ့/အရွယ်အစားပြောင်းပြီးနောက် Final MP4 Render လုပ်ပါ။")
-            st.caption(f"လက်ရှိ Effect: {'Blur' if blur else ('စာသား' if text else ('Logo' if logo else 'မရွေးရသေး'))} · Subtitle: {'ON' if burn else 'OFF'} · Mirror: {'ON' if mirror else 'OFF'}")
+            st.caption(f"Subtitle: {'ON' if burn else 'OFF'} · Mirror: {'ON' if mirror else 'OFF'} · မြန်မာစာ အရွယ်အစား: {fontsize}")
         except Exception as e:
             st.warning(f"Live Edit မဖွင့်နိုင်သေးပါ: {e}")
     else:
@@ -354,20 +309,11 @@ with tabs[3]:
                     fp=font()
                     if text.strip() and fp:
                         safe=text.replace("\\","\\\\").replace(":","\\:").replace("'","\\'").replace("%","\\%")
-                        filters.append(f"drawtext=fontfile='{esc(fp)}':text='{safe}':text_shaping=1:fontcolor=white:fontsize={max(8,int(36*lp['text']['scale']))}:borderw=3:bordercolor=black:x=w*{tx/100:.3f}:y=h*{ty/100:.3f}")
+                        filters.append(f"drawtext=fontfile='{esc(fp)}':text='{safe}':text_shaping=1:fontcolor=white:fontsize={max(8,int(56*lp['text']['scale']))}:borderw=3:bordercolor=black:x=w*{tx/100:.3f}:y=h*{ty/100:.3f}")
                     args=["ffmpeg","-y","-i",str(vp),"-i",str(ap)]
                     graph=[]; vf=",".join(filters) if filters else "null"
-                    if blur:
-                        bx=blur_x/100; by=blur_y/100; bw=min(blur_w/100,1-bx); bh=min(blur_h/100,1-by)
-                        graph.append(f"[0:v]{vf}[clean];[clean]split[base][tmp];[tmp]crop=w=iw*{bw:.4f}:h=ih*{bh:.4f}:x=iw*{bx:.4f}:y=ih*{by:.4f},boxblur={blur}:1[blurred];[base][blurred]overlay=x=W*{bx:.4f}:y=H*{by:.4f}[blurout]")
-                        video_base="[blurout]"
-                    else:
-                        graph.append(f"[0:v]{vf}[base]"); video_base="[base]"
-                    if logo:
-                        lp=root/("logo"+(Path(logo.name).suffix or ".png")); lp.write_bytes(logo.getvalue())
-                        args += ["-i",str(lp)]
-                        graph.append(f"[2:v]scale=iw*{0.18*st.session_state.live_positions['logo']['scale']:.4f}:-1[lg];{video_base}[lg]overlay=W*{logo_x/100:.3f}:H*{logo_y/100:.3f}[vout]")
-                    else: graph.append(f"{video_base}null[vout]")
+                    graph.append(f"[0:v]{vf}[base]")
+                    graph.append("[base]null[vout]")
                     if mix: graph.append(f"[0:a]volume={vol/100:.2f}[bg];[bg][1:a]amix=inputs=2:duration=first:dropout_transition=2[aout]")
                     args += ["-filter_complex",";".join(graph),"-map","[vout]"]
                     args += ["-map","[aout]"] if mix else ["-map","1:a:0"]
@@ -377,7 +323,7 @@ with tabs[3]:
                     ta=["ffmpeg","-y","-ss","1","-i",str(op),"-frames:v","1","-vf","scale=1280:-2"]
                     if text.strip() and fp:
                         safe=text.replace("\\","\\\\").replace(":","\\:").replace("'","\\'").replace("%","\\%")
-                        ta[-1]+=f",drawtext=fontfile='{esc(fp)}':text='{safe}':text_shaping=1:fontcolor=white:fontsize=52:borderw=4:bordercolor=black:x=(w-text_w)/2:y=h-text_h-50"
+                        ta[-1]+=f",drawtext=fontfile='{esc(fp)}':text='{safe}':text_shaping=1:fontcolor=white:fontsize=64:borderw=4:bordercolor=black:x=(w-text_w)/2:y=h-text_h-50"
                     ta.append(str(tp))
                     try: cmd(ta); st.session_state.thumbnail_bytes=tp.read_bytes()
                     except Exception: st.session_state.thumbnail_bytes=None
@@ -389,7 +335,7 @@ with tabs[3]:
     if st.session_state.thumbnail_bytes:
         st.subheader("Thumbnail"); st.image(st.session_state.thumbnail_bytes)
         st.download_button("⬇️ Thumbnail Download",st.session_state.thumbnail_bytes,f"{st.session_state.project_name}_thumbnail.jpg","image/jpeg")
-    st.caption("Preview frame ကို cache လုပ်ထားပါတယ်။ Blur ကို ရွေးပြီး X/Y နဲ့ အကျယ်/အမြင့်ကို ချိန်ပါ — ရွေးထားတဲ့ ဧရိယာပဲ ဝါးစေပါတယ်။")
+    st.caption("မြန်မာစာတန်းနဲ့ စာသားကို ပိုကြီးအောင် သတ်မှတ်ထားပါတယ်။")
 
 st.divider()
 st.caption("အရေးကြီး SRT၊ Voice၊ Final MP4 ကို အလုပ်ပြီးတိုင်း Download လုပ်ထားပါ။ Session ပြတ်လျှင် မသိမ်းရသေးသော data ပျောက်နိုင်သည်။")
