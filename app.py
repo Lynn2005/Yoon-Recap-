@@ -97,8 +97,10 @@ def esc(path): return str(path).replace("\\","/").replace(":","\\:").replace("'"
 def font():
     # Find a Myanmar-capable font once; avoid a full filesystem scan on every Streamlit rerun.
     candidates = [
-        "/usr/share/fonts/TTF/NotoSansMyanmar-Regular.ttf",
         "/usr/share/fonts/TTF/Padauk-Regular.ttf",
+        "/usr/share/fonts/truetype/padauk/Padauk-Regular.ttf",
+        "/usr/share/fonts/opentype/padauk/Padauk-Regular.ttf",
+        "/usr/share/fonts/TTF/NotoSansMyanmar-Regular.ttf",
         "/usr/share/fonts/truetype/noto/NotoSansMyanmar-Regular.ttf",
         "/usr/share/fonts/truetype/noto/NotoSansMyanmar-VF.ttf",
         "/usr/share/fonts/opentype/noto/NotoSansMyanmar-Regular.ttf",
@@ -348,7 +350,7 @@ with tabs[3]:
                         sp=root/"burmese.srt"; sp.write_text(st.session_state.burmese_srt,encoding="utf-8-sig")
                         align=2 if pos=="အောက်" else 8
                         margin_v=max(0,int((100-subtitle_y if pos=="အောက်" else subtitle_y)*720/100))
-                        filters.append(f"subtitles='{esc(sp)}':charenc=UTF-8:force_style='FontName=Noto Sans Myanmar,FontSize={max(8,int(fontsize*st.session_state.live_positions['subtitle']['scale']))},Outline=2,Shadow=1,Alignment={align},MarginV={margin_v}'")
+                        filters.append(f"subtitles='{esc(sp)}':charenc=UTF-8:force_style='FontName=Padauk,FontSize={max(8,int(fontsize*st.session_state.live_positions['subtitle']['scale']))},Outline=2,Shadow=1,Alignment={align},MarginV={margin_v}'")
                     fp=font()
                     if text.strip() and fp:
                         safe=text.replace("\\","\\\\").replace(":","\\:").replace("'","\\'").replace("%","\\%")
