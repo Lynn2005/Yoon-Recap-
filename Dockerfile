@@ -6,6 +6,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg fonts-noto-core fonts-noto-extra fonts-sil-padauk fontconfig \
     && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /usr/share/fonts/TTF \
+    && PAD="$(fc-match -f '%{file}' 'Padauk' | head -n 1)" \
+    && test -f "$PAD" \
+    && ln -sf "$PAD" /usr/share/fonts/TTF/Padauk-Regular.ttf \
     && fc-cache -f
 
 WORKDIR /app
