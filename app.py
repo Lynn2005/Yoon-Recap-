@@ -129,8 +129,11 @@ def extract_preview_frame(video_bytes, video_name, second):
         if not fp.exists(): raise RuntimeError("Preview frame မထုတ်နိုင်ပါ။ Preview အချိန်ကို ပြောင်းကြည့်ပါ။")
         return fp.read_bytes()
 
-tabs=st.tabs(["① Video Upload","② Transcript + Translate","③ AI Voice","④ Final Video + Thumbnail"])
-with tabs[0]:
+steps=["① Video Upload","② Transcript + Translate","③ AI Voice","④ Final Video + Thumbnail"]
+if "workflow_step" not in st.session_state:
+    st.session_state.workflow_step=steps[0]
+step=st.radio("Workflow Step",steps,horizontal=True,key="workflow_step",label_visibility="collapsed")
+if step == steps[0]:
     st.subheader("Video Upload")
     up=st.file_uploader("Video ရွေးပါ (MP4/MOV/MKV/WEBM/AVI)",type=["mp4","mov","mkv","webm","avi"],key="video_up")
     if up:
@@ -140,7 +143,12 @@ with tabs[0]:
         st.caption(f"{st.session_state.video_name} · {len(st.session_state.video_bytes)/1048576:.1f} MB")
     st.info("Streamlit Cloud မှာ ဖိုင်ကြီးတွေက memory/resource ကန့်သတ်ချက်ကြောင့် မအောင်မြင်နိုင်ပါ။ 900MB ဖိုင်များအတွက် ပိုအားကောင်းသော server လိုနိုင်သည်။")
 
-with tabs[1]:
+    st.divider()
+    if st.button("➡️ Step 1 → Step 2",key="step1_to_step2",use_container_width=True,disabled=not bool(st.session_state.video_bytes)):
+        st.session_state.workflow_step=steps[1]
+        st.rerun()
+
+elif step == steps[1]:
     st.subheader("Original Transcript / SRT")
     if st.button("🎧 Original SRT ထုတ်မယ်",disabled=not st.session_state.video_bytes or not groq_key):
         with st.spinner("Whisper transcription လုပ်နေပါတယ်..."):
@@ -162,7 +170,7 @@ with tabs[1]:
     st.text_area("Burmese SRT (ပြင်ဆင်နိုင်သည်)",key="burmese_srt",height=260)
     if st.session_state.burmese_srt: st.download_button("⬇️ Burmese SRT Download",st.session_state.burmese_srt,"burmese.srt","application/x-subrip")
 
-with tabs[2]:
+elif step == steps[2]:
     st.subheader("AI Voice")
     vc=st.selectbox("အသံရွေးပါ",["မြန်မာ အမျိုးသမီး — Nilar","မြန်မာ အမျိုးသား — Thiha"])
     speed=st.slider("Voice Speed",0.7,1.3,1.0,0.1)
@@ -176,7 +184,7 @@ with tabs[2]:
         st.audio(st.session_state.voice_bytes)
         st.download_button("⬇️ AI Voice Download",st.session_state.voice_bytes,f"{st.session_state.project_name}_voice.mp3","audio/mpeg")
 
-with tabs[3]:
+elif step == steps[3]:
     st.subheader("🎬 Live Edit Preview")
     st.caption("မြန်မာစာတန်းနဲ့ စာသားကို Live Edit ပေါ်မှာ တိုက်ရိုက်ဖိဆွဲပြီး နေရာ/အရွယ်အစား ပြင်ပါ။")
 
