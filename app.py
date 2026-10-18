@@ -132,6 +132,9 @@ def extract_preview_frame(video_bytes, video_name, second):
 steps=["① Video Upload","② Transcript + Translate","③ AI Voice","④ Final Video + Thumbnail"]
 if "workflow_step" not in st.session_state:
     st.session_state.workflow_step=steps[0]
+def go_to_step2():
+    st.session_state.workflow_step=steps[1]
+
 step=st.radio("Workflow Step",steps,horizontal=True,key="workflow_step",label_visibility="collapsed")
 if step == steps[0]:
     st.subheader("Video Upload")
@@ -144,9 +147,7 @@ if step == steps[0]:
     st.info("Streamlit Cloud မှာ ဖိုင်ကြီးတွေက memory/resource ကန့်သတ်ချက်ကြောင့် မအောင်မြင်နိုင်ပါ။ 900MB ဖိုင်များအတွက် ပိုအားကောင်းသော server လိုနိုင်သည်။")
 
     st.divider()
-    if st.button("➡️ Step 1 → Step 2",key="step1_to_step2",use_container_width=True,disabled=not bool(st.session_state.video_bytes)):
-        st.session_state.workflow_step=steps[1]
-        st.rerun()
+    st.button("➡️ Step 1 → Step 2",key="step1_to_step2",use_container_width=True,disabled=not bool(st.session_state.video_bytes),on_click=go_to_step2)
 
 elif step == steps[1]:
     st.subheader("Original Transcript / SRT")
