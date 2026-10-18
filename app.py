@@ -132,8 +132,12 @@ def extract_preview_frame(video_bytes, video_name, second):
 steps=["① Video Upload","② Transcript + Translate","③ AI Voice","④ Final Video + Thumbnail"]
 if "workflow_step" not in st.session_state:
     st.session_state.workflow_step=steps[0]
+# Apply navigation requests before the radio widget is instantiated.
+# The button callback writes to a separate key to avoid Streamlit widget-state errors.
+if "_workflow_step_target" in st.session_state:
+    st.session_state.workflow_step=st.session_state.pop("_workflow_step_target")
 def go_to_step2():
-    st.session_state.workflow_step=steps[1]
+    st.session_state["_workflow_step_target"]=steps[1]
 
 step=st.radio("Workflow Step",steps,horizontal=True,key="workflow_step",label_visibility="collapsed")
 if step == steps[0]:
