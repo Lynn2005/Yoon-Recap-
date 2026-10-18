@@ -41,7 +41,8 @@
 
     <details class="advanced-tools" open><summary><span>Yoon Recap Studio</span><small>အဆင့်လိုက်လုပ်ရန် — SRT → Edit → Final MP4</small></summary>
       <div class="advanced-inner">
-        <section class="card"><div class="section-heading"><div><span class="step-pill">STEP 01</span><h2>Video → Original SRT</h2><p class="helper">မူရင်းအသံ timeline ကို transcript အဖြစ်ထုတ်ပါ။</p></div></div><label for="video" class="compact-label">Video Upload</label><input id="video" type="file" accept="video/*"><video id="preview" controls playsinline hidden></video><button id="transcribe" type="button">🎧 Original SRT ထုတ်မယ်</button><div id="tstatus" class="status" aria-live="polite"></div></section>
+        <section class="card"><div class="section-heading"><div><span class="step-pill">STEP 01</span><h2>Video → Original SRT</h2><p class="helper">မူရင်းအသံ timeline ကို transcript အဖြစ်ထုတ်ပါ။</p></div></div><label for="video" class="compact-label">Video Upload</label><input id="video" type="file" accept="video/*"><video id="preview" controls playsinline hidden></video><button id="transcribe" type="button">🎧 Original SRT ထုတ်မယ်</button><div id="tstatus" class="status" aria-live="polite"></div>
+          <button id="step1ToStep2" class="outline-btn" type="button" style="width:100%;margin-top:12px">➡️ Step 1 → Step 2</button></section>
         <section class="card"><span class="step-pill">STEP 02</span><h2>Original SRT</h2><p class="helper">လိုအပ်ရင် စာသားကိုစစ်ပြီး download လုပ်နိုင်ပါတယ်။</p><textarea id="originalSrt" placeholder="Original timeline SRT"></textarea><button id="downloadOriginalSrt" class="outline-btn" type="button">↓ Original SRT Download</button></section>
         <section class="card"><span class="step-pill">STEP 03</span><h2>Burmese Recap Script</h2><p class="helper">မူရင်းဇာတ်လမ်းကို မြန်မာလို ပြန်ရေးပါ။</p><div class="field-grid"><div><label for="recapStyle">Style</label><select id="recapStyle"><option value="natural storytelling">သဘာဝကျကျ</option><option value="dramatic and suspenseful">စိတ်လှုပ်ရှားဖွယ်</option><option value="funny casual">ဟာသဆန်ဆန်</option><option value="concise summary">အကျဉ်းချုပ်</option></select></div><div><label for="recapLength">အရှည်</label><select id="recapLength"><option value="1-2 minutes">အတို</option><option value="3-5 minutes" selected>ပုံမှန်</option><option value="5-10 minutes">အရှည်</option></select></div></div><button id="makeRecap" type="button">✎ Recap Script ထုတ်မယ်</button><textarea id="recapScript" placeholder="Burmese Recap Script ဒီမှာပေါ်လာပါမယ်"></textarea><div id="rstatus" class="status" aria-live="polite"></div></section>
         <section class="card"><span class="step-pill">STEP 04</span><h2>Recap Script → Burmese SRT</h2><p class="helper">Recap Script ကို SRT ပြောင်းပါ၊ သို့မဟုတ် ရှိပြီးသား SRT ဖိုင်ကို Upload လုပ်ပါ။</p><label for="srtLength">စာတန်းအရှည်</label><select id="srtLength"><option value="short">အတို — စာတန်းတို</option><option value="normal" selected>ပုံမှန်</option><option value="long">အရှည် — စာတန်းရှည်</option></select><button id="generateSrt" type="button">📝 Burmese SRT ထုတ်မယ်</button><label for="srtUpload">SRT ဖိုင် Upload (Optional)</label><input id="srtUpload" type="file" accept=".srt,application/x-subrip,text/plain"><textarea id="burmeseSrt" placeholder="Burmese SRT ဒီမှာပေါ်လာပါမယ်"></textarea><button id="downloadSrt" class="outline-btn" type="button">↓ Burmese SRT Download</button><div id="trstatus" class="status" aria-live="polite"></div></section>
@@ -53,6 +54,13 @@
   </main>
   <script>
     (()=>{const open=document.getElementById('apiSidebarOpen'),backdrop=document.getElementById('apiSidebarBackdrop'),close=document.getElementById('apiSidebarClose');const show=()=>{backdrop.hidden=false;open.setAttribute('aria-expanded','true');document.body.classList.add('api-sidebar-open');close.focus()};const hide=()=>{backdrop.hidden=true;open.setAttribute('aria-expanded','false');document.body.classList.remove('api-sidebar-open');open.focus()};open.addEventListener('click',show);close.addEventListener('click',hide);backdrop.addEventListener('click',e=>{if(e.target===backdrop)hide()});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!backdrop.hidden)hide()})})();
+  </script>
+  <script>
+    document.getElementById('step1ToStep2')?.addEventListener('click', () => {
+      const target = document.getElementById('originalSrt');
+      target?.closest('.card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      target?.focus({ preventScroll: true });
+    });
   </script>
   <script src="/app.js?v=8.0.0"></script>
 </body>
